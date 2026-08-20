@@ -128,7 +128,7 @@ img{max-width:100%;display:block}
 /* header */
 header{position:sticky;top:0;z-index:40;background:var(--header-bg);backdrop-filter:blur(9px);border-bottom:1px solid var(--line)}
 .nav{display:flex;align-items:center;justify-content:space-between;gap:1rem;height:74px}
-.brand{display:flex;flex-direction:column;line-height:1.05}
+.brand{display:flex;flex-direction:column;line-height:1.05;flex-shrink:0}
 .brand b{font-weight:700;font-size:1.18rem;letter-spacing:.01em;color:var(--text)}
 .brand span{font-size:.68rem;color:var(--muted);letter-spacing:.02em;margin-top:3px}
 .menu{display:flex;align-items:center;gap:1.2rem}
