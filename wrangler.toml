@@ -1,0 +1,26 @@
+name = "alta-kundenportal"
+main = "src/index.js"
+compatibility_date = "2026-08-01"
+
+# Liefert public/portal.html und alles andere unter /public direkt aus.
+# Anfragen an /api/* werden stattdessen vom Code in src/index.js beantwortet.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# R2-Bucket, in dem die hochgeladenen Dateien liegen.
+# Vorher einmalig anlegen mit: npx wrangler r2 bucket create alta-kundenportal
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "alta-kundenportal"
+
+# Öffentliche Variablen (dürfen im Klartext hier stehen).
+# R2_ACCOUNT_ID findest du im Cloudflare Dashboard rechts oben unter "R2" -> "Übersicht".
+[vars]
+R2_ACCOUNT_ID = "HIER_DEINE_CLOUDFLARE_ACCOUNT_ID_EINTRAGEN"
+R2_BUCKET_NAME = "alta-kundenportal"
+
+# Geheime Werte NICHT hier eintragen! Siehe README.md, Schritt 4.
+# Diese zwei Befehle im Terminal ausfuehren, sobald das Projekt existiert:
+#   npx wrangler secret put R2_ACCESS_KEY_ID
+#   npx wrangler secret put R2_SECRET_ACCESS_KEY
