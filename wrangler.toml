@@ -2,25 +2,47 @@ name = "alta-kundenportal"
 main = "src/index.js"
 compatibility_date = "2026-08-01"
 
-# Liefert public/portal.html und alles andere unter /public direkt aus.
-# Anfragen an /api/* werden stattdessen vom Code in src/index.js beantwortet.
+# Liefert public/index.html (das Kundenportal, ehemals portal.html) und
+# public/request-access.html direkt aus. Anfragen an /api/* werden
+# stattdessen vom Code in src/index.js beantwortet.
 [assets]
 directory = "./public"
 binding = "ASSETS"
 
-# R2-Bucket, in dem die hochgeladenen Dateien liegen.
-# Vorher einmalig anlegen mit: npx wrangler r2 bucket create alta-kundenportal
-[[r2_buckets]]
-binding = "BUCKET"
-bucket_name = "alta-kundenportal"
+# Speicher fuer Zugriffsanfragen ueber /api/request-access (Personen ohne
+# bestehenden Cloudflare-Access-Zugang). Admins sehen/bearbeiten sie unter
+# /api/access-requests.
+[[kv_namespaces]]
+binding = "REQUESTS"
+id = "b53e83d645ec4b80bbc3a996b7e82e25"
 
-# Öffentliche Variablen (dürfen im Klartext hier stehen).
-# R2_ACCOUNT_ID findest du im Cloudflare Dashboard rechts oben unter "R2" -> "Übersicht".
+# Oeffentliche Variablen (duerfen im Klartext hier stehen).
 [vars]
-R2_ACCOUNT_ID = "HIER_DEINE_CLOUDFLARE_ACCOUNT_ID_EINTRAGEN"
-R2_BUCKET_NAME = "alta-kundenportal"
+# Backblaze B2 (S3-kompatibler Speicher fuer die hochgeladenen Kundendateien
+# -- NICHT Cloudflare R2, trotz des frueheren Bucket-Namens "alta-kundenportal").
+B2_REGION = "eu-central-003"
+B2_BUCKET_NAME = "alta-kundenportal"
+B2_ENDPOINT = "s3.eu-central-003.backblazeb2.com"
 
-# Geheime Werte NICHT hier eintragen! Siehe README.md, Schritt 4.
-# Diese zwei Befehle im Terminal ausfuehren, sobald das Projekt existiert:
-#   npx wrangler secret put R2_ACCESS_KEY_ID
-#   npx wrangler secret put R2_SECRET_ACCESS_KEY
+# Hostname der Cloudflare-Access-Applikation, die vor diesem Worker sitzt --
+# wird genutzt, um beim Freigeben einer Zugriffsanfrage die richtige
+# Access-Policy zu finden. Aktuell laeuft das Portal unter der workers.dev-
+# Adresse (siehe Links auf der Hauptwebsite, z.B. index.html/kontakt.html);
+# falls stattdessen eine eigene Subdomain eingerichtet wird, hier anpassen.
+PORTAL_HOSTNAME = "alta-kundenportal.alta-engineering.workers.dev"
+
+# Origin der Hauptwebsite (fuer CORS auf /api/request-access).
+MAIN_SITE_ORIGIN = "https://alta-engineering.ch"
+
+# Geheime Werte NICHT hier eintragen! Auf dem live Worker bereits gesetzt
+# (per "npx wrangler secret list --name alta-kundenportal" geprueft am
+# 2026-09-08): B2_KEY_ID, B2_APPLICATION_KEY, CF_API_TOKEN, CF_ACCOUNT_ID.
+# CF_ACCOUNT_ID liegt dort bewusst als Secret (nicht als [vars]-Eintrag) --
+# darum hier nicht doppelt als Var eintragen, sonst gibt es zwei Bindings
+# mit demselben Namen. Falls einer dieser Werte neu gesetzt werden muss:
+#   npx wrangler secret put B2_KEY_ID
+#   npx wrangler secret put B2_APPLICATION_KEY
+#   npx wrangler secret put CF_API_TOKEN
+#   npx wrangler secret put CF_ACCOUNT_ID
+# (CF_API_TOKEN braucht die Berechtigung "Access: Apps and Policies: Edit"
+# fuer den Account, damit /api/access-requests/approve funktioniert.)

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zugang anfragen — Alta Engineering AG</title>
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: light;
+  --bg:#ffffff; --alt:#f5f7f9; --surface:#ffffff; --surface-2:#f0f3f6; --chip:#eaf1f8;
+  --text:#1b2531; --muted:#586573; --line:#e4e8ed; --line-2:#d3d9e0;
+  --accent:#215d92; --accent-dark:#184a78; --btn:#215d92; --btn-hover:#184a78;
+  --header-bg:rgba(255,255,255,.9); --shadow:rgba(20,30,45,.09);
+  --ok:#1c7a4a; --err:#b23a2f;
+  --maxw:620px; --gutter:clamp(18px,4.5vw,56px); --radius:10px;
+  --font:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#0d1218; --alt:#121a23; --surface:#16202b; --surface-2:#1c2833; --chip:rgba(96,168,235,.14);
+  --text:#e7edf3; --muted:#94a3b2; --line:#22303c; --line-2:#2f3f4d;
+  --accent:#5aa6ec; --accent-dark:#82bef2; --btn:#2f74b8; --btn-hover:#3d86cd;
+  --header-bg:rgba(13,18,24,.82); --shadow:rgba(0,0,0,.5);
+  --ok:#4fce8f; --err:#ea6f63;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme]){
+    color-scheme: dark;
+    --bg:#0d1218; --alt:#121a23; --surface:#16202b; --surface-2:#1c2833; --chip:rgba(96,168,235,.14);
+    --text:#e7edf3; --muted:#94a3b2; --line:#22303c; --line-2:#2f3f4d;
+    --accent:#5aa6ec; --accent-dark:#82bef2; --btn:#2f74b8; --btn-hover:#3d86cd;
+    --header-bg:rgba(13,18,24,.82); --shadow:rgba(0,0,0,.5);
+    --ok:#4fce8f; --err:#ea6f63;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);color:var(--text);background:var(--bg);line-height:1.6;-webkit-font-smoothing:antialiased;
+  background-image:linear-gradient(var(--line) 1px, transparent 1px),linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size:42px 42px;background-attachment:fixed;
+}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:clamp(40px,8vw,80px) var(--gutter)}
+a{color:var(--accent)}
+.kicker{font-size:.78rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-family:var(--mono)}
+h1{font-weight:700;font-size:clamp(1.6rem,4vw,2.1rem);letter-spacing:-.02em;margin:.6rem 0 .6rem}
+.sub{color:var(--muted);margin-bottom:2rem}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:clamp(1.4rem,4vw,2rem);box-shadow:0 10px 26px var(--shadow)}
+label{display:block;font-size:.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-family:var(--mono);margin-bottom:.35rem}
+.field{margin-bottom:1.1rem}
+input,textarea{width:100%;font-family:var(--font);font-size:.95rem;color:var(--text);background:var(--surface-2);border:1px solid var(--line-2);border-radius:6px;padding:.7rem .85rem}
+textarea{resize:vertical;min-height:80px}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+button{width:100%;padding:.85rem 1.2rem;font-weight:600;font-size:.95rem;border-radius:6px;border:0;background:var(--btn);color:#fff;cursor:pointer;transition:.2s}
+button:hover{background:var(--btn-hover)}
+button:disabled{opacity:.6;cursor:default}
+.msg{margin-top:1rem;font-size:.9rem;padding:.8rem 1rem;border-radius:8px}
+.msg.ok{background:rgba(28,122,74,.1);color:var(--ok);border:1px solid rgba(28,122,74,.3)}
+.msg.err{background:rgba(178,58,47,.1);color:var(--err);border:1px solid rgba(178,58,47,.3)}
+.back{display:inline-block;margin-top:2rem;font-size:.88rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">Kundenportal</div>
+  <h1>Zugang anfragen</h1>
+  <p class="sub">Trag deine Angaben ein — Alta Engineering schaltet dich danach für den Kundenbereich frei. Du bekommst keine automatische Antwort; bei Rückfragen meldet sich das Team direkt bei dir.</p>
+
+  <div class="panel">
+    <form id="form">
+      <div class="field">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" required>
+      </div>
+      <div class="field">
+        <label for="email">E-Mail-Adresse</label>
+        <input type="email" id="email" name="email" required>
+      </div>
+      <div class="field">
+        <label for="company">Firma (optional)</label>
+        <input type="text" id="company" name="company">
+      </div>
+      <div class="field">
+        <label for="message">Nachricht (optional)</label>
+        <textarea id="message" name="message" placeholder="z.B. worum es geht"></textarea>
+      </div>
+      <!-- Verstecktes Feld gegen automatisierten Spam - fuer Menschen unsichtbar -->
+      <div class="hp">
+        <label for="website">Website</label>
+        <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+      </div>
+      <button type="submit" id="submitBtn">Zugang anfragen</button>
+      <div id="msg"></div>
+    </form>
+    <a class="back" href="https://alta-engineering.ch">&larr; Zurück zur Website</a>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  try { var saved = localStorage.getItem('theme'); if (saved) root.setAttribute('data-theme', saved); } catch(e){}
+})();
+
+var API_BASE = ""; // gleiche Adresse, leer lassen
+
+document.getElementById('form').addEventListener('submit', function(e){
+  e.preventDefault();
+  var btn = document.getElementById('submitBtn');
+  var msg = document.getElementById('msg');
+  msg.innerHTML = '';
+  btn.disabled = true;
+  btn.textContent = 'Wird gesendet …';
+
+  var payload = {
+    name: document.getElementById('name').value,
+    email: document.getElementById('email').value,
+    company: document.getElementById('company').value,
+    message: document.getElementById('message').value,
+    website: document.getElementById('website').value
+  };
+
+  fetch(API_BASE + '/api/request-access', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).then(function(r){ return r.json().then(function(data){ return { ok: r.ok, data: data }; }); })
+    .then(function(res){
+      if (res.ok) {
+        document.getElementById('form').reset();
+        msg.innerHTML = '<div class="msg ok">Danke! Deine Anfrage ist eingegangen, Alta Engineering meldet sich, sobald der Zugang freigeschaltet ist.</div>';
+        btn.textContent = 'Gesendet';
+      } else {
+        msg.innerHTML = '<div class="msg err">' + (res.data.error || 'Etwas ist schiefgelaufen. Bitte später nochmal versuchen.') + '</div>';
+        btn.disabled = false;
+        btn.textContent = 'Zugang anfragen';
+      }
+    })
+    .catch(function(){
+      msg.innerHTML = '<div class="msg err">Netzwerkfehler. Bitte später nochmal versuchen.</div>';
+      btn.disabled = false;
+      btn.textContent = 'Zugang anfragen';
+    });
+});
+</script>
+</body>
+</html>
