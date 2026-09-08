@@ -93,26 +93,39 @@ gebaut, aber nie eingecheckt wurden:
 - **`package.json`** hatte `aws4fetch` als Dependency, aber nicht `fast-xml-parser` (wird für das
   Parsen der B2-XML-Listing-Antworten gebraucht) — ergänzt.
 
-### 2.3 Offene Punkte
+### 2.3 Nachtrag (2026-09-08, zweite Session): Offene Punkte aus 2.2 erledigt
 
-- **KV-Namespace-ID fehlt** in `wrangler.toml` (Platzhalter `HIER_KV_NAMESPACE_ID_EINTRAGEN`).
-  Erzeugen mit `npx wrangler kv namespace create REQUESTS` (falls sie nicht schon existiert — dann
-  reicht `npx wrangler kv namespace list`, um die ID der bestehenden zu finden) und eintragen.
-- **B2-Variablen** (`B2_REGION`, `B2_BUCKET_NAME`, `B2_ENDPOINT`) und **`CF_ACCOUNT_ID`** sind mit
-  Platzhaltern befüllt — echte Werte stehen im Backblaze-Dashboard (Buckets → Bucket auswählen) bzw.
-  im Cloudflare-Dashboard (Account-ID unten rechts auf jeder Account-Seite).
-- **Secrets** (`B2_KEY_ID`, `B2_APPLICATION_KEY`, `CF_API_TOKEN`) sind absichtlich nicht im Repo —
-  müssen per `npx wrangler secret put <NAME>` gesetzt werden (einmalig, landen dann bei Cloudflare).
-  `CF_API_TOKEN` braucht die Berechtigung „Access: Apps and Policies: Edit", sonst schlägt das
-  Freigeben von Zugriffsanfragen fehl.
-- **`public/request-access.html` ist eine Rekonstruktion**, siehe oben — bei Gelegenheit mit dem
-  Original abgleichen, falls Abweichungen stören.
-- **Push zu GitHub:** Diese Session hat das Repo nur lesend (öffentlicher HTTPS-Clone ohne
-  Schreibrechte) geklont und konnte die hier beschriebenen Korrekturen daher **nicht selbst pushen**.
-  Falls eine künftige Claude-Code-Session ebenfalls keinen Schreibzugriff hat: Dateien wie gewohnt
-  bearbeiten, dann den Nutzer bitten, den Commit/Push selbst auszuführen (z.B. via github.dev oder
-  GitHub Desktop, siehe `README.md` Kapitel 4) — oder, falls ein lokal geklontes Repo mit
-  eingerichtetem Git-Auth verfügbar ist, darüber pushen.
+Eine Folge-Session mit lokalem Git-Push-Zugriff und einem bereits per `wrangler login`
+authentifizierten Cloudflare-Account (`m.kueng@alta-engineering.ch`) hat die oben offenen Punkte
+abgeglichen und korrigiert, statt sie zu rekonstruieren:
+
+- **KV-Namespace-ID**: existierte bereits (`npx wrangler kv namespace list`) —
+  `b53e83d645ec4b80bbc3a996b7e82e25` — jetzt in `wrangler.toml` eingetragen, kein Platzhalter mehr.
+- **B2-Variablen und `PORTAL_HOSTNAME`/`MAIN_SITE_ORIGIN`**: aus der laufenden Deployment-Konfiguration
+  ausgelesen (`npx wrangler versions view <id> --name alta-kundenportal` zeigt alle nicht-geheimen
+  Bindings des zuletzt deployten Workers) und in `wrangler.toml` übernommen: `B2_REGION =
+  "eu-central-003"`, `B2_BUCKET_NAME = "alta-kundenportal"`, `B2_ENDPOINT =
+  "s3.eu-central-003.backblazeb2.com"`.
+- **`CF_ACCOUNT_ID`**: liegt auf dem live Worker bereits als **Secret**, nicht als Var — deshalb
+  bewusst *nicht* in `[vars]` eingetragen (sonst zwei Bindings mit demselben Namen beim nächsten
+  Deploy). `npx wrangler whoami` bestätigt dieselbe Account-ID (`85793a67c632f0040b6bba4b57abad78`),
+  falls sie mal neu gesetzt werden muss.
+- **Secrets** (`B2_KEY_ID`, `B2_APPLICATION_KEY`, `CF_API_TOKEN`, `CF_ACCOUNT_ID`): alle vier waren
+  laut `npx wrangler secret list --name alta-kundenportal` bereits gesetzt — nicht angetastet, keine
+  neuen Werte abgefragt.
+- **`public/request-access.html`**: die Rekonstruktion aus 2.2 wich strukturell deutlich vom Original
+  ab (anderes Layout, andere Feld-Reihenfolge/IDs). Ersetzt durch einen direkten `curl`-Abzug von
+  `GET /request-access` der Live-Instanz (öffentlicher, nicht hinter Access liegender Endpoint) —
+  jetzt 1:1 identisch mit Produktion.
+- **`package.json`**: `wrangler` steht dort noch auf `^3.90.0`, während Deploys/diese Session
+  `wrangler@4.129.1` (via `npx wrangler`) genutzt haben — funktioniert (lokales `wrangler dev` lief
+  fehlerfrei, nur mit Versions-Warnung), aber bei Gelegenheit lohnt sich `npm install --save-dev
+  wrangler@4`.
+- **Push**: erfolgreich, dieser lokale Klon hatte Schreibzugriff auf
+  `github.com/altaengineering/altaengineering-website`.
+
+Lokal mit `npx wrangler dev` gegengecheckt: Worker startet ohne Fehler, `GET /` und
+`GET /request-access` liefern beide `200`.
 
 ### 2.4 Lokale Entwicklung
 
