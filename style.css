@@ -127,22 +127,18 @@ img{max-width:100%;display:block}
 /* header */
 header{position:sticky;top:0;z-index:40;background:var(--header-bg);backdrop-filter:blur(9px);border-bottom:1px solid var(--line)}
 .nav{display:flex;align-items:center;justify-content:space-between;gap:1rem;height:74px}
-.brand{display:flex;flex-direction:column;line-height:1.05;flex-shrink:0}
-.brand b{font-weight:700;font-size:1.18rem;letter-spacing:.01em;color:var(--text)}
-.brand span{font-size:.68rem;color:var(--muted);letter-spacing:.02em;margin-top:3px}
+.brand{display:flex;align-items:center;flex-shrink:0}
+.brand img{height:32px;width:auto;display:block}
 .menu{display:flex;align-items:center;gap:1.2rem}
 .menu a{font-size:.88rem;font-weight:500;color:var(--muted);white-space:nowrap;transition:color .18s}
 .menu a:hover,.menu a.active{color:var(--text)}
 .menu a.active{color:var(--accent)}
 .menu a.cta{background:var(--btn);color:#fff;padding:.5rem 1rem;border-radius:6px}
 .menu a.cta:hover{background:var(--btn-hover)}
-.menu a.flyer{display:inline-flex;align-items:center;gap:.35rem;color:var(--accent);border:1px solid var(--accent);padding:.44rem .8rem;border-radius:6px}
-.menu a.flyer:hover{background:var(--accent);color:#fff}
-.menu a.flyer svg{width:14px;height:14px;flex-shrink:0}
 .nav-actions{display:flex;align-items:center;gap:.5rem}
-.theme-toggle{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:8px;border:1px solid var(--line-2);background:var(--surface);color:var(--text);cursor:pointer;transition:.2s}
-.theme-toggle:hover{border-color:var(--accent);color:var(--accent)}
-.theme-toggle svg{width:19px;height:19px}
+.theme-toggle,.flyer-btn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:8px;border:1px solid var(--line-2);background:var(--surface);color:var(--text);cursor:pointer;transition:.2s}
+.theme-toggle:hover,.flyer-btn:hover{border-color:var(--accent);color:var(--accent)}
+.theme-toggle svg,.flyer-btn svg{width:19px;height:19px}
 .theme-toggle .sun{display:none}
 .theme-toggle .moon{display:block}
 :root[data-theme="dark"] .theme-toggle .moon{display:none}
@@ -164,16 +160,22 @@ header{position:sticky;top:0;z-index:40;background:var(--header-bg);backdrop-fil
   .burger.on span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
 }
 
-/* home hero (two-column with image) */
-.hero{background:var(--alt);border-bottom:1px solid var(--line)}
-.hero .wrap{padding:clamp(44px,6vw,80px) var(--gutter)}
-.hero-inner{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(2rem,5vw,4.5rem);align-items:center}
-@media(max-width:900px){.hero-inner{grid-template-columns:1fr;gap:2.2rem}}
-.hero .kicker{font-size:.78rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
-.hero h1{font-weight:700;font-size:clamp(2.1rem,5vw,3.4rem);letter-spacing:-.02em;line-height:1.08;margin-top:.9rem}
-.hero .claim{margin-top:1.2rem;font-size:clamp(1.05rem,1.7vw,1.28rem);color:var(--muted);max-width:44ch}
-.hero-media{aspect-ratio:4/3}
-@media(max-width:900px){.hero-media{aspect-ratio:16/9}}
+/* home hero (full-bleed background photo) */
+.hero{
+  position:relative;
+  background:
+    linear-gradient(100deg, rgba(7,13,22,.93) 0%, rgba(7,13,22,.78) 32%, rgba(7,13,22,.4) 62%, rgba(7,13,22,.12) 100%),
+    url('cnc-fertigung.jpg') center 38% / cover no-repeat;
+  border-bottom:1px solid var(--line);
+}
+.hero .wrap{padding:clamp(110px,17vw,200px) var(--gutter) clamp(84px,12vw,140px)}
+.hero-inner{max-width:640px}
+.hero .kicker{font-size:.78rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#8fc3f0}
+.hero h1{font-weight:700;font-size:clamp(2.3rem,5.6vw,3.8rem);letter-spacing:-.02em;line-height:1.06;margin-top:.9rem;color:#fff}
+.hero .claim{margin-top:1.2rem;font-size:clamp(1.05rem,1.7vw,1.3rem);color:rgba(255,255,255,.88);max-width:46ch}
+.hero .btn-ghost{color:#fff;border-color:rgba(255,255,255,.5)}
+.hero .btn-ghost:hover{border-color:#fff;color:#fff;background:rgba(255,255,255,.1)}
+@media(max-width:640px){.hero{background-position:65% 38%}}
 
 /* page hero (subpages) */
 .phero{background:var(--alt);border-bottom:1px solid var(--line)}
