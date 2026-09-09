@@ -119,11 +119,10 @@ img{max-width:100%;display:block}
 
 /* utility bar */
 .util{background:var(--alt);border-bottom:1px solid var(--line);font-size:.85rem;color:var(--muted)}
-.util .wrap{display:flex;justify-content:space-between;align-items:center;height:40px;gap:1.4rem}
+.util .wrap{display:flex;justify-content:flex-end;align-items:center;height:40px;gap:1.4rem}
 .util a{color:var(--muted)}
 .util a:hover{color:var(--accent)}
 .util .u-r{display:flex;gap:1.4rem}
-@media(max-width:640px){.util .u-l span{display:none}}
 
 /* header */
 header{position:sticky;top:0;z-index:40;background:var(--header-bg);backdrop-filter:blur(9px);border-bottom:1px solid var(--line)}
@@ -195,7 +194,7 @@ header{position:sticky;top:0;z-index:40;background:var(--header-bg);backdrop-fil
 .head p{margin-top:.8rem;color:var(--muted)}
 
 /* arbeitsbereiche — image cards */
-.areas{display:grid;grid-template-columns:repeat(4,1fr);gap:1.3rem}
+.areas{display:grid;grid-template-columns:repeat(3,1fr);gap:1.3rem}
 @media(max-width:900px){.areas{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:540px){.areas{grid-template-columns:1fr}}
 .area{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;transition:border-color .2s,box-shadow .2s,transform .2s}
