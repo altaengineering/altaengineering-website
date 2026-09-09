@@ -59,15 +59,17 @@ styles = {
 
 SERVICES = [
     ("Konstruktion",
-     "Vom Konzept bis zur fertigungsreifen Zeichnung — effiziente Ausführung Ihrer Projekte."),
+     "Vom Konzept bis zur fertigungsreifen Zeichnung: effiziente Ausführung Ihrer Projekte."),
     ("Entwicklung + Design",
-     "Produkte und Maschinen entwickeln — funktional, herstellbar und wirtschaftlich."),
+     "Funktionale, herstellbare und wirtschaftliche Entwicklung von Produkten und Maschinen."),
     ("CAD-Support",
      "Entlastung in Ihrem CAD-System, vor Ort oder remote, bei Auftragsspitzen."),
     ("Management-Systeme",
      "Aufbau und Aufrechterhaltung nach ISO 9001, 14001, 45001 und EN 1090."),
     ("Projektleitung",
      "Termin-, Kosten- und Qualitätsverantwortung als Schnittstelle zu Konstruktion und Fertigung."),
+    ("Berechnung",
+     "Festigkeits- und Tragfähigkeitsnachweise für Bauteile im Maschinen-, Anlagen- und Stahlbau."),
 ]
 
 STATS = [("60+", "Kunden"), ("4", "Normen"), ("8", "CAD-Systeme"), ("14", "Mitarbeitende")]
@@ -144,7 +146,7 @@ def build():
     story.append(Spacer(1, 3))
     intro = ("Alta Engineering AG ist ein Ingenieurbüro in Weggis am Vierwaldstättersee. "
              "Ein leistungsfähiges Team von 14 Mitarbeitenden übernimmt Ihre Konstruktions- "
-             "und Entwicklungsaufgaben — vollständig oder als Ergänzung Ihrer eigenen Kapazitäten. "
+             "und Entwicklungsaufgaben, vollständig oder als Ergänzung Ihrer eigenen Kapazitäten. "
              "Unsere erfahrenen Fachleute unterstützen Sie vor Ort oder erledigen Ihre Arbeiten in "
              "unserem Büro: flexibel, belastbar und vertraut mit acht CAD-Systemen. Zufriedene und "
              "erfolgreiche Kunden sind die Basis unseres Erfolgs.")
@@ -180,7 +182,7 @@ def build():
     why_row1 = [why_cell(*WHY[0]), why_cell(*WHY[1])]
     why_row2 = [why_cell(*WHY[2]), why_cell(*WHY[3])]
     why_col_w = (PAGE_W - 2 * MARGIN) / 2.0
-    why_table = Table([why_row1, why_row2], colWidths=[why_col_w] * 2, rowHeights=[14 * mm, 14 * mm])
+    why_table = Table([why_row1, why_row2], colWidths=[why_col_w] * 2)
     why_table.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("LEFTPADDING", (0, 0), (-1, -1), 10),
@@ -202,21 +204,18 @@ def build():
         return [Paragraph(title, styles["svc_title"]), Paragraph(body, styles["svc_body"])]
 
     row1 = [svc_cell(t, b) for t, b in SERVICES[:3]]
-    row2_pad = [svc_cell(t, b) for t, b in SERVICES[3:]] + [[Paragraph("", styles["svc_body"])]]
+    row2 = [svc_cell(t, b) for t, b in SERVICES[3:6]]
     col_w = (PAGE_W - 2 * MARGIN - 2 * 6) / 3.0
-    svc_table = Table([row1, row2_pad], colWidths=[col_w] * 3, rowHeights=[21 * mm, 21 * mm])
+    svc_table = Table([row1, row2], colWidths=[col_w] * 3)
     svc_table.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("BOX", (0, 0), (0, 0), 0, WHITE),
         ("LEFTPADDING", (0, 0), (-1, -1), 10),
         ("RIGHTPADDING", (0, 0), (-1, -1), 10),
         ("TOPPADDING", (0, 0), (-1, -1), 9),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
         ("BACKGROUND", (0, 0), (-1, -1), ALT_BG),
-        ("BOX", (0, 0), (2, 0), 0.6, LINE),
-        ("BOX", (0, 1), (1, 1), 0.6, LINE),
-        ("INNERGRID", (0, 0), (2, 0), 0.6, LINE),
-        ("INNERGRID", (0, 1), (1, 1), 0.6, LINE),
+        ("BOX", (0, 0), (-1, -1), 0.6, LINE),
+        ("INNERGRID", (0, 0), (-1, -1), 0.6, LINE),
     ]))
     story.append(svc_table)
     story.append(Spacer(1, 10))
@@ -240,8 +239,8 @@ def build():
     story.append(norm_table)
     story.append(Spacer(1, 10))
 
-    cta = ("<b>Reden wir über Ihr Projekt.</b> Erzählen Sie uns von Ihrer Aufgabe — "
-           "wir melden uns kurzfristig mit einer ehrlichen Einschätzung. "
+    cta = ("<b>Reden wir über Ihr Projekt.</b> Erzählen Sie uns von Ihrer Aufgabe. "
+           "Wir melden uns kurzfristig mit einer ehrlichen Einschätzung. "
            "Kontakt: +41 41 390 10 50 · info@alta-engineering.ch")
     story.append(Paragraph(cta, ParagraphStyle("cta", parent=styles["body"], textColor=TEXT, fontSize=10.2)))
 

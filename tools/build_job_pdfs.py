@@ -197,7 +197,7 @@ def build_job(job):
         Paragraph(INTRO, styles["body"]),
         Spacer(1, 16),
 
-        Paragraph("<b>Jetzt bewerben:</b> info@alta-engineering.ch — auch als "
+        Paragraph("<b>Jetzt bewerben:</b> info@alta-engineering.ch. Auch als "
                   "Initiativbewerbung, wenn Sie an einer anderen Stelle interessiert sind.",
                   styles["cta"]),
     ]
