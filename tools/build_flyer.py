@@ -10,6 +10,9 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer, Table,
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
 from reportlab.pdfgen import canvas as canvas_mod
+from reportlab.lib.utils import ImageReader
+
+LOGO_PATH = os.path.join(os.path.dirname(__file__), "logo.png")
 
 # Brand palette (from style.css :root)
 ACCENT = HexColor("#215d92")
@@ -95,10 +98,12 @@ def header_footer(c: canvas_mod.Canvas, doc):
     c.setFillColor(HexColor("#12324f"))
     c.rect(0, PAGE_H - 3, PAGE_W, 3, stroke=0, fill=1)
 
+    logo_w = 40 * mm
+    logo_h = logo_w * (153 / 410)
+    c.drawImage(ImageReader(LOGO_PATH), MARGIN, PAGE_H - 7 * mm - logo_h,
+                width=logo_w, height=logo_h, mask="auto")
     c.setFillColor(WHITE)
-    c.setFont("Helvetica-Bold", 24)
-    c.drawString(MARGIN, PAGE_H - 20 * mm, "Alta Engineering AG")
-    c.setFont("Helvetica", 11.5)
+    c.setFont("Helvetica", 11)
     c.drawString(MARGIN, PAGE_H - 27 * mm, "Konstruktion · Entwicklung · CAD-Support · Projektleitung")
     c.setFillColor(HexColor("#bcd4ec"))
     c.setFont("Helvetica", 9.5)

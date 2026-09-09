@@ -136,6 +136,9 @@ header{position:sticky;top:0;z-index:40;background:var(--header-bg);backdrop-fil
 .menu a.active{color:var(--accent)}
 .menu a.cta{background:var(--btn);color:#fff;padding:.5rem 1rem;border-radius:6px}
 .menu a.cta:hover{background:var(--btn-hover)}
+.menu a.flyer{display:inline-flex;align-items:center;gap:.35rem;color:var(--accent);border:1px solid var(--accent);padding:.44rem .8rem;border-radius:6px}
+.menu a.flyer:hover{background:var(--accent);color:#fff}
+.menu a.flyer svg{width:14px;height:14px;flex-shrink:0}
 .nav-actions{display:flex;align-items:center;gap:.5rem}
 .theme-toggle{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:8px;border:1px solid var(--line-2);background:var(--surface);color:var(--text);cursor:pointer;transition:.2s}
 .theme-toggle:hover{border-color:var(--accent);color:var(--accent)}
