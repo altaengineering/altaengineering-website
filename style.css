@@ -139,6 +139,21 @@ header{position:sticky;top:0;z-index:40;background:var(--header-bg);backdrop-fil
 .theme-toggle,.flyer-btn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:8px;border:1px solid var(--line-2);background:var(--surface);color:var(--text);cursor:pointer;transition:.2s}
 .theme-toggle:hover,.flyer-btn:hover{border-color:var(--accent);color:var(--accent)}
 .theme-toggle svg,.flyer-btn svg{width:19px;height:19px}
+.flyer-btn{position:relative}
+.flyer-btn::after{
+  content:"Firmenflyer (PDF)";
+  position:absolute;top:calc(100% + 9px);left:50%;transform:translateX(-50%) translateY(-4px);
+  background:var(--text);color:var(--bg);font-size:.72rem;font-weight:600;letter-spacing:.01em;
+  padding:.4rem .65rem;border-radius:6px;white-space:nowrap;
+  opacity:0;visibility:hidden;pointer-events:none;transition:opacity .16s ease,transform .16s ease;z-index:60;
+}
+.flyer-btn::before{
+  content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);
+  border:5px solid transparent;border-bottom-color:var(--text);margin-top:-1px;
+  opacity:0;visibility:hidden;pointer-events:none;transition:opacity .16s ease;z-index:60;
+}
+.flyer-btn:hover::after,.flyer-btn:focus-visible::after{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
+.flyer-btn:hover::before,.flyer-btn:focus-visible::before{opacity:1;visibility:visible}
 .theme-toggle .sun{display:none}
 .theme-toggle .moon{display:block}
 :root[data-theme="dark"] .theme-toggle .moon{display:none}
