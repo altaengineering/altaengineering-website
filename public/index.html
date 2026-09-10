@@ -264,16 +264,16 @@ tbody tr:hover{background:var(--surface-2)}
       var whoBox = document.getElementById('whoBox');
       whoBox.innerHTML =
         '<span class="email-mono">' + me.email + '</span>' +
-        '<span class="badge' + (me.isAdmin ? ' admin' : '') + '">' + (me.isAdmin ? 'Admin — sieht alle Ordner' : 'Kunde') + '</span>';
+        '<span class="badge' + (me.isAdmin ? ' admin' : '') + '">' + (me.isAdmin ? 'Admin, sieht alle Ordner' : 'Kunde') + '</span>';
 
       if (me.isAdmin){
         document.getElementById('adminPanel').style.display = '';
         document.getElementById('uploadTargetRow').style.display = '';
         document.getElementById('uploadTarget').value = me.folder;
-        document.getElementById('sharesPanel').style.display = '';
         loadFolders();
-        loadShares();
       }
+      document.getElementById('sharesPanel').style.display = '';
+      loadShares();
       refreshList();
     });
   }
@@ -323,7 +323,7 @@ tbody tr:hover{background:var(--surface-2)}
           '<td class="meta">' + fmtDate(f.uploaded) + '</td>' +
           '<td><div class="actions">' +
             '<a class="iconbtn" href="/api/download?key=' + encodeURIComponent(f.key) + '">Download</a>' +
-            (state.isAdmin ? '<button class="iconbtn" data-share-key="' + f.key + '" data-share-name="' + f.name + '">Freigeben</button>' : '') +
+            '<button class="iconbtn" data-share-key="' + f.key + '" data-share-name="' + f.name + '">Freigeben</button>' +
             '<button class="iconbtn danger" data-key="' + f.key + '">Löschen</button>' +
           '</div></td>';
         rows.appendChild(tr);
@@ -346,7 +346,7 @@ tbody tr:hover{background:var(--surface-2)}
 
   // ---------- Freigabe-Links ----------
   function createShare(key, name){
-    var days = prompt('Freigabe-Link für "' + name + '" — gültig für wie viele Tage?', '14');
+    var days = prompt('Freigabe-Link für "' + name + '": gültig für wie viele Tage?', '14');
     if (days === null) return;
     days = parseFloat(days.replace(',', '.'));
     if (!days || days <= 0){

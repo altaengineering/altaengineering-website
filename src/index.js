@@ -411,26 +411,34 @@ export default {
       return json({ ok: true });
     }
 
-    // --- Admin: Freigabe-Links fuer Personen ohne Access-Zugang ---
+    // --- Freigabe-Links fuer Personen ohne Access-Zugang ---
+    // Jede eingeloggte Person darf Freigabe-Links erstellen, aber nur fuer
+    // Dateien im eigenen Ordner (Admins duerfen wie ueberall sonst auch
+    // fremde Ordner). Beim Einsehen/Zuruecknehmen sieht man dementsprechend
+    // nur die eigenen Links, Admins sehen und verwalten alle.
 
     if (url.pathname === "/api/shares" && request.method === "GET") {
-      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
       const list = await env.SHARES.list({ prefix: "share:" });
       const items = [];
       for (const k of list.keys) {
         const raw = await env.SHARES.get(k.name);
         if (raw) items.push(JSON.parse(raw));
       }
-      items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      return json({ shares: items });
+      const visible = admin
+        ? items
+        : items.filter((s) => (s.createdBy || "").toLowerCase() === email.toLowerCase());
+      visible.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      return json({ shares: visible });
     }
 
     if (url.pathname === "/api/share" && request.method === "POST") {
-      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
       const body = await request.json().catch(() => ({}));
       const fileKeys = Array.isArray(body.fileKeys) ? body.fileKeys.filter(Boolean) : [];
       if (fileKeys.length === 0) {
         return json({ error: "Keine Dateien ausgewaehlt." }, 400);
+      }
+      if (!admin && fileKeys.some((k) => !k.startsWith(ownFolder + "/"))) {
+        return json({ error: "Keine Berechtigung fuer eine der ausgewaehlten Dateien." }, 403);
       }
       const label = (body.label || "").trim().slice(0, 200);
       const expiresAt = (body.expiresAt || "").trim();
@@ -470,11 +478,13 @@ export default {
     }
 
     if (url.pathname === "/api/share-revoke" && request.method === "POST") {
-      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
       const body = await request.json().catch(() => ({}));
       const raw = body.id && (await env.SHARES.get("share:" + body.id));
       if (!raw) return json({ error: "Link nicht gefunden." }, 404);
       const share = JSON.parse(raw);
+      if (!admin && (share.createdBy || "").toLowerCase() !== email.toLowerCase()) {
+        return json({ error: "Keine Berechtigung." }, 403);
+      }
       share.revoked = true;
       await env.SHARES.put("share:" + share.id, JSON.stringify(share));
       return json({ ok: true });
