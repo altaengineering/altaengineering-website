@@ -38,13 +38,13 @@ styles = {
     "h2": ParagraphStyle("h2", fontName="Helvetica-Bold", fontSize=14.5,
                           textColor=TEXT, leading=17, spaceAfter=4),
     "h3": ParagraphStyle("h3", fontName="Helvetica-Bold", fontSize=10.4,
-                          textColor=ACCENT_DARK, leading=13, spaceAfter=3, spaceBefore=10),
+                          textColor=ACCENT_DARK, leading=13, spaceAfter=3, spaceBefore=7),
     "body": ParagraphStyle("body", fontName="Helvetica", fontSize=9.4,
                             textColor=MUTED, leading=13.2),
     "bodydark": ParagraphStyle("bodydark", fontName="Helvetica", fontSize=9.4,
                                 textColor=TEXT, leading=13.4),
     "step": ParagraphStyle("step", fontName="Helvetica", fontSize=9.3,
-                            textColor=TEXT, leading=12.8, spaceAfter=6),
+                            textColor=TEXT, leading=12.4, spaceAfter=4),
     "stepnum": ParagraphStyle("stepnum", fontName="Helvetica-Bold", fontSize=9.3,
                                textColor=WHITE, leading=12.8, alignment=TA_CENTER),
     "ctitle": ParagraphStyle("ctitle", fontName="Helvetica-Bold", fontSize=9.8,
@@ -134,10 +134,10 @@ def header_footer(c: canvas_mod.Canvas, doc):
     c.rect(0, 0, PAGE_W, footer_h, stroke=0, fill=1)
     c.setFillColor(WHITE)
     c.setFont("Helvetica-Bold", 9.5)
-    c.drawString(MARGIN, footer_h - 8 * mm, "Fragen? Stefan Herger oder Michael Küng")
+    c.drawString(MARGIN, footer_h - 8 * mm, "Fragen? Michael Küng")
     c.setFont("Helvetica", 8.6)
     c.setFillColor(HexColor("#b7c0ca"))
-    c.drawString(MARGIN, footer_h - 13 * mm, "s.herger@alta-engineering.ch · m.kueng@alta-engineering.ch")
+    c.drawString(MARGIN, footer_h - 13 * mm, "m.kueng@alta-engineering.ch")
 
     right_x = PAGE_W - MARGIN
     c.setFont("Helvetica", 8.2)
@@ -153,7 +153,7 @@ def build():
         os.path.join(os.path.dirname(__file__), "..", "crashkurs-kundenportal-zeiterfassung.pdf"),
         pagesize=A4,
         leftMargin=MARGIN, rightMargin=MARGIN,
-        topMargin=48 * mm, bottomMargin=28 * mm,
+        topMargin=44 * mm, bottomMargin=22 * mm,
     )
 
     story = []
@@ -164,20 +164,31 @@ def build():
     story.append(Paragraph(
         "Unser sicherer Online-Ordner für Kundendateien: Zeichnungen, Pläne und Dokumente liegen "
         "dort statt als unsicherer E-Mail-Anhang. Jede Person sieht standardmässig nur ihren eigenen "
-        "Ordner, Admins (Stefan, Michael) sehen alle Kundenordner.",
+        "Ordner, Admins sehen alle Kundenordner.",
         styles["body"]))
-    story.append(Spacer(1, 8))
+    story.append(Spacer(1, 6))
     story.append(url_box("alta-kundenportal.alta-engineering.workers.dev"))
-    story.append(Spacer(1, 10))
+    story.append(Spacer(1, 7))
 
-    story.append(Paragraph("Anmelden (kein separates Konto nötig)", styles["h3"]))
+    story.append(Paragraph("Zugang anfordern (einmalig)", styles["h3"]))
+    story.append(Paragraph(
+        "Nötig für alle, die selbständig Dateien hochladen oder Freigabe-Links verschicken wollen. "
+        "Ohne bestätigte Anfrage lässt sich das Kundenportal nicht öffnen.",
+        styles["body"]))
+    story.append(Spacer(1, 4))
+    story.append(steps_table([
+        "Auf alta-engineering.ch (Startseite) zu „Zugang anfragen” gehen.",
+        "Name und deine Alta-Engineering-E-Mail-Adresse eingeben, Formular abschicken.",
+        "Ein Admin bestätigt die Anfrage von Hand. Bis dahin lässt sich im Kundenportal nicht "
+        "einloggen, danach ist der eigene Ordner automatisch angelegt.",
+    ]))
+
+    story.append(Paragraph("Anmelden (kein Passwort nötig)", styles["h3"]))
     story.append(steps_table([
         "Adresse oben im Browser öffnen.",
         "Deine Alta-Engineering-E-Mail-Adresse eingeben und auf „Send login code” klicken.",
         "Code aus der E-Mail eintippen, fertig. Es gibt kein Passwort zu merken, jeder Login läuft "
         "über einen neuen Code per E-Mail.",
-        "Klappt die Anmeldung nicht (E-Mail wird nicht akzeptiert)? Dann ist der Zugang noch nicht "
-        "freigeschaltet. Kurz bei Stefan oder Michael melden, sie schalten die Adresse frei.",
     ]))
 
     story.append(Paragraph("Datei hochladen", styles["h3"]))
@@ -215,17 +226,17 @@ def build():
         "berechnet, dazu die Ferienübersicht (Guthaben, bezogen, Übertrag) und ein Excel-Export im "
         "gewohnten Format.",
         styles["body"]))
-    story.append(Spacer(1, 8))
+    story.append(Spacer(1, 6))
     story.append(url_box("zeiterfassungstool-psi.vercel.app"))
-    story.append(Spacer(1, 10))
+    story.append(Spacer(1, 7))
 
     story.append(Paragraph("Anmelden", styles["h3"]))
     story.append(steps_table([
         "Adresse oben im Browser öffnen.",
         "Mit deiner persönlichen E-Mail-Adresse und dem Passwort aus deinen Zugangsdaten anmelden "
         "(separates Dokument, nicht dasselbe Passwort wie beim Kundenportal).",
-        "Passwort vergessen oder verloren? Stefan oder Michael kontaktieren, sie können es als Admins "
-        "zurücksetzen. Über „Passwort ändern” oben im Menü kannst du es jederzeit selbst ändern.",
+        "Passwort vergessen oder verloren? Michael kontaktieren, er kann es zurücksetzen. Über "
+        "„Passwort ändern” oben im Menü kannst du es auch jederzeit selbst ändern.",
     ]))
 
     story.append(Paragraph("Einen Arbeitstag erfassen", styles["h3"]))
