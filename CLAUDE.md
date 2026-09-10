@@ -1,7 +1,7 @@
 # Alta Engineering — Website & Kundenportal — Projekt-Referenz
 
-**Status (Stand 2026-09-08):** Beide Teile sind live. Dieses Repo enthält *zwei* getrennt deployte
-Dinge nebeneinander:
+**Status (Stand 2026-09-10):** Beide Teile sind live und aktiv in Weiterentwicklung. Dieses Repo
+enthält *zwei* getrennt deployte Dinge nebeneinander:
 
 | Teil | Was | Deployment | Domain |
 |---|---|---|---|
@@ -25,6 +25,37 @@ Claude Code, aber technisch weiterhin korrekt und nützlich als Kontext.
 DNS: `alta-engineering.ch` zeigt per 4× A-Record auf die vier GitHub-Pages-IPs, `www` per CNAME auf
 `altaengineering.github.io`. Verwaltet bei Server Town (Registrar), siehe README Kapitel 6.
 
+### 1.1 Grössere Überarbeitung (Sessions 2026-09-09/10)
+
+- **6. Arbeitsbereich „Berechnung"** ergänzt (`berechnung.html`), Inhalt an den echten
+  join.com-Stelleninseraten orientiert ("Konstruktion und Berechnung von Bauteilen für den
+  Maschinenbau, Anlagenbau, Metallbau und Stahlbau"). Alle Arbeitsbereich-Seiten
+  (Konstruktion/Entwicklung+Design/CAD-Support) wurden inhaltlich ausgebaut (waren zu dünn).
+- **Logo ergänzt** (`logo.png`) — es gibt keine separate Logo-Datei der Firma, das ist aus
+  `favicon-512x512.png` zugeschnitten (grün/blau ALTA-ENGINEERING-Badge). Im Header aller Seiten.
+- **Bildregel:** auf Wunsch des Kunden zeigen **keine** Bilder mehr Personen (auch keine Hände).
+  Alle entsprechenden Fotos wurden durch personenfreie Motive ersetzt (Unsplash/Pexels, freie
+  Lizenz). Auch möglichst wenig Bild-Duplikate zwischen Seiten (jede Seite/Karte ein eigenes Foto,
+  wo möglich).
+- **Homepage-Hero** ist jetzt ein Full-Bleed-Hintergrundbild mit Verlaufsoverlay statt eines
+  2-spaltigen Grids (Bugfix: drei überzählige `</div>` sorgten vorher dafür, dass das Bild als
+  eigener Block unter dem Text statt daneben landete — statt reparieren gleich neu gestaltet).
+- **Mobile-Menü-Bug:** `header` hat `backdrop-filter`, was `header` zur "containing block" für
+  `position:fixed`-Kinder macht. Das Ausklapp-Menü nutzte einen festen `inset:114px`-Wert, der als
+  viewport-relativ gedacht war, aber wegen `backdrop-filter` header-relativ ausgewertet wurde →
+  sichtbare Lücke mit durchscheinendem Hero-Bild. Fix: `top:100%` statt fixem Pixelwert.
+- **Firmenflyer** (`alta-engineering-flyer.pdf`) und **Job-Inserate** (`job-*.pdf`) werden mit
+  reportlab generiert, Skripte in `tools/build_flyer.py` und `tools/build_job_pdfs.py` (Regenerieren:
+  `python tools/build_flyer.py`, braucht `pip install reportlab`). Flyer-Link ist ein kompakter
+  Icon-Button in der Hauptnav (mit CSS-Tooltip beim Hover), nicht mehr ein Text-Button im Menü.
+  Job-PDFs enthalten für Konstrukteur/in EFZ und Techniker/in HF echte Inhalte von den aktuellen
+  join.com-Inseraten, nicht erfunden.
+- **Stilregel (wichtig, gilt für jeden Fliesstext, den Claude für dieses Projekt schreibt):** **keine
+  Gedankenstriche ("—")** als Stilmittel — Michael hat das explizit untersagt. Stattdessen Punkt,
+  Komma oder Doppelpunkt. Echte Bindestriche in zusammengesetzten Wörtern (z.B. „CAD-Support",
+  „Termin-, Kosten- und Qualitätsverantwortung") sind davon nicht betroffen, das ist korrekte
+  Rechtschreibung. Diese Regel ist auch in Claudes persistentem Memory hinterlegt.
+
 ## 2. Kundenportal (Cloudflare Worker)
 
 ### 2.1 Architektur
@@ -33,11 +64,16 @@ DNS: `alta-engineering.ch` zeigt per 4× A-Record auf die vier GitHub-Pages-IPs,
 Browser
   → Cloudflare Access (Login-Gate, prüft E-Mail gegen Access-Policy)
     → Cloudflare Worker (src/index.js)
-        - GET /                    → public/index.html  (Datei-Upload/-Verwaltung)
-        - GET /request-access      → public/request-access.html (öffentlich, kein Login nötig)
-        - POST /api/request-access → öffentlich, schreibt in KV-Namespace REQUESTS
-        - /api/*  (alles andere)   → verlangt Cf-Access-Authenticated-User-Email Header
-        - Dateien                  → Backblaze B2 (S3-kompatibel), via aws4fetch signiert
+        - GET /                       → public/index.html  (Datei-Upload/-Verwaltung/Freigaben)
+        - GET /request-access         → public/request-access.html (öffentlich, kein Login nötig)
+        - POST /api/request-access    → öffentlich, schreibt in KV-Namespace REQUESTS
+        - GET /share/<id>             → public/share.html (öffentlich, kein Login nötig)
+        - GET /api/share-info         → öffentlich, liest KV-Namespace SHARES
+        - GET /api/share-download     → öffentlich, streamt eine Datei aus B2
+        - POST /api/share, GET /api/shares, POST /api/share-revoke
+                                       → verlangen Login (Freigabe-Links verwalten)
+        - /api/*  (alles andere)      → verlangt Cf-Access-Authenticated-User-Email Header
+        - Dateien                     → Backblaze B2 (S3-kompatibel), via aws4fetch signiert
 ```
 
 **Auth-Modell:** Cloudflare Access sitzt vor dem gesamten Worker und prüft den Login (Google/GitHub/
@@ -127,7 +163,37 @@ abgeglichen und korrigiert, statt sie zu rekonstruieren:
 Lokal mit `npx wrangler dev` gegengecheckt: Worker startet ohne Fehler, `GET /` und
 `GET /request-access` liefern beide `200`.
 
-### 2.4 Lokale Entwicklung
+### 2.4 Freigabe-Links (Session 2026-09-10): Dateien an Personen ohne Zugang teilen
+
+Neues Feature, gewünscht für Projektabgaben: **jede eingeloggte Person** (nicht nur Admins) kann
+eigene Dateien per Link an jemanden ohne Cloudflare-Access-Zugang freigeben — nur Download, kein
+Upload, Ablaufdatum pro Link frei wählbar. Admins können wie überall sonst auch Dateien aus fremden
+Ordnern freigeben.
+
+- Neue KV-Namespace `SHARES` (`7b37acfe34d242adbced9f3d7c474a52`, in `wrangler.toml` eingetragen).
+- `POST /api/share` (Login nötig) erstellt einen Link für ausgewählte Dateien + Ablaufdatum;
+  Nicht-Admins nur für Dateien im eigenen Ordner (`fileKeys` muss mit `ownFolder + "/"` beginnen).
+  `GET /api/shares` listet die eigenen (Admins: alle) aktiven Links. `POST /api/share-revoke` zieht
+  einen Link vorzeitig zurück (Nicht-Admins nur eigene).
+- `GET /share/<id>` und `GET /api/share-info`, `GET /api/share-download` sind **öffentlich**, kein
+  Access-Login nötig (wie `/request-access`) — prüfen aber pro Anfrage Ablaufdatum/Revoke-Status
+  und ob die angeforderte Datei wirklich Teil dieses Links ist. `/share/<id>` liefert
+  `public/share.html` aus (eigene, schlanke Seite mit Downloadbuttons für die freigegebenen Dateien).
+- **Cloudflare-Access-Bypass** für die drei öffentlichen Pfade ist bereits eingerichtet (Stand
+  2026-09-10, live verifiziert): in der bestehenden App **„kundenportal oeffentlich"** (Policy
+  „Jeder") wurden drei zusätzliche Destinations ergänzt: `.../share`, `.../api/share-info`,
+  `.../api/share-download`. **Bewusst nicht** `api/share` (ohne Suffix) als Pfad verwendet, das
+  hätte sonst auch die login-pflichtigen `/api/share`, `/api/shares`, `/api/share-revoke`
+  mit-öffentlich gemacht.
+- **Stolperfalle beim Bauen:** `env.ASSETS.fetch()` mit einer Anfrage für `/share.html` direkt
+  liefert nicht den Seiteninhalt, sondern einen 307-Redirect auf die "saubere" URL `/share` (gleiches
+  Verhalten wie Cloudflares automatisches Redirect von `foo.html` auf `/foo`). Der Worker-Code fragt
+  deshalb bewusst `/share` (ohne `.html`) bei `env.ASSETS.fetch()` an, nicht `/share.html`.
+- UI: `public/index.html` hat pro Datei einen "Freigeben"-Button (fragt Gültigkeitsdauer + Label per
+  `prompt()` ab, kopiert den fertigen Link in die Zwischenablage) und ein Panel "Freigabe-Links" zum
+  Einsehen/Zurückziehen bestehender Links.
+
+### 2.5 Lokale Entwicklung
 
 ```
 npm install
