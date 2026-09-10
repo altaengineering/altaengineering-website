@@ -170,6 +170,8 @@ def build_job(job):
         os.path.join(os.path.dirname(__file__), "..", job["file"]), pagesize=A4,
         leftMargin=MARGIN, rightMargin=MARGIN,
         topMargin=48 * mm, bottomMargin=30 * mm,
+        title="Alta Engineering AG - " + job["title"],
+        author="Alta Engineering AG",
     )
     story = [
         Paragraph(job["tag"].upper(), styles["kicker"]),

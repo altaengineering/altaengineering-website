@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Kundenportal — Alta Engineering AG</title>
 <meta name="color-scheme" content="light dark">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -164,6 +167,20 @@ tbody tr:hover{background:var(--surface-2)}
       </div>
     </div>
 
+    <div class="panel" id="accessRequestsPanel" style="display:none">
+      <h2>Zugangsanfragen</h2>
+      <div class="sub">Personen, die über «Zugang anfragen» auf der Website um Zugriff gebeten haben.</div>
+      <div id="accessRequestsTableWrap">
+        <table>
+          <thead>
+            <tr><th>Name</th><th>E-Mail</th><th>Firma</th><th>Nachricht</th><th>Angefragt</th><th></th></tr>
+          </thead>
+          <tbody id="accessRequestRows"></tbody>
+        </table>
+        <div class="empty" id="accessRequestsEmptyState" style="display:none">Keine offenen Anfragen.</div>
+      </div>
+    </div>
+
     <div class="panel">
       <h2>Datei hochladen</h2>
       <div class="sub">Alle Dateitypen erlaubt, auch grosse CAD-/Plandateien.</div>
@@ -271,10 +288,64 @@ tbody tr:hover{background:var(--surface-2)}
         document.getElementById('uploadTargetRow').style.display = '';
         document.getElementById('uploadTarget').value = me.folder;
         loadFolders();
+        document.getElementById('accessRequestsPanel').style.display = '';
+        loadAccessRequests();
       }
       document.getElementById('sharesPanel').style.display = '';
       loadShares();
       refreshList();
+    });
+  }
+
+  // ---------- Zugangsanfragen ----------
+  function fmtDateOnly(iso){
+    return new Date(iso).toLocaleDateString('de-CH', {day:'2-digit',month:'2-digit',year:'numeric'});
+  }
+
+  function loadAccessRequests(){
+    api('/api/access-requests').then(function(res){
+      var rows = document.getElementById('accessRequestRows');
+      var empty = document.getElementById('accessRequestsEmptyState');
+      rows.innerHTML = '';
+      if (!res.requests.length){
+        empty.style.display = '';
+        return;
+      }
+      empty.style.display = 'none';
+      res.requests.forEach(function(r){
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td class="fname">' + (r.name || '–') + '</td>' +
+          '<td class="meta">' + r.email + '</td>' +
+          '<td class="meta">' + (r.company || '–') + '</td>' +
+          '<td class="fname">' + (r.message || '–') + '</td>' +
+          '<td class="meta">' + fmtDateOnly(r.submittedAt) + '</td>' +
+          '<td><div class="actions">' +
+            '<button class="iconbtn" data-approve-id="' + r.id + '">Freigeben</button>' +
+            '<button class="iconbtn danger" data-deny-id="' + r.id + '">Ablehnen</button>' +
+          '</div></td>';
+        rows.appendChild(tr);
+      });
+      rows.querySelectorAll('[data-approve-id]').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          if (!confirm('Diese Person freigeben? Die E-Mail-Adresse wird automatisch zur Access-Policy hinzugefuegt.')) return;
+          api('/api/access-requests/approve', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: btn.getAttribute('data-approve-id') })
+          }).then(loadAccessRequests).catch(function(e){ alert(e.message); });
+        });
+      });
+      rows.querySelectorAll('[data-deny-id]').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          if (!confirm('Diese Anfrage wirklich ablehnen?')) return;
+          api('/api/access-requests/deny', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: btn.getAttribute('data-deny-id') })
+          }).then(loadAccessRequests).catch(function(e){ alert(e.message); });
+        });
+      });
     });
   }
 
