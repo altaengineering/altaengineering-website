@@ -138,6 +138,8 @@ def build():
         pagesize=A4,
         leftMargin=MARGIN, rightMargin=MARGIN,
         topMargin=52 * mm, bottomMargin=32 * mm,
+        title="Alta Engineering AG - Firmenflyer",
+        author="Alta Engineering AG",
     )
 
     story = []
