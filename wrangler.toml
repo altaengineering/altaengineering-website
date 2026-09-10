@@ -16,6 +16,13 @@ binding = "ASSETS"
 binding = "REQUESTS"
 id = "b53e83d645ec4b80bbc3a996b7e82e25"
 
+# Speicher fuer Freigabe-Links (/share/:id) -- damit Admins einzelne Dateien
+# an Personen ohne Access-Zugang verschicken koennen, z.B. fuer eine
+# Projektabgabe. Siehe /api/share* in src/index.js.
+[[kv_namespaces]]
+binding = "SHARES"
+id = "7b37acfe34d242adbced9f3d7c474a52"
+
 # Oeffentliche Variablen (duerfen im Klartext hier stehen).
 [vars]
 # Backblaze B2 (S3-kompatibler Speicher fuer die hochgeladenen Kundendateien

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dateifreigabe — Alta Engineering AG</title>
+<meta name="color-scheme" content="light dark">
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: light;
+  --bg:#ffffff; --alt:#f5f7f9; --surface:#ffffff; --surface-2:#f0f3f6;
+  --text:#1b2531; --muted:#586573; --line:#e4e8ed; --line-2:#d3d9e0;
+  --accent:#215d92; --btn:#215d92; --btn-hover:#184a78;
+  --shadow:rgba(20,30,45,.09);
+  --ok:#1c7a4a; --err:#b23a2f;
+  --maxw:640px; --gutter:clamp(18px,4.5vw,56px); --radius:10px;
+  --font:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#0d1218; --alt:#121a23; --surface:#16202b; --surface-2:#1c2833;
+  --text:#e7edf3; --muted:#94a3b2; --line:#22303c; --line-2:#2f3f4d;
+  --accent:#5aa6ec; --btn:#2f74b8; --btn-hover:#3d86cd;
+  --shadow:rgba(0,0,0,.5);
+  --ok:#4fce8f; --err:#ea6f63;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme]){
+    color-scheme: dark;
+    --bg:#0d1218; --alt:#121a23; --surface:#16202b; --surface-2:#1c2833;
+    --text:#e7edf3; --muted:#94a3b2; --line:#22303c; --line-2:#2f3f4d;
+    --accent:#5aa6ec; --btn:#2f74b8; --btn-hover:#3d86cd;
+    --shadow:rgba(0,0,0,.5);
+    --ok:#4fce8f; --err:#ea6f63;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);color:var(--text);background:var(--bg);line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:clamp(40px,8vw,80px) var(--gutter)}
+.kicker{font-size:.78rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-family:var(--mono)}
+h1{font-weight:700;font-size:clamp(1.5rem,4vw,1.9rem);letter-spacing:-.02em;margin:.6rem 0 .4rem}
+.meta{color:var(--muted);font-size:.9rem;margin-bottom:1.8rem}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 10px 26px var(--shadow);overflow:hidden}
+.file{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem 1.3rem;border-bottom:1px solid var(--line)}
+.file:last-child{border-bottom:0}
+.file-info{min-width:0}
+.file-name{font-weight:600;font-size:.95rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-size{font-size:.8rem;color:var(--muted);margin-top:.15rem}
+.dl{flex-shrink:0;display:inline-flex;align-items:center;gap:.4rem;padding:.55rem 1rem;font-weight:600;font-size:.86rem;border-radius:6px;background:var(--btn);color:#fff;text-decoration:none;transition:.15s}
+.dl:hover{background:var(--btn-hover)}
+.state{padding:2.4rem 1.5rem;text-align:center;color:var(--muted)}
+.state.err{color:var(--err)}
+.back{display:inline-block;margin-top:1.8rem;font-size:.86rem;color:var(--muted)}
+.back:hover{color:var(--accent)}
+#loading{padding:2rem;text-align:center;color:var(--muted)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">Kundenportal</div>
+  <h1 id="title">Dateifreigabe</h1>
+  <p class="meta" id="meta"></p>
+
+  <div id="loading">Wird geladen …</div>
+
+  <div class="panel" id="panel" hidden></div>
+  <div class="panel state err" id="errorState" hidden></div>
+
+  <a class="back" href="https://alta-engineering.ch">&larr; Zur Website von Alta Engineering AG</a>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  try { var saved = localStorage.getItem('theme'); if (saved) root.setAttribute('data-theme', saved); } catch(e){}
+})();
+
+function esc(s){
+  var d = document.createElement('div');
+  d.textContent = s == null ? '' : String(s);
+  return d.innerHTML;
+}
+
+var id = location.pathname.replace(/\/+$/, '').split('/').pop();
+var loading = document.getElementById('loading');
+var panel = document.getElementById('panel');
+var errorState = document.getElementById('errorState');
+var titleEl = document.getElementById('title');
+var metaEl = document.getElementById('meta');
+
+fetch('/api/share-info?id=' + encodeURIComponent(id))
+  .then(function(r){ return r.json().then(function(data){ return { ok: r.ok, data: data }; }); })
+  .then(function(res){
+    loading.hidden = true;
+    if (!res.ok) {
+      errorState.hidden = false;
+      errorState.textContent = res.data.error || 'Dieser Link ist nicht (mehr) gueltig.';
+      return;
+    }
+    var data = res.data;
+    if (data.label) titleEl.textContent = data.label;
+    var expires = data.expiresAt ? new Date(data.expiresAt) : null;
+    metaEl.textContent = data.files.length + (data.files.length === 1 ? ' Datei' : ' Dateien')
+      + (expires ? ' · gültig bis ' + expires.toLocaleDateString('de-CH') : '');
+
+    if (!data.files.length) {
+      errorState.hidden = false;
+      errorState.textContent = 'Zu diesem Link sind keine Dateien mehr verfügbar.';
+      return;
+    }
+
+    panel.hidden = false;
+    data.files.forEach(function(f){
+      var row = document.createElement('div');
+      row.className = 'file';
+      row.innerHTML =
+        '<div class="file-info">' +
+          '<div class="file-name">' + esc(f.name) + '</div>' +
+          '<div class="file-size">' + esc(f.sizeLabel) + '</div>' +
+        '</div>' +
+        '<a class="dl" href="/api/share-download?id=' + encodeURIComponent(id) + '&file=' + encodeURIComponent(f.key) + '">Herunterladen</a>';
+      panel.appendChild(row);
+    });
+  })
+  .catch(function(){
+    loading.hidden = true;
+    errorState.hidden = false;
+    errorState.textContent = 'Netzwerkfehler. Bitte später nochmal versuchen.';
+  });
+</script>
+</body>
+</html>

@@ -196,6 +196,20 @@ tbody tr:hover{background:var(--surface-2)}
       </div>
     </div>
 
+    <div class="panel" id="sharesPanel" style="display:none">
+      <h2>Freigabe-Links</h2>
+      <div class="sub">Links für Personen ohne Kundenportal-Zugang, z.B. für eine Projektabgabe. Jeder Link erlaubt nur den Download der ausgewählten Datei(en) und läuft automatisch ab.</div>
+      <div id="sharesTableWrap">
+        <table>
+          <thead>
+            <tr><th>Bezeichnung</th><th>Datei(en)</th><th>Gültig bis</th><th>Downloads</th><th></th></tr>
+          </thead>
+          <tbody id="shareRows"></tbody>
+        </table>
+        <div class="empty" id="sharesEmptyState" style="display:none">Noch keine Freigabe-Links erstellt.</div>
+      </div>
+    </div>
+
     <p class="foot-note">alta-engineering.ch · Kundenportal läuft geschützt über Cloudflare Access</p>
   </div>
 </main>
@@ -256,7 +270,9 @@ tbody tr:hover{background:var(--surface-2)}
         document.getElementById('adminPanel').style.display = '';
         document.getElementById('uploadTargetRow').style.display = '';
         document.getElementById('uploadTarget').value = me.folder;
+        document.getElementById('sharesPanel').style.display = '';
         loadFolders();
+        loadShares();
       }
       refreshList();
     });
@@ -307,6 +323,7 @@ tbody tr:hover{background:var(--surface-2)}
           '<td class="meta">' + fmtDate(f.uploaded) + '</td>' +
           '<td><div class="actions">' +
             '<a class="iconbtn" href="/api/download?key=' + encodeURIComponent(f.key) + '">Download</a>' +
+            (state.isAdmin ? '<button class="iconbtn" data-share-key="' + f.key + '" data-share-name="' + f.name + '">Freigeben</button>' : '') +
             '<button class="iconbtn danger" data-key="' + f.key + '">Löschen</button>' +
           '</div></td>';
         rows.appendChild(tr);
@@ -317,6 +334,80 @@ tbody tr:hover{background:var(--surface-2)}
           api('/api/delete?key=' + encodeURIComponent(btn.getAttribute('data-key')), { method: 'DELETE' })
             .then(refreshList)
             .catch(function(e){ alert(e.message); });
+        });
+      });
+      rows.querySelectorAll('[data-share-key]').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          createShare(btn.getAttribute('data-share-key'), btn.getAttribute('data-share-name'));
+        });
+      });
+    });
+  }
+
+  // ---------- Freigabe-Links ----------
+  function createShare(key, name){
+    var days = prompt('Freigabe-Link für "' + name + '" — gültig für wie viele Tage?', '14');
+    if (days === null) return;
+    days = parseFloat(days.replace(',', '.'));
+    if (!days || days <= 0){
+      alert('Bitte eine gültige Anzahl Tage eingeben.');
+      return;
+    }
+    var label = prompt('Bezeichnung für den Link (optional, z.B. Projektname):', name) || '';
+    var expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+
+    api('/api/share', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileKeys: [key], label: label, expiresAt: expiresAt })
+    }).then(function(res){
+      try { navigator.clipboard.writeText(res.url); } catch(e){}
+      alert('Link erstellt (in Zwischenablage kopiert):\n\n' + res.url);
+      loadShares();
+    }).catch(function(e){ alert(e.message); });
+  }
+
+  function loadShares(){
+    api('/api/shares').then(function(res){
+      var rows = document.getElementById('shareRows');
+      var empty = document.getElementById('sharesEmptyState');
+      rows.innerHTML = '';
+      var active = res.shares.filter(function(s){ return !s.revoked; });
+      if (!active.length){
+        empty.style.display = '';
+        return;
+      }
+      empty.style.display = 'none';
+      active.forEach(function(s){
+        var expired = new Date(s.expiresAt).getTime() < Date.now();
+        var fileNames = s.files.map(function(f){ return f.name; }).join(', ');
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td class="fname">' + (s.label || '(ohne Bezeichnung)') + '</td>' +
+          '<td class="meta">' + fileNames + '</td>' +
+          '<td class="meta">' + fmtDate(s.expiresAt) + (expired ? ' (abgelaufen)' : '') + '</td>' +
+          '<td class="meta">' + (s.downloadCount || 0) + '</td>' +
+          '<td><div class="actions">' +
+            '<button class="iconbtn" data-copy-id="' + s.id + '">Link kopieren</button>' +
+            '<button class="iconbtn danger" data-revoke-id="' + s.id + '">Zurückziehen</button>' +
+          '</div></td>';
+        rows.appendChild(tr);
+      });
+      rows.querySelectorAll('[data-copy-id]').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          var shareUrl = location.origin + '/share/' + btn.getAttribute('data-copy-id');
+          try { navigator.clipboard.writeText(shareUrl); } catch(e){}
+          alert('Link kopiert:\n\n' + shareUrl);
+        });
+      });
+      rows.querySelectorAll('[data-revoke-id]').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          if (!confirm('Diesen Freigabe-Link wirklich zurückziehen? Er funktioniert danach nicht mehr.')) return;
+          api('/api/share-revoke', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: btn.getAttribute('data-revoke-id') })
+          }).then(loadShares).catch(function(e){ alert(e.message); });
         });
       });
     });
