@@ -24,8 +24,32 @@ const ADMIN_EMAILS = [
   "m.kueng@alta-engineering.ch",
 ];
 
+// Alle festangestellten Mitarbeitenden (inkl. Admins). Dient nur zur Anzeige im Kundenportal
+// ("Mitarbeiter" statt "Kunde" im Badge oben) -- hat keinen Einfluss auf Zugriffsrechte, die
+// laufen weiterhin ausschliesslich ueber die Cloudflare-Access-Policy. Liste manuell nachpflegen,
+// wenn neue Personen dazukommen oder das Unternehmen verlassen.
+const MITARBEITER_EMAILS = [
+  ...ADMIN_EMAILS,
+  "d.gruber@alta-engineering.ch",
+  "f.kurzmeyer@alta-engineering.ch",
+  "m.sidler@alta-engineering.ch",
+  "d.hofmann@alta-engineering.ch",
+  "t.kempf@alta-engineering.ch",
+  "m.czekalla@alta-engineering.ch",
+  "s.steiner@alta-engineering.ch",
+  "s.zihlmann@alta-engineering.ch",
+  "f.christen@alta-engineering.ch",
+  "a.stojkaj@alta-engineering.ch",
+  "s.mohler@alta-engineering.ch",
+  "r.vonlanthen@alta-engineering.ch",
+];
+
 function isAdminEmail(email) {
   return ADMIN_EMAILS.includes(email.toLowerCase());
+}
+
+function isMitarbeiterEmail(email) {
+  return MITARBEITER_EMAILS.includes(email.toLowerCase());
 }
 
 function folderFor(email) {
@@ -294,7 +318,7 @@ export default {
     const ownFolder = folderFor(email);
 
     if (url.pathname === "/api/me" && request.method === "GET") {
-      return json({ email, isAdmin: admin, folder: ownFolder });
+      return json({ email, isAdmin: admin, isMitarbeiter: isMitarbeiterEmail(email), folder: ownFolder });
     }
 
     // --- Admin: offene Zugriffsanfragen verwalten ---

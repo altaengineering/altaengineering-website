@@ -278,10 +278,11 @@ tbody tr:hover{background:var(--surface-2)}
       state.ownFolder = me.folder;
       state.currentFolder = me.folder;
 
+      var rollenText = me.isAdmin ? 'Admin, sieht alle Ordner' : (me.isMitarbeiter ? 'Mitarbeiter' : 'Kunde');
       var whoBox = document.getElementById('whoBox');
       whoBox.innerHTML =
         '<span class="email-mono">' + me.email + '</span>' +
-        '<span class="badge' + (me.isAdmin ? ' admin' : '') + '">' + (me.isAdmin ? 'Admin, sieht alle Ordner' : 'Kunde') + '</span>';
+        '<span class="badge' + (me.isAdmin ? ' admin' : '') + '">' + rollenText + '</span>';
 
       if (me.isAdmin){
         document.getElementById('adminPanel').style.display = '';
