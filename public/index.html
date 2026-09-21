@@ -200,7 +200,10 @@ tbody tr:hover{background:var(--surface-2)}
     </div>
 
     <div class="panel">
-      <h2 id="listTitle">Meine Dateien</h2>
+      <div class="row" style="justify-content:space-between;align-items:baseline">
+        <h2 id="listTitle" style="margin:0">Meine Dateien</h2>
+        <a class="iconbtn" id="zipDownloadLink" href="#" style="display:none">Ordner als ZIP herunterladen</a>
+      </div>
       <div class="sub" id="listSub">Alles, was hier liegt, ist nur für dich (und Stefan / Michael) sichtbar.</div>
       <div id="tableWrap">
         <table>
@@ -381,12 +384,16 @@ tbody tr:hover{background:var(--surface-2)}
     api('/api/list?folder=' + encodeURIComponent(state.currentFolder)).then(function(res){
       var rows = document.getElementById('fileRows');
       var empty = document.getElementById('emptyState');
+      var zipLink = document.getElementById('zipDownloadLink');
       rows.innerHTML = '';
       if (!res.files.length){
         empty.style.display = '';
+        zipLink.style.display = 'none';
         return;
       }
       empty.style.display = 'none';
+      zipLink.href = '/api/download-zip?folder=' + encodeURIComponent(state.currentFolder);
+      zipLink.style.display = '';
       res.files.forEach(function(f){
         var tr = document.createElement('tr');
         tr.innerHTML =
@@ -519,6 +526,15 @@ tbody tr:hover{background:var(--surface-2)}
           statusEl.textContent = 'Fertig';
           barEl.style.width = '100%';
           if (folder === state.currentFolder) refreshList();
+          // Der Worker sieht den Upload selbst nie (Datei geht direkt vom Browser zu B2), daher
+          // hier separat melden, damit Admins per Mail benachrichtigt werden koennen. Bewusst
+          // "fire and forget": ein Fehler hier darf den erfolgreichen Upload nicht als
+          // fehlgeschlagen anzeigen.
+          api('/api/upload-done', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key: res.key, folder: res.folder })
+          }).catch(function(){});
         } else {
           item.classList.add('err');
           statusEl.textContent = 'Fehler (' + xhr.status + ')';
