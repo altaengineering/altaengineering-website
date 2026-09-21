@@ -56,6 +56,50 @@ DNS: `alta-engineering.ch` zeigt per 4× A-Record auf die vier GitHub-Pages-IPs,
   „Termin-, Kosten- und Qualitätsverantwortung") sind davon nicht betroffen, das ist korrekte
   Rechtschreibung. Diese Regel ist auch in Claudes persistentem Memory hinterlegt.
 
+### 1.2 SEO-Überarbeitung (Session 2026-09-21)
+
+Anlass: Michael meldete, die Seite werde "sehr schlecht" gefunden. Vorher schon vorhanden und in
+Ordnung: pro Seite eindeutiger `<title>` und `<meta name="description">`, `robots.txt`,
+`sitemap.xml`, ein JSON-LD `ProfessionalService`-Schema auf `index.html`. Gefunden und behoben:
+
+- **Bilder massiv überdimensioniert:** Alle JPGs im Repo waren Rohformat-Auflösungen direkt aus
+  Kamera/Stockfoto (bis 7952×5304px, `weggis.jpg` allein 6.8MB), angezeigt aber nur in Karten/
+  Hero-Ausschnitten von ein paar hundert Pixeln Breite (`.gallery`, `.area-media`, `.phero-media`,
+  siehe `style.css`). Das kostet Ladezeit und damit Core-Web-Vitals-Punkte, ein reales
+  Google-Rankingsignal, besonders auf Mobile. Alle 15 JPGs mit einem PowerShell-Skript
+  (`System.Drawing`, kein ImageMagick/PIL auf diesem Rechner verfügbar) auf max. 1920px lange Kante
+  reduziert und als JPEG Qualität 80 neu komprimiert, macht ca. 26.8MB zu 4.4MB (minus 84%), visuell
+  keine sichtbare Qualitätseinbusse (stichprobenartig verglichen). PNGs (Logo, Favicons) waren
+  bereits klein genug, nicht angefasst.
+- **Open Graph / Twitter-Card / Canonical fehlten komplett** (auf allen 10 Seiten, `og:`- und
+  `canonical`-Vorkommen vorher 0). Ergänzt: `<link rel="canonical">`, `og:type`, `og:site_name`,
+  `og:locale`, `og:title`, `og:description`, `og:url`, `og:image` sowie die passenden
+  `twitter:*`-Pendants, pro Seite mit eigenem Titel/Beschreibung (aus dem bestehenden
+  `<title>`/`<meta description>` übernommen) und einem inhaltlich passenden, bereits auf der Seite
+  verwendeten Bild als Vorschaubild. Ohne das zeigen Links in Social Media/Messengern keine
+  Vorschau, und Suchmaschinen sehen keine explizite kanonische URL.
+- **`sitemap.xml`** um `<lastmod>2026-09-21</lastmod>` pro URL ergänzt (vorher nur `loc`+`priority`).
+- **Kaputte alte, noch von Google indexierte URL gefunden:** `site:alta-engineering.ch`-Suche zeigt
+  neben der Startseite nur `https://www.alta-engineering.ch/CAD-Support/` (Grossschreibung,
+  Trailing-Slash, offensichtlich Rest einer alten Website-Struktur vor dieser statischen Seite).
+  Diese URL antwortet nach dem www→apex-Redirect mit **404**, kein Trailing-Slash-Pfad wurde je auf
+  die neuen `*.html`-Dateien umgeleitet. GitHub Pages kann keine serverseitigen 301-Redirects (kein
+  `_redirects`, keine `.htaccess`), deshalb Redirect-Stub-Seiten angelegt: `CAD-Support/index.html`,
+  `Firma/index.html`, `Konstruktion/index.html`, `Entwicklung-Design/index.html`,
+  `Management-Systeme/index.html`, `Projektleitung/index.html`, `Berechnung/index.html`,
+  `Jobs/index.html`, `Kontakt/index.html`, jede mit `rel="canonical"` **und**
+  `<meta http-equiv="refresh" content="0; ...">` auf die echte, neue `*.html`-Seite (von Google
+  offiziell wie ein dauerhafter Redirect behandelt, funktioniert ohne Serverkonfiguration). Alle acht
+  weiteren Pfade wurden nur vorsorglich angelegt (liefern lokal ebenfalls 404, es ist plausibel,
+  dass sie aus derselben alten Struktur stammen), nicht einzeln in Googles Index bestätigt.
+- **Nicht geprüft/nicht möglich von hier aus:** der tatsächliche Google-Index-Status (wie viele
+  Seiten indexiert sind, ob der Sitemap eingereicht ist, Crawling-Fehler) lässt sich nur über die
+  Google Search Console einsehen, die ein Google-Konto-Login braucht, das diese Session nicht hat.
+  **Empfehlung an Michael:** falls noch nicht vorhanden, Search Console für `alta-engineering.ch`
+  einrichten (Property-Verifizierung z.B. per DNS-TXT-Record bei Server Town), `sitemap.xml`
+  einreichen, und nach ein paar Tagen den Coverage-Report prüfen, das ist die einzige verlässliche
+  Quelle dafür, ob und wie die echten Seiten indexiert werden.
+
 ## 2. Kundenportal (Cloudflare Worker)
 
 ### 2.1 Architektur
