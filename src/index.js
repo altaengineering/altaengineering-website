@@ -1,5 +1,6 @@
 import { AwsClient } from "aws4fetch";
 import { XMLParser } from "fast-xml-parser";
+import { zipSync } from "fflate";
 
 // Alta Engineering Kundenportal — Cloudflare Worker
 //
@@ -98,6 +99,38 @@ async function listObjects(env, prefix, delimiter) {
       .map((c) => ({ key: c.Key, size: Number(c.Size || 0), uploaded: c.LastModified })),
     prefixes: commonPrefixes.filter((p) => p && p.Prefix).map((p) => p.Prefix),
   };
+}
+
+// E-Mail-Versand ist optional, analog zum selben Muster im Zeiterfassungstool: ohne
+// RESEND_API_KEY (z.B. noch nicht als Secret gesetzt) wird nur eine Konsolen-Warnung geloggt,
+// keine der Kernfunktionen (Upload, Zugangsanfrage) darf davon abhaengen. Direkter fetch-Aufruf
+// an die Resend-REST-API statt des npm-Pakets, um keine zusaetzliche Abhaengigkeit im ohnehin
+// schlanken Worker-Bundle zu brauchen.
+async function sendMail(env, { to, subject, text }) {
+  if (!env.RESEND_API_KEY) {
+    console.warn("RESEND_API_KEY nicht gesetzt, E-Mail wurde nicht versendet:", subject);
+    return;
+  }
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
+        to,
+        subject,
+        text,
+      }),
+    });
+    if (!res.ok) {
+      console.error("Resend-Versand fehlgeschlagen:", res.status, await res.text());
+    }
+  } catch (e) {
+    console.error("Resend-Versand fehlgeschlagen:", e);
+  }
 }
 
 function json(data, status = 200) {
@@ -306,6 +339,17 @@ export default {
         status: "pending",
       };
       await env.REQUESTS.put("req:" + id, JSON.stringify(record));
+      await sendMail(env, {
+        to: ADMIN_EMAILS,
+        subject: `Kundenportal: neue Zugangsanfrage von ${name || reqEmail}`,
+        text:
+          `Neue Zugangsanfrage fuers Kundenportal.\n\n` +
+          `E-Mail: ${reqEmail}\n` +
+          `Name: ${name || "(keine Angabe)"}\n` +
+          `Firma: ${company || "(keine Angabe)"}\n` +
+          `Nachricht: ${message || "(keine Angabe)"}\n\n` +
+          `Freigeben oder ablehnen unter: https://${env.PORTAL_HOSTNAME}`,
+      });
       return respond({ ok: true }, 200);
     }
 
@@ -406,6 +450,29 @@ export default {
       return json({ uploadUrl: signed.url, key, folder });
     }
 
+    // Der Worker sieht die eigentlichen Datei-Bytes nie (Upload laeuft direkt Browser -> B2 ueber
+    // die presigned URL oben), daher meldet der Client hier separat "fertig", nur damit Admins per
+    // Mail benachrichtigt werden koennen. Keine eigene Berechtigung ausser eingeloggt: der Ordner
+    // kommt vom Client, ein falscher Ordnername fuehrt hoechstens zu einer falsch beschrifteten
+    // Mail, nicht zu einem Zugriff auf fremde Daten (die eigentliche Datei liegt ja schon in B2).
+    if (url.pathname === "/api/upload-done" && request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const key = (body.key || "").trim();
+      const folder = (body.folder || "").trim();
+      if (!key) return json({ error: "Kein Key uebergeben." }, 400);
+      const empfaenger = ADMIN_EMAILS.filter((a) => a.toLowerCase() !== email.toLowerCase());
+      await sendMail(env, {
+        to: empfaenger,
+        subject: `Kundenportal: neue Datei von ${email}`,
+        text:
+          `${email} hat eine Datei hochgeladen.\n\n` +
+          `Ordner: ${folder}\n` +
+          `Datei: ${key.split("/").pop()}\n\n` +
+          `Ansehen unter: https://${env.PORTAL_HOSTNAME}`,
+      });
+      return json({ ok: true });
+    }
+
     if (url.pathname === "/api/download" && request.method === "GET") {
       const key = url.searchParams.get("key") || "";
       if (!admin && !key.startsWith(ownFolder + "/")) {
@@ -419,6 +486,41 @@ export default {
       const filename = key.split("/").pop();
       headers.set("Content-Disposition", `attachment; filename="${filename}"`);
       return new Response(upstream.body, { headers });
+    }
+
+    // Ganzen Ordner als ZIP: laedt alle Dateien einzeln aus B2 und packt sie im Arbeitsspeicher
+    // des Workers zusammen (fflate.zipSync, synchron, keine Node-Streams noetig). Fuer die
+    // ueblichen Projektabgaben dieser Firma (CAD-Dateien, PDFs, keine riesigen Videos) ist das
+    // unproblematisch, bei sehr grossen Ordnern (naeher am Worker-Speicherlimit von 128MB) waere
+    // eine echte Streaming-Loesung noetig, das ist hier bewusst nicht gebaut.
+    if (url.pathname === "/api/download-zip" && request.method === "GET") {
+      const folder = folderFor(url.searchParams.get("folder") || "");
+      if (!folder) return json({ error: "Kein Ordner angegeben." }, 400);
+      if (!admin && folder !== ownFolder) {
+        return json({ error: "Keine Berechtigung fuer diesen Ordner." }, 403);
+      }
+      const prefix = folder + "/";
+      const listed = await listObjects(env, prefix, null);
+      const files = listed.objects.filter((o) => o.key !== prefix);
+      if (files.length === 0) return json({ error: "Ordner ist leer." }, 404);
+
+      const client = b2Client(env);
+      const zipInput = {};
+      for (const f of files) {
+        const objectUrl = bucketUrl(env) + "/" + f.key.split("/").map(encodeURIComponent).join("/");
+        const upstream = await client.fetch(objectUrl);
+        if (!upstream.ok) continue;
+        const bytes = new Uint8Array(await upstream.arrayBuffer());
+        zipInput[f.key.slice(prefix.length)] = bytes;
+      }
+
+      const zipped = zipSync(zipInput);
+      return new Response(zipped, {
+        headers: {
+          "Content-Type": "application/zip",
+          "Content-Disposition": `attachment; filename="${folder}.zip"`,
+        },
+      });
     }
 
     if (url.pathname === "/api/delete" && request.method === "DELETE") {

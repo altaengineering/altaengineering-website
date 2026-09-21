@@ -53,3 +53,11 @@ MAIN_SITE_ORIGIN = "https://alta-engineering.ch"
 #   npx wrangler secret put CF_ACCOUNT_ID
 # (CF_API_TOKEN braucht die Berechtigung "Access: Apps and Policies: Edit"
 # fuer den Account, damit /api/access-requests/approve funktioniert.)
+#
+# NEU (2026-09-21), noch NICHT gesetzt: RESEND_API_KEY (fuer die E-Mail-Benachrichtigung bei
+# neuem Upload/neuer Zugangsanfrage, siehe sendMail in src/index.js). Ohne diesen Secret laeuft
+# alles weiter wie bisher, nur ohne Mail-Versand (Konsolen-Warnung statt Fehler). Setzen mit:
+#   npx wrangler secret put RESEND_API_KEY
+# Optional zusaetzlich RESEND_FROM_EMAIL, sonst Resend-Sandbox-Absender (onboarding@resend.dev),
+# der nur zuverlaessig an die E-Mail-Adresse des Resend-Kontoinhabers liefert, siehe dieselbe
+# Einschraenkung im Zeiterfassungstool-CLAUDE.md.

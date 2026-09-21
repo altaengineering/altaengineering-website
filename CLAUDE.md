@@ -248,7 +248,41 @@ Ordnern freigeben.
   `prompt()` ab, kopiert den fertigen Link in die Zwischenablage) und ein Panel "Freigabe-Links" zum
   Einsehen/Zurückziehen bestehender Links.
 
-### 2.5 Lokale Entwicklung
+### 2.5 E-Mail-Benachrichtigungen und ZIP-Download (Session 2026-09-21)
+
+Zwei lange offene Punkte von Michaels Auftragsliste umgesetzt:
+
+- **E-Mail bei neuer Zugangsanfrage und neuem Upload:** neue Funktion `sendMail(env, {...})` in
+  `src/index.js`, direkter `fetch` an die Resend-REST-API (kein npm-Paket, um das schlanke
+  Worker-Bundle nicht unnötig zu vergrössern), optional/best-effort wie im Zeiterfassungstool: ohne
+  `RESEND_API_KEY` nur eine Konsolen-Warnung, nie ein Fehler, der die eigentliche Aktion blockiert.
+  `/api/request-access` schickt jetzt bei einer neuen Anfrage eine Mail an `ADMIN_EMAILS`.
+  Für Uploads gibt es keinen Server-seitigen Hook, der Worker sieht die Datei-Bytes nie (Upload
+  läuft direkt Browser → B2 über die presigned URL). Deshalb neuer Endpunkt `POST
+  /api/upload-done`, den `public/index.html` nach einem erfolgreich abgeschlossenen `xhr.onload`
+  aufruft (fire-and-forget, ein Fehler hier darf den erfolgreichen Upload nicht als fehlgeschlagen
+  anzeigen). **Offener Punkt: `RESEND_API_KEY` muss noch per `npx wrangler secret put
+  RESEND_API_KEY` gesetzt werden**, siehe `wrangler.toml`, sonst bleibt es bei der
+  Konsolen-Warnung, keine Mail wird verschickt.
+- **"Ganzen Ordner als ZIP herunterladen":** neuer Endpunkt `GET /api/download-zip?folder=...`,
+  lädt alle Dateien des Ordners einzeln aus B2 und packt sie synchron mit `fflate.zipSync`
+  zusammen (neue Abhängigkeit, pure JS, kein Node-`nodejs_compat`-Flag nötig, anders als z.B.
+  `archiver`). Bewusst keine Streaming-Lösung, für die üblichen Projektabgaben dieser Firma
+  unproblematisch, bei sehr grossen Ordnern (nahe am 128MB-Speicherlimit des Workers) wäre das
+  aber ein Thema. Button "Ordner als ZIP herunterladen" oben im Datei-Panel, nur sichtbar, wenn
+  der Ordner nicht leer ist. Gleiche Berechtigung wie `/api/list`: eigener Ordner, Admins jeder.
+- **Lokal verifiziert** (`npx wrangler dev`, Miniflare, ohne echte B2-/Resend-Zugangsdaten):
+  `/api/request-access` löst den Mail-Pfad korrekt aus (Konsolen-Warnung ohne Secret bestätigt),
+  `/api/upload-done` und `/api/download-zip` lehnen nicht eingeloggte Anfragen mit 401 ab, letzterer
+  zusätzlich fremde Ordner für Nicht-Admins mit 403, `fflate.zipSync` separat mit einer Testdatei
+  auf gültige ZIP-Magic-Bytes geprüft. **Kein echter Upload/Download getestet**, dafür fehlen hier
+  die B2-Zugangsdaten.
+- **Deployment ist ein separater manueller Schritt**, anders als bei der Website (GitHub Pages) oder
+  dem Zeiterfassungstool (Vercel) gibt es hier kein Auto-Deploy bei `git push`. Nach dem Setzen von
+  `RESEND_API_KEY` (siehe oben) noch `npx wrangler deploy` ausführen, das braucht einen
+  angemeldeten `wrangler login` oder `CLOUDFLARE_API_TOKEN`, den diese Session nicht hat.
+
+### 2.6 Lokale Entwicklung
 
 ```
 npm install
