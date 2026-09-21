@@ -152,8 +152,15 @@ header{position:sticky;top:0;z-index:40;background:var(--header-bg);backdrop-fil
   border:5px solid transparent;border-bottom-color:var(--text);margin-top:-1px;
   opacity:0;visibility:hidden;pointer-events:none;transition:opacity .16s ease;z-index:60;
 }
-.flyer-btn:hover::after,.flyer-btn:focus-visible::after{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
-.flyer-btn:hover::before,.flyer-btn:focus-visible::before{opacity:1;visibility:visible}
+.flyer-btn:focus-visible::after{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
+.flyer-btn:focus-visible::before{opacity:1;visibility:visible}
+/* Nur bei echtem Maus-Hover zeigen: auf Touch-Geraeten gibt es keinen echten Hover-Zustand, das
+   erste Antippen loest ihn trotzdem aus und der Tooltip blieb dann haengen (oder blieb ganz
+   unsichtbar, je nach Browser), das war der gemeldete "Flyer auf Mobile komisch"-Bug. */
+@media (hover: hover) {
+  .flyer-btn:hover::after{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
+  .flyer-btn:hover::before{opacity:1;visibility:visible}
+}
 .theme-toggle .sun{display:none}
 .theme-toggle .moon{display:block}
 :root[data-theme="dark"] .theme-toggle .moon{display:none}

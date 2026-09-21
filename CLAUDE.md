@@ -100,6 +100,17 @@ Ordnung: pro Seite eindeutiger `<title>` und `<meta name="description">`, `robot
   einreichen, und nach ein paar Tagen den Coverage-Report prüfen, das ist die einzige verlässliche
   Quelle dafür, ob und wie die echten Seiten indexiert werden.
 
+### 1.3 Flyer-Button auf Mobile behoben (2026-09-21)
+
+Gemeldeter Bug: "Flyer auf Mobile komisch". Ursache: `.flyer-btn` zeigt seinen Tooltip
+("Firmenflyer (PDF)") über `:hover`/`:focus-visible`. Touch-Geräte kennen keinen echten
+Hover-Zustand, das erste Antippen löst ihn trotzdem aus, der Tooltip blieb dann entweder
+unsichtbar oder hängen, je nach Browser. Fix: die `:hover`-Variante der Regel in
+`@media (hover: hover)` verpackt, `:focus-visible` bleibt ungated (Tastatur-Fokus hat dieses
+Problem nicht). Verifiziert über `matchMedia('(hover: hover)')`, das bei emulierten
+Touch-Geräten korrekt `false` liefert, entsprechend bleibt der Tooltip dort standardmässig
+verborgen, auf Desktop mit echter Maus unverändert sichtbar bei Hover.
+
 ## 2. Kundenportal (Cloudflare Worker)
 
 ### 2.1 Architektur
