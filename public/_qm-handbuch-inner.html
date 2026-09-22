@@ -45,7 +45,9 @@ a{color:inherit;text-decoration:none}
 
 header{position:sticky;top:0;z-index:40;background:var(--header-bg);backdrop-filter:blur(9px);border-bottom:1px solid var(--line)}
 .nav{display:flex;align-items:center;justify-content:space-between;gap:1rem;height:74px}
-.brand{display:flex;flex-direction:column;line-height:1.05}
+.brand{display:flex;align-items:center;gap:.7rem;line-height:1.05}
+.brand img{height:34px;width:auto;display:block;border-radius:4px}
+.brand-text{display:flex;flex-direction:column}
 .brand b{font-weight:700;font-size:1.18rem;letter-spacing:.01em;color:var(--text)}
 .brand span{font-size:.68rem;color:var(--accent);letter-spacing:.08em;margin-top:3px;font-family:var(--mono);text-transform:uppercase}
 .nav-actions{display:flex;align-items:center;gap:.9rem}
@@ -95,10 +97,13 @@ header{position:sticky;top:0;z-index:40;background:var(--header-bg);backdrop-fil
 
 <header>
   <div class="wrap nav">
-    <div class="brand">
-      <b>Alta Engineering AG</b>
-      <span>Kundenportal</span>
-    </div>
+    <a class="brand" href="/" aria-label="Alta Engineering AG Kundenportal">
+      <img src="https://alta-engineering.ch/logo.png" alt="Alta Engineering AG">
+      <div class="brand-text">
+        <b>Alta Engineering AG</b>
+        <span>Kundenportal</span>
+      </div>
+    </a>
     <div class="nav-actions">
       <a class="back-link" href="/">&larr; Zurück zum Portal</a>
       <button class="theme-toggle" id="themeToggle" aria-label="Darstellung wechseln" title="Darstellung wechseln">
@@ -111,9 +116,9 @@ header{position:sticky;top:0;z-index:40;background:var(--header-bg);backdrop-fil
 
 <section class="handbuch-hero">
   <div class="wrap">
-    <div class="kicker">Managementsystem · nur für Alta-Mitarbeitende</div>
+    <div class="kicker">Managementsystem · intern</div>
     <h1>QM-Handbuch Alta Engineering AG</h1>
-    <p>Dieselben Inhalte wie im Word-Handbuch, hier als durchsuchbare Seite statt PDF: die Kapitel links, Vorlage- und Nachweisdokumente direkt als Link an der Stelle, wo sie im Prozess gebraucht werden. Diese Seite liegt im Kundenportal und ist wie der Rest davon nur mit Login erreichbar.</p>
+    <p>Dieselben Inhalte wie im Word-Handbuch, hier als durchsuchbare Seite statt PDF: die Kapitel links, Vorlage- und Nachweisdokumente direkt als Link an der Stelle, wo sie im Prozess gebraucht werden. Diese Seite ist Teil des Kundenportals, direkten Zugriff haben nur Admins, alle anderen kommen über einen von Stefan oder Michael erstellten Freigabe-Link.</p>
     <div class="handbuch-flag">
       <b>Zwei Dinge zum Gegenlesen, bevor das an Kunden geht:</b>
       In Kapitel 4.2 steht noch "<em>... Prozesse oder Produkte der Hirt Umwelttechnik AG ...</em>", offenbar aus einer älteren Vorlage stehen geblieben und nicht auf Alta Engineering angepasst. Ausserdem sind an ein paar Stellen (Kap. 4.1 Interessierte Parteien, Kap. 8.1 Marketing-Kennzahlen) noch <code>??</code>-Platzhalter im Originaltext. Beides unten 1:1 aus dem Word übernommen, nicht von mir stillschweigend ausgefüllt oder korrigiert.

@@ -282,7 +282,7 @@ Zwei lange offene Punkte von Michaels Auftragsliste umgesetzt:
   `RESEND_API_KEY` (siehe oben) noch `npx wrangler deploy` ausführen, das braucht einen
   angemeldeten `wrangler login` oder `CLOUDFLARE_API_TOKEN`, den diese Session nicht hat.
 
-### 2.6 QM-Handbuch als Kundenportal-Seite, nur für Mitarbeitende (Session 2026-09-22/23)
+### 2.6 QM-Handbuch als Kundenportal-Seite (Session 2026-09-22/23, siehe 2.6.1 für den Nachtrag zum Zugriffsmodell)
 
 Auslöser: Stefan möchte das ISO-9001-Handbuch der Firma (Word-Datei, von Michael als
 `Handbuch-Alta-2025.docx` bereitgestellt) als durchsuchbare Webseite statt PDF, mit
@@ -349,6 +349,56 @@ neue Klasse `.meta-files` (wie `.meta`, aber ohne `nowrap`, mit `overflow-wrap: 
 verifiziert: Spaltenbreiten vorher/nachher per `getBoundingClientRect()` geprueft, Bezeichnung
 ging von einer Handvoll Pixel auf ca. 220px hoch, Text bricht jetzt auf 2 Zeilen statt
 buchstabenweise.
+
+### 2.6.1 Nachtrag: Zugriffsmodell geaendert, Freigabe-Links fuers Handbuch, Redesign (2026-09-23)
+
+Michael fand die "alle Mitarbeitenden sehen das Handbuch"-Loesung aus 2.6 nicht passend ("dieses
+Handbuch müssen nicht alle Mitarbeiter sehen können") und wollte statt einer neuen, eigenen
+Website eine elegantere Loesung innerhalb des bestehenden Portals. Antwort: dasselbe Freigabe-Link-
+Muster wiederverwenden, das fuer Datei-Downloads schon existiert (zeitlich begrenzt, jederzeit
+zurueckziehbar, kein Access-Login noetig), nur fuers Handbuch statt fuer Dateien.
+
+- **`/qm-handbuch` ist jetzt admin-only** (`isAdminEmail()` statt `isMitarbeiterEmail()`). Alle
+  anderen (Mitarbeitende oder Kunden) bekommen stattdessen von Stefan oder Michael einen
+  Freigabe-Link.
+- **Neuer oeffentlicher Pfad `GET /handbook/<id>`** (kein Access-Login), analog zu `/share/<id>`:
+  prueft einen Eintrag in derselben `SHARES`-KV, aber mit Prefix `hshare:` statt `share:` (kein
+  neues Binding in `wrangler.toml` noetig), liefert bei gueltigem Link `_qm-handbuch-inner.html`
+  aus, sonst 410 mit Klartext-Fehlermeldung. Erhoeht bei jedem Aufruf `viewCount`.
+  **WICHTIG, noch offen:** genau wie `/share/*` und `/request-access` muss `/handbook/*` zusaetzlich
+  als Bypass in der Cloudflare-Access-Policy eingetragen werden (Zero Trust Dashboard), sonst
+  faengt Access den Aufruf ab, bevor der Worker-Code ihn ueberhaupt sieht. Das ist eine
+  Sicherheitseinstellung im Cloudflare-Dashboard, die Claude nicht selbst vornimmt (siehe
+  Sicherheitsregeln), das muss Michael oder Stefan einmalig nachtragen.
+- **Neue admin-only Endpunkte** `GET /api/handbook-shares`, `POST /api/handbook-share`,
+  `POST /api/handbook-share-revoke`, exakt analog zu den bestehenden `/api/share*`-Endpunkten fuer
+  Dateien, nur ohne `fileKeys` (das Handbuch ist ein einziges, festes Dokument, keine Auswahl
+  noetig) und mit `admin`-Check statt "eigene oder alle, falls Admin".
+- **Neues Panel "📘 QM-Handbuch"** im Portal-Dashboard (nur fuer Admins sichtbar): grosser
+  "QM-Handbuch öffnen"-Button, "Freigabe-Link erstellen"-Button (gleicher Prompt-Dialog-Flow wie
+  bei Datei-Freigaben: Tage gueltig, optionale Bezeichnung), Tabelle bestehender Handbuch-Links
+  mit Kopieren/Zurueckziehen.
+- **Design-Nachbesserungen**, ebenfalls angefragt ("fehlt mir Logo und Design", "Pfeil zur Website
+  ist verwirrend", "QM-Handbuch-Button deutlicher"):
+  - Echtes Logo (`https://alta-engineering.ch/logo.png`, per absoluter URL eingebunden statt die
+    Bilddatei im Kundenportal-Repo zu duplizieren) statt nur Text in der Kopfzeile.
+  - "Zur Website"-Link hiess vorher nur "&larr; Zur Website" **ohne** `target="_blank"`, ein Klick
+    hat also den ganzen Portal-Tab durch die Hauptwebsite ersetzt, das war vermutlich das
+    "verwirrend". Jetzt "Hauptwebsite" mit explizitem Extern-Link-Icon und `target="_blank"`.
+  - Das QM-Handbuch hat jetzt sowohl einen auffaelligen Button in der Kopfzeile als auch ein
+    eigenes, farblich hervorgehobenes Panel im Dashboard (Klasse `.panel.accent`), statt nur ein
+    kleiner Text-Link zu sein.
+  - **Dabei aufgefallen: die Kopfzeile hatte ueberhaupt keinen Mobile-Breakpoint**, Marke plus drei
+    Kopfzeilen-Aktionen liefen auf schmalen Bildschirmen rechts aus dem Bild. Neuer
+    `@media (max-width: 640px)`-Block blendet die Textlabels der Nebenaktionen aus (nur Icons
+    bleiben), verkleinert Logo/Marke/Abstaende, jetzt passt alles auf eine Zeile.
+- **Lokal end-to-end verifiziert** (`wrangler dev`): admin-Zugriff auf `/qm-handbuch` (200),
+  Mitarbeitenden-Zugriff jetzt korrekt 403, Freigabe-Link-Erstellung als Admin (200) und als
+  Nicht-Admin (403), Aufruf des erzeugten Links ganz ohne Auth-Header (200, `viewCount` erhoeht
+  sich), ungueltige/erfundene ID (410), Zurueckziehen und danach 410. Zusaetzlich alle bisherigen
+  Endpunkte (`/`, `/favicon.ico`, `/api/me`, `/share/*`, `/api/request-access`) erneut auf
+  Regressionen geprueft, alle unveraendert. Visuell im Browser bei Desktop- und Mobile-Breite
+  gegengeprueft (Logo, neues Panel, Kopfzeile ohne Ueberlauf), Light- und Dark-Mode beide geprueft.
 
 ### 2.7 Lokale Entwicklung
 
