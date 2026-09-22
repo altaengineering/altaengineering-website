@@ -334,6 +334,22 @@ per Cloudflare Access login-geschützt ist.
   Für ein Nachweisdokument-Beispiel bräuchte es entweder eine anonymisierte Fassung oder man
   verlinkt vorerst nur die leere Vorlage.
 
+**Freigabe-Links-Tabelle verrutscht bei langem Dateinamen als Bezeichnung (2026-09-23):**
+Michael meldete das Layout in "Freigabe-Links" als verrutscht, per Screenshot: die
+"Bezeichnung"-Spalte war auf wenige Pixel zusammengequetscht, der Text (ein langer, leerzeichen-
+loser Dateiname als Bezeichnung, z.B. "crashkurskundenportalzeiterfassung.pdf") brach dadurch
+buchstabenweise um. Ursache: `.fname` (Bezeichnung-Spalte) hatte `word-break: break-all`, kann
+also beliebig umbrechen, waehrend die Nachbarspalte "Datei(en)" ueber `.meta` ein erzwungenes
+`white-space: nowrap` hatte. Bei Tabellen mit automatischer Spaltenbreite (kein
+`table-layout: fixed`) nimmt sich eine nicht-umbrechbare Spalte den Platz, den sie braucht, zu
+Lasten der umbrechbaren Nachbarspalte, die dadurch auf eine Minimalbreite gequetscht wird. Fix:
+neue Klasse `.meta-files` (wie `.meta`, aber ohne `nowrap`, mit `overflow-wrap: anywhere` statt
+`.fname`s `word-break: break-all` fuer saubereres Umbrechen) fuer die "Datei(en)"-Zelle in
+`loadShares()`. Lokal mit injizierten Testdaten (exakt Michaels beiden Freigabe-Links)
+verifiziert: Spaltenbreiten vorher/nachher per `getBoundingClientRect()` geprueft, Bezeichnung
+ging von einer Handvoll Pixel auf ca. 220px hoch, Text bricht jetzt auf 2 Zeilen statt
+buchstabenweise.
+
 ### 2.7 Lokale Entwicklung
 
 ```
