@@ -400,6 +400,45 @@ zurueckziehbar, kein Access-Login noetig), nur fuers Handbuch statt fuer Dateien
   Regressionen geprueft, alle unveraendert. Visuell im Browser bei Desktop- und Mobile-Breite
   gegengeprueft (Logo, neues Panel, Kopfzeile ohne Ueberlauf), Light- und Dark-Mode beide geprueft.
 
+### 2.6.2 Nachtrag: Design zurueckhaltender, Ordner-Uebersicht, Aktivitaets-Log (2026-09-23)
+
+Michael fand das Handbuch-Panel "zu krass betont" und den Rest der Seite "nicht redesignt", dazu
+zwei neue Feature-Wuensche: eine Uebersicht ueber alle Kundenordner auf einmal (statt einzeln per
+Dropdown), und eine Admin-Konsole, die zeigt "was gemacht wurde, wer hat's erledigt".
+
+- **`.panel.accent` (Handbuch-Panel) deutlich zurueckgenommen**: kein eigener Farbverlauf-
+  Hintergrund und kein dickerer Rahmen mehr, nur noch die Ecken-Akzente sind blau statt grau,
+  genau wie jedes andere Panel auch, nur dezent hervorgehoben statt lauter zu wirken.
+- **Stat-Zeile im Hero** (nur fuer Admins): Anzahl Kundenordner, offene Zugangsanfragen, aktive
+  Freigaben (Datei- und Handbuch-Links zusammengezaehlt) auf einen Blick, fuellt den vorher leeren
+  Bereich unter dem Begruessungstext mit echten, nuetzlichen Zahlen statt nur Dekoration.
+- **"Ordner ansehen" von Dropdown zu Karten-Grid umgebaut**: `/api/folders` liefert jetzt
+  `{ name, fileCount }` statt nur Namen (eine zusaetzliche B2-Anfrage pro Ordner, bei der
+  ueberschaubaren Anzahl Kundenordner unproblematisch). Jeder Ordner ist eine eigene, anklickbare
+  Karte mit Namen und Dateianzahl, alle gleichzeitig sichtbar statt einzeln aus einer Liste
+  auswaehlbar.
+- **Neues Aktivitaets-Log**: neue KV-Namespace `ACTIVITY` (`npx wrangler kv namespace create
+  ACTIVITY`, danach in `wrangler.toml` eingetragen, das ist reine Infrastruktur, keine
+  Sicherheitseinstellung, daher direkt selbst angelegt). Helper `logActivity(env, {email, action,
+  detail})` schreibt Eintraege mit Key `log:<ISO-Zeitstempel>:<zufall>` (sortiert durch das
+  Key-Format von selbst chronologisch beim Auflisten). Aufgerufen bei: Datei hochgeladen/geloescht,
+  Freigabe-Link erstellt/zurueckgezogen (Dateien und Handbuch), Zugangsanfrage freigegeben/
+  abgelehnt. Neuer admin-only Endpunkt `GET /api/activity` (letzte 100 Eintraege, neueste zuerst),
+  neues Panel "Aktivität" mit Tabelle Zeit/Wer/Was/Details.
+- **Dabei gefunden: keiner der Tabellen-Wrapper hatte `overflow-x`**, eine Tabelle mit mehreren
+  Spalten (z.B. das neue Aktivitaets-Log) sprengte auf schmalen Bildschirmen nicht nur ihr eigenes
+  Panel, sondern per fehlendem `overflow-x` auf dem Wrapper gleich die ganze Seite horizontal
+  (`document.body.scrollWidth` > Viewportbreite, am eigentlichen Ziel-Viewport von 375px gemessen
+  z.B. 538px). Neue gemeinsame Klasse `.table-wrap` (`overflow-x: auto`, `table` bekam zusaetzlich
+  `min-width: 480px`) auf alle fuenf Tabellen-Wrapper angewendet (Dateien, Freigabe-Links,
+  Handbuch-Freigaben, Zugangsanfragen, Aktivitaet). Verifiziert: `bodyScrollWidth` entspricht nach
+  dem Fix wieder exakt der Viewportbreite bei 375px.
+- Lokal end-to-end verifiziert: `/api/activity` mit und ohne Admin-Rechte, Log-Eintraege nach
+  Erstellen/Zurueckziehen eines Handbuch-Freigabe-Links korrekt und chronologisch, alle bisherigen
+  Endpunkte weiterhin unveraendert (Regressionstest). Visuell mit injizierten Testdaten geprueft
+  (Stat-Zeile, Ordner-Karten, Aktivitaets-Tabelle, mobile Kopfzeile), da `/api/folders` echte
+  B2-Zugangsdaten braucht, die dieser Session lokal nicht vorliegen.
+
 ### 2.7 Lokale Entwicklung
 
 ```

@@ -30,6 +30,14 @@ id = "b53e83d645ec4b80bbc3a996b7e82e25"
 binding = "SHARES"
 id = "7b37acfe34d242adbced9f3d7c474a52"
 
+# Aktivitaets-Log fuers Admin-Panel (wer hat was gemacht, z.B. Upload, Loeschen,
+# Freigabe-Link erstellt). Keys als "log:<ISO-Zeitstempel>:<zufall>", damit
+# env.ACTIVITY.list() sie automatisch chronologisch liefert (KV sortiert
+# alphabetisch, ISO-Zeitstempel sortieren dabei korrekt chronologisch).
+[[kv_namespaces]]
+binding = "ACTIVITY"
+id = "1105b412e11d454da89ef261d7937e0b"
+
 # Oeffentliche Variablen (duerfen im Klartext hier stehen).
 [vars]
 # Backblaze B2 (S3-kompatibler Speicher fuer die hochgeladenen Kundendateien
