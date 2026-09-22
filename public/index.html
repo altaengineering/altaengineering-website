@@ -118,8 +118,15 @@ table{width:100%;border-collapse:collapse;font-size:.88rem}
 thead th{text-align:left;color:var(--muted);font-weight:600;font-size:.74rem;text-transform:uppercase;letter-spacing:.05em;padding:.5rem .6rem;border-bottom:1px solid var(--line);font-family:var(--mono)}
 tbody td{padding:.7rem .6rem;border-bottom:1px solid var(--line);vertical-align:middle}
 tbody tr:hover{background:var(--surface-2)}
-.fname{font-weight:500;word-break:break-all}
+.fname{font-weight:500;overflow-wrap:anywhere}
 .meta{font-family:var(--mono);color:var(--muted);font-size:.82rem;white-space:nowrap}
+/* Datei(en)-Spalte bei den Freigabe-Links kann mehrere/lange Dateinamen enthalten (durch Komma
+   getrennt), anders als die uebrigen .meta-Spalten (Datum, Groesse), die immer kurz sind. Mit
+   erzwungenem white-space:nowrap dort hat diese Spalte der Bezeichnung-Spalte (die umbrechen
+   kann) allen Platz weggenommen, die Bezeichnung wurde dadurch auf eine winzige Breite gequetscht
+   und ist Zeichen fuer Zeichen umgebrochen. Ohne das erzwungene nowrap koennen beide Spalten bei
+   Bedarf umbrechen, die automatische Tabellenbreiten-Berechnung teilt den Platz dann fair auf. */
+.meta-files{font-family:var(--mono);color:var(--muted);font-size:.82rem;overflow-wrap:anywhere}
 .actions{display:flex;gap:.5rem;justify-content:flex-end}
 .iconbtn{display:inline-flex;align-items:center;gap:.35rem;font-size:.82rem;font-weight:600;padding:.4rem .7rem;border-radius:6px;border:1px solid var(--line-2);background:var(--surface);cursor:pointer;color:var(--text);transition:.15s}
 .iconbtn:hover{border-color:var(--accent);color:var(--accent)}
@@ -468,7 +475,7 @@ tbody tr:hover{background:var(--surface-2)}
         var tr = document.createElement('tr');
         tr.innerHTML =
           '<td class="fname">' + (s.label || '(ohne Bezeichnung)') + '</td>' +
-          '<td class="meta">' + fileNames + '</td>' +
+          '<td class="meta-files">' + fileNames + '</td>' +
           '<td class="meta">' + fmtDate(s.expiresAt) + (expired ? ' (abgelaufen)' : '') + '</td>' +
           '<td class="meta">' + (s.downloadCount || 0) + '</td>' +
           '<td><div class="actions">' +
