@@ -5,9 +5,16 @@ compatibility_date = "2026-08-01"
 # Liefert public/index.html (das Kundenportal, ehemals portal.html) und
 # public/request-access.html direkt aus. Anfragen an /api/* werden
 # stattdessen vom Code in src/index.js beantwortet.
+# run_worker_first = true ist wichtig: ohne das liefert Cloudflare Anfragen, deren Pfad exakt
+# auf eine Datei unter public/ passt, IMMER direkt aus, noch bevor der Code in src/index.js
+# ueberhaupt laeuft. Das hat den Mitarbeitenden-Check fuer _qm-handbuch-inner.html unbrauchbar
+# gemacht (die Datei wurde einfach direkt ausgeliefert, der Check im Code kam nie zum Zug).
+# Mit run_worker_first laeuft jede Anfrage zuerst durch fetch() in src/index.js, das ruft
+# env.ASSETS.fetch() nur dort auf, wo es das explizit selbst entscheidet.
 [assets]
 directory = "./public"
 binding = "ASSETS"
+run_worker_first = true
 
 # Speicher fuer Zugriffsanfragen ueber /api/request-access (Personen ohne
 # bestehenden Cloudflare-Access-Zugang). Admins sehen/bearbeiten sie unter

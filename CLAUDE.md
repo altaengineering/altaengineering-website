@@ -282,7 +282,59 @@ Zwei lange offene Punkte von Michaels Auftragsliste umgesetzt:
   `RESEND_API_KEY` (siehe oben) noch `npx wrangler deploy` ausführen, das braucht einen
   angemeldeten `wrangler login` oder `CLOUDFLARE_API_TOKEN`, den diese Session nicht hat.
 
-### 2.6 Lokale Entwicklung
+### 2.6 QM-Handbuch als Kundenportal-Seite, nur für Mitarbeitende (Session 2026-09-22/23)
+
+Auslöser: Stefan möchte das ISO-9001-Handbuch der Firma (Word-Datei, von Michael als
+`Handbuch-Alta-2025.docx` bereitgestellt) als durchsuchbare Webseite statt PDF, mit
+Vorlage-/Nachweisdokumenten als Links direkt an der Stelle im Prozess, wo sie gebraucht werden
+(Vorbild/Positionierung: Qairo von Aquilys, siehe Stefans Nachricht, **kein** Konkurrenzprodukt
+dazu, nur eine einfache Webseite pro Kunde). Ursprünglich als eigene Seite auf der öffentlichen
+Website (`alta-engineering.ch/qm-handbuch.html`) gebaut, auf Hinweis von Michael aber verworfen:
+eine unauthentifizierte, öffentlich erreichbare Seite mit internem Firmen-Know-how "wird nur
+geklaut". Stattdessen jetzt Teil des Kundenportals (`public/_qm-handbuch-inner.html`), das ohnehin
+per Cloudflare Access login-geschützt ist.
+
+- **Neue Route `GET /qm-handbuch`** in `src/index.js`, prüft `Cf-Access-Authenticated-User-Email`
+  gegen `isMitarbeiterEmail()` (nicht nur `isAdminEmail()`, das Handbuch soll laut eigenem Text
+  "für alle Mitarbeitenden... verbindlich" sein, nicht nur für die zwei Admins). Bei Erfolg wird
+  `public/_qm-handbuch-inner.html` ausgeliefert, sonst 403.
+- **`run_worker_first = true` in `wrangler.toml` war zwingend nötig**, sonst liefert Cloudflare
+  jede Anfrage, deren Pfad exakt auf eine Datei unter `public/` passt, immer direkt aus, noch
+  bevor der Worker-Code überhaupt läuft, der Mitarbeitenden-Check für `_qm-handbuch-inner.html`
+  lief dadurch ins Leere (Datei kam trotzdem durch). Lokal mit `wrangler dev` reproduziert (vor
+  dem Fix: direkter Aufruf von `/_qm-handbuch-inner.html` bzw. `/_qm-handbuch-inner` lieferte den
+  vollen Seiteninhalt, egal welcher Header gesetzt war) und nach dem Fix verifiziert (404 in
+  beiden Fällen, `/qm-handbuch` selbst weiterhin korrekt 403/403/200 für kein Header/Kunden-Mail/
+  Mitarbeiter-Mail). Zusätzliche Regressionstests nach der Umstellung: `/`, `/favicon.ico`,
+  `/api/me`, `/request-access.html`, `POST /api/request-access` verhalten sich unverändert.
+- **Datei bewusst mit führendem Unterstrich benannt** (`_qm-handbuch-inner.html` statt
+  `qm-handbuch.html`), damit sie nicht zufällig unter einer naheliegenden URL erraten wird, dazu
+  zusätzlich ein expliziter 404-Block für den rohen Dateinamen (siehe oben), auch wenn
+  `run_worker_first` das eigentlich schon verhindert, doppelt abgesichert.
+- **Link im Portal-Dashboard** (`public/index.html`): "📘 QM-Handbuch" in der Kopfzeile, nur
+  sichtbar wenn `me.isMitarbeiter` (per `/api/me`), analog zu den anderen rollenabhängigen Panels.
+- **Kein eigenes CSS aus `style.css` der Hauptwebsite verwendet**, das Kundenportal ist bereits
+  komplett selbstständig mit eigenem inline `<style>`-Block (eigene Design-Tokens, IBM Plex Mono
+  für Zahlen/Codes), die Handbuch-Seite folgt demselben Muster statt eine Abhängigkeit auf die
+  Website einzuführen.
+- **Inhalt:** alle 10 Kapitel plus Änderungsjournal 1:1 aus dem Word übernommen (inkl. Tabellen),
+  mit `pandoc` nicht möglich (auf diesem Rechner nicht installiert), stattdessen `python-docx`
+  (per `pip install python-docx`) und ein kleines Skript, das Absätze und Tabellen in
+  Dokumentreihenfolge ausliest. Zwei echte Content-Probleme im Original gefunden und **bewusst
+  nicht stillschweigend korrigiert**, sondern als Hinweisbox oben auf der Seite markiert: Kapitel
+  4.2 enthält noch einen stehengebliebenen Verweis auf "Hirt Umwelttechnik AG" (Copy-Paste-Rest
+  aus einer fremden Vorlage), und an mehreren Stellen (Kap. 4.1, Kap. 8.1) stehen noch
+  `??`-Platzhalter im Originaltext.
+- **Vorlage-/Nachweisdokumente:** die im Handbuch referenzierten Dokumente (Personalstammblatt,
+  Checkliste Mitarbeiter Eintritt/Austritt, Formular Mitarbeitergespräch, Merkblatt AS/GS usw.)
+  sind an ihrer jeweiligen Stelle als `📎`-Chip markiert, aber noch **nicht** verlinkt, die realen
+  Dateien liegen dieser Session nicht vor. Ein echtes ausgefülltes Beispiel (Michaels eigenes
+  Personalstammblatt, `L:\mitarbeiterstammblatt kumi.xlsx`) existiert lokal, wurde aber **bewusst
+  nicht hochgeladen**: es enthält echte Personendaten (Adresse, Geburtsdatum, AHV-Nummer, IBAN).
+  Für ein Nachweisdokument-Beispiel bräuchte es entweder eine anonymisierte Fassung oder man
+  verlinkt vorerst nur die leere Vorlage.
+
+### 2.7 Lokale Entwicklung
 
 ```
 npm install
