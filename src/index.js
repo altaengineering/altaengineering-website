@@ -220,6 +220,20 @@ function formatSize(bytes) {
   return val.toFixed(1) + " " + units[i];
 }
 
+// Aktivitaets-Log fuers Admin-Panel ("was wurde gemacht, wer hat's erledigt"). Key-Format
+// "log:<ISO-Zeitstempel>:<zufall>" sorgt dafuer, dass env.ACTIVITY.list() die Eintraege ganz von
+// selbst chronologisch liefert (KV listet Keys alphabetisch, ISO-Zeitstempel sortieren dabei
+// automatisch richtig). Absichtlich fire-and-forget: ein Logging-Fehler darf nie die eigentliche
+// Aktion (Upload, Loeschen, Freigabe erstellen) verhindern.
+async function logActivity(env, { email, action, detail }) {
+  try {
+    const key = `log:${new Date().toISOString()}:${crypto.randomUUID().slice(0, 8)}`;
+    await env.ACTIVITY.put(key, JSON.stringify({ email, action, detail: detail || "", at: new Date().toISOString() }));
+  } catch (e) {
+    console.error("Aktivitaets-Log fehlgeschlagen:", e);
+  }
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -441,6 +455,7 @@ export default {
       await addEmailToAccessPolicy(env, record.email);
       record.status = "approved";
       await env.REQUESTS.put("req:" + record.id, JSON.stringify(record));
+      await logActivity(env, { email, action: "Zugangsanfrage freigegeben", detail: record.email });
       return json({ ok: true });
     }
 
@@ -452,6 +467,7 @@ export default {
       const record = JSON.parse(raw);
       record.status = "denied";
       await env.REQUESTS.put("req:" + record.id, JSON.stringify(record));
+      await logActivity(env, { email, action: "Zugangsanfrage abgelehnt", detail: record.email });
       return json({ ok: true });
     }
 
@@ -460,7 +476,15 @@ export default {
     if (url.pathname === "/api/folders" && request.method === "GET") {
       if (!admin) return json({ error: "Keine Berechtigung." }, 403);
       const listed = await listObjects(env, "", "/");
-      const folders = listed.prefixes.map((p) => p.replace(/\/$/, "")).sort();
+      const folderNames = listed.prefixes.map((p) => p.replace(/\/$/, "")).sort();
+      // Dateianzahl pro Ordner mitliefern, damit die Ordner-Uebersicht auf einen Blick zeigt, wo
+      // ueberhaupt etwas liegt, statt nur eine reine Namensliste zu sein.
+      const folders = [];
+      for (const name of folderNames) {
+        const inner = await listObjects(env, name + "/", null);
+        const fileCount = inner.objects.filter((o) => o.key !== name + "/").length;
+        folders.push({ name, fileCount });
+      }
       return json({ folders });
     }
 
@@ -521,6 +545,7 @@ export default {
           `Datei: ${key.split("/").pop()}\n\n` +
           `Ansehen unter: https://${env.PORTAL_HOSTNAME}`,
       });
+      await logActivity(env, { email, action: "Datei hochgeladen", detail: `${folder}/${key.split("/").pop()}` });
       return json({ ok: true });
     }
 
@@ -585,6 +610,7 @@ export default {
       if (!upstream.ok && upstream.status !== 404) {
         return json({ error: "Loeschen fehlgeschlagen." }, 502);
       }
+      await logActivity(env, { email, action: "Datei geloescht", detail: key });
       return json({ ok: true });
     }
 
@@ -651,6 +677,11 @@ export default {
       };
       await env.SHARES.put("share:" + id, JSON.stringify(share));
       const shareUrl = new URL("/share/" + id, url).toString();
+      await logActivity(env, {
+        email,
+        action: "Freigabe-Link erstellt",
+        detail: files.map((f) => f.name).join(", "),
+      });
       return json({ ok: true, id, url: shareUrl });
     }
 
@@ -664,6 +695,7 @@ export default {
       }
       share.revoked = true;
       await env.SHARES.put("share:" + share.id, JSON.stringify(share));
+      await logActivity(env, { email, action: "Freigabe-Link zurueckgezogen", detail: share.label || share.id });
       return json({ ok: true });
     }
 
@@ -708,6 +740,7 @@ export default {
       };
       await env.SHARES.put("hshare:" + id, JSON.stringify(hshare));
       const shareUrl = new URL("/handbook/" + id, url).toString();
+      await logActivity(env, { email, action: "Handbuch-Freigabe-Link erstellt", detail: label || id });
       return json({ ok: true, id, url: shareUrl });
     }
 
@@ -719,7 +752,21 @@ export default {
       const hshare = JSON.parse(raw);
       hshare.revoked = true;
       await env.SHARES.put("hshare:" + hshare.id, JSON.stringify(hshare));
+      await logActivity(env, { email, action: "Handbuch-Freigabe-Link zurueckgezogen", detail: hshare.label || hshare.id });
       return json({ ok: true });
+    }
+
+    // --- Admin-Aktivitaets-Log ---
+    if (url.pathname === "/api/activity" && request.method === "GET") {
+      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
+      const list = await env.ACTIVITY.list({ prefix: "log:", limit: 200 });
+      const items = [];
+      for (const k of list.keys) {
+        const raw = await env.ACTIVITY.get(k.name);
+        if (raw) items.push(JSON.parse(raw));
+      }
+      items.sort((a, b) => new Date(b.at) - new Date(a.at));
+      return json({ activity: items.slice(0, 100) });
     }
 
     return json({ error: "Unbekannter Endpunkt." }, 404);

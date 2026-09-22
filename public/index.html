@@ -82,6 +82,18 @@ header{position:sticky;top:0;z-index:40;background:var(--header-bg);backdrop-fil
 .badge.admin{background:rgba(90,166,236,.16)}
 .email-mono{font-family:var(--mono);font-size:.86rem;color:var(--text)}
 
+.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.9rem;margin-top:1.6rem}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:1rem 1.1rem}
+.stat .num{font-size:1.6rem;font-weight:700;color:var(--text);font-family:var(--mono)}
+.stat .lbl{font-size:.78rem;color:var(--muted);margin-top:.2rem}
+
+.folder-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.8rem;margin-top:.4rem}
+.folder-card{display:flex;flex-direction:column;gap:.3rem;text-align:left;background:var(--surface-2);border:1px solid var(--line-2);border-radius:8px;padding:.9rem 1rem;cursor:pointer;transition:.15s;font-family:inherit}
+.folder-card:hover{border-color:var(--accent)}
+.folder-card.active{border-color:var(--accent);background:var(--chip)}
+.folder-card .fname{font-size:.86rem;word-break:break-all}
+.folder-card .fcount{font-size:.76rem;color:var(--muted);font-family:var(--mono)}
+
 main .wrap{padding:clamp(28px,5vw,48px) var(--gutter) 80px}
 
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:clamp(1.2rem,3vw,1.8rem);position:relative;margin-bottom:1.6rem;box-shadow:0 10px 26px var(--shadow)}
@@ -90,8 +102,10 @@ main .wrap{padding:clamp(28px,5vw,48px) var(--gutter) 80px}
 .panel::after{bottom:-1px;right:-1px;border-left:0;border-top:0}
 .panel h2{font-size:1.05rem;font-weight:700;margin-bottom:.3rem}
 .panel .sub{font-size:.86rem;color:var(--muted);margin-bottom:1.2rem}
-.panel.accent{border-color:var(--accent);background:linear-gradient(180deg,var(--chip),var(--surface) 60%)}
-.panel.accent::before,.panel.accent::after{border-color:var(--accent);opacity:.9}
+/* Dezenter statt eigener Farbverlauf/dickerer Rahmen: nur die Ecken-Akzente etwas kraeftiger,
+   der Rest bleibt wie jedes andere Panel, damit das Handbuch nicht lauter wirkt als der Rest
+   der Seite. */
+.panel.accent::before,.panel.accent::after{border-color:var(--accent)}
 
 .btn-lg{display:inline-flex;align-items:center;gap:.5rem;font-size:.94rem;font-weight:700;padding:.75rem 1.3rem;border-radius:8px;border:1.5px solid transparent;cursor:pointer;transition:.2s}
 .btn-lg.primary{background:var(--btn);color:#fff}
@@ -126,7 +140,11 @@ label.small{font-size:.78rem;color:var(--muted);font-weight:600;text-transform:u
 .upload-item.ok .status{color:var(--ok)}
 .upload-item.err .status{color:var(--err)}
 
-table{width:100%;border-collapse:collapse;font-size:.88rem}
+/* Alle Tabellen-Wrapper hatten kein overflow-x: eine Tabelle mit vielen Spalten (z.B. Aktivitaet)
+   sprengte auf schmalen Bildschirmen nicht nur ihr Panel, sondern die ganze Seite horizontal
+   (bodyScrollWidth > viewport). Mit overflow-x:auto scrollt nur die Tabelle selbst. */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.88rem;min-width:480px}
 thead th{text-align:left;color:var(--muted);font-weight:600;font-size:.74rem;text-transform:uppercase;letter-spacing:.05em;padding:.5rem .6rem;border-bottom:1px solid var(--line);font-family:var(--mono)}
 tbody td{padding:.7rem .6rem;border-bottom:1px solid var(--line);vertical-align:middle}
 tbody tr:hover{background:var(--surface-2)}
@@ -193,6 +211,11 @@ tbody tr:hover{background:var(--surface-2)}
     <div class="kicker">Sicherer Bereich</div>
     <h1>Dateien hochladen &amp; verwalten</h1>
     <div class="who" id="whoBox">Lade Nutzerinfo …</div>
+    <div class="stat-row" id="statRow" style="display:none">
+      <div class="stat"><div class="num" id="statFolders">–</div><div class="lbl">Kundenordner</div></div>
+      <div class="stat"><div class="num" id="statRequests">–</div><div class="lbl">Offene Anfragen</div></div>
+      <div class="stat"><div class="num" id="statShares">–</div><div class="lbl">Aktive Freigaben</div></div>
+    </div>
   </div>
 </div>
 
@@ -201,11 +224,8 @@ tbody tr:hover{background:var(--surface-2)}
 
     <div class="panel" id="adminPanel" style="display:none">
       <h2>Ordner ansehen</h2>
-      <div class="sub">Als Admin siehst du alle Kundenordner. Wähle einen aus.</div>
-      <div class="row">
-        <label class="small" for="folderSelect">Ordner</label>
-        <select id="folderSelect"></select>
-      </div>
+      <div class="sub">Alle Kundenordner auf einen Blick, anklicken für die Dateien.</div>
+      <div class="folder-grid" id="folderGrid"></div>
     </div>
 
     <div class="panel accent" id="handbuchPanel" style="display:none">
@@ -215,7 +235,7 @@ tbody tr:hover{background:var(--surface-2)}
         <a class="btn-lg primary" href="/qm-handbuch" target="_blank" rel="noopener">📘 QM-Handbuch öffnen</a>
         <button class="btn-lg ghost" id="createHandbuchShare">Freigabe-Link erstellen</button>
       </div>
-      <div id="handbuchSharesTableWrap">
+      <div id="handbuchSharesTableWrap" class="table-wrap">
         <table>
           <thead>
             <tr><th>Bezeichnung</th><th>Gültig bis</th><th>Aufrufe</th><th></th></tr>
@@ -229,7 +249,7 @@ tbody tr:hover{background:var(--surface-2)}
     <div class="panel" id="accessRequestsPanel" style="display:none">
       <h2>Zugangsanfragen</h2>
       <div class="sub">Personen, die über «Zugang anfragen» auf der Website um Zugriff gebeten haben.</div>
-      <div id="accessRequestsTableWrap">
+      <div id="accessRequestsTableWrap" class="table-wrap">
         <table>
           <thead>
             <tr><th>Name</th><th>E-Mail</th><th>Firma</th><th>Nachricht</th><th>Angefragt</th><th></th></tr>
@@ -237,6 +257,20 @@ tbody tr:hover{background:var(--surface-2)}
           <tbody id="accessRequestRows"></tbody>
         </table>
         <div class="empty" id="accessRequestsEmptyState" style="display:none">Keine offenen Anfragen.</div>
+      </div>
+    </div>
+
+    <div class="panel" id="activityPanel" style="display:none">
+      <h2>Aktivität</h2>
+      <div class="sub">Was zuletzt im Portal passiert ist, und wer es gemacht hat.</div>
+      <div id="activityTableWrap" class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Zeit</th><th>Wer</th><th>Was</th><th>Details</th></tr>
+          </thead>
+          <tbody id="activityRows"></tbody>
+        </table>
+        <div class="empty" id="activityEmptyState" style="display:none">Noch keine Aktivität aufgezeichnet.</div>
       </div>
     </div>
 
@@ -264,7 +298,7 @@ tbody tr:hover{background:var(--surface-2)}
         <a class="iconbtn" id="zipDownloadLink" href="#" style="display:none">Ordner als ZIP herunterladen</a>
       </div>
       <div class="sub" id="listSub">Alles, was hier liegt, ist nur für dich (und Stefan / Michael) sichtbar.</div>
-      <div id="tableWrap">
+      <div id="tableWrap" class="table-wrap">
         <table>
           <thead>
             <tr><th>Datei</th><th>Grösse</th><th>Hochgeladen</th><th></th></tr>
@@ -278,7 +312,7 @@ tbody tr:hover{background:var(--surface-2)}
     <div class="panel" id="sharesPanel" style="display:none">
       <h2>Freigabe-Links</h2>
       <div class="sub">Links für Personen ohne Kundenportal-Zugang, z.B. für eine Projektabgabe. Jeder Link erlaubt nur den Download der ausgewählten Datei(en) und läuft automatisch ab.</div>
-      <div id="sharesTableWrap">
+      <div id="sharesTableWrap" class="table-wrap">
         <table>
           <thead>
             <tr><th>Bezeichnung</th><th>Datei(en)</th><th>Gültig bis</th><th>Downloads</th><th></th></tr>
@@ -318,7 +352,12 @@ tbody tr:hover{background:var(--surface-2)}
 
 <script>
 (function(){
-  var state = { email: null, isAdmin: false, ownFolder: null, currentFolder: null };
+  var state = { email: null, isAdmin: false, ownFolder: null, currentFolder: null, folders: [], activeFileShares: 0, activeHandbuchShares: 0 };
+
+  function updateSharesStat(){
+    var el = document.getElementById('statShares');
+    if (el) el.textContent = state.activeFileShares + state.activeHandbuchShares;
+  }
 
   function fmtDate(iso){
     var d = new Date(iso);
@@ -347,6 +386,7 @@ tbody tr:hover{background:var(--surface-2)}
         '<span class="badge' + (me.isAdmin ? ' admin' : '') + '">' + rollenText + '</span>';
 
       if (me.isAdmin){
+        document.getElementById('statRow').style.display = '';
         document.getElementById('qmHandbuchLink').style.display = '';
         document.getElementById('adminPanel').style.display = '';
         document.getElementById('uploadTargetRow').style.display = '';
@@ -356,6 +396,8 @@ tbody tr:hover{background:var(--surface-2)}
         loadHandbuchShares();
         document.getElementById('accessRequestsPanel').style.display = '';
         loadAccessRequests();
+        document.getElementById('activityPanel').style.display = '';
+        loadActivity();
       }
       document.getElementById('sharesPanel').style.display = '';
       loadShares();
@@ -370,6 +412,8 @@ tbody tr:hover{background:var(--surface-2)}
 
   function loadAccessRequests(){
     api('/api/access-requests').then(function(res){
+      var statEl = document.getElementById('statRequests');
+      if (statEl) statEl.textContent = res.requests.length;
       var rows = document.getElementById('accessRequestRows');
       var empty = document.getElementById('accessRequestsEmptyState');
       rows.innerHTML = '';
@@ -416,19 +460,31 @@ tbody tr:hover{background:var(--surface-2)}
   }
 
   function loadFolders(){
-    api('/api/folders').then(function(res){
-      var sel = document.getElementById('folderSelect');
-      sel.innerHTML = '';
+    return api('/api/folders').then(function(res){
+      state.folders = res.folders;
+      var grid = document.getElementById('folderGrid');
+      grid.innerHTML = '';
       res.folders.forEach(function(f){
-        var opt = document.createElement('option');
-        opt.value = f; opt.textContent = f;
-        if (f === state.currentFolder) opt.selected = true;
-        sel.appendChild(opt);
+        var card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'folder-card' + (f.name === state.currentFolder ? ' active' : '');
+        card.innerHTML = '<span class="fname">' + f.name + '</span><span class="fcount">' + f.fileCount + ' Datei' + (f.fileCount === 1 ? '' : 'en') + '</span>';
+        card.addEventListener('click', function(){
+          state.currentFolder = f.name;
+          refreshList();
+          highlightFolderCard();
+        });
+        grid.appendChild(card);
       });
-      sel.onchange = function(){
-        state.currentFolder = sel.value;
-        refreshList();
-      };
+      var statFolders = document.getElementById('statFolders');
+      if (statFolders) statFolders.textContent = res.folders.length;
+    });
+  }
+
+  function highlightFolderCard(){
+    document.querySelectorAll('.folder-card').forEach(function(card){
+      var name = card.querySelector('.fname').textContent;
+      card.classList.toggle('active', name === state.currentFolder);
     });
   }
 
@@ -514,6 +570,8 @@ tbody tr:hover{background:var(--surface-2)}
       var empty = document.getElementById('sharesEmptyState');
       rows.innerHTML = '';
       var active = res.shares.filter(function(s){ return !s.revoked; });
+      state.activeFileShares = active.length;
+      updateSharesStat();
       if (!active.length){
         empty.style.display = '';
         return;
@@ -583,6 +641,8 @@ tbody tr:hover{background:var(--surface-2)}
       var empty = document.getElementById('handbuchSharesEmptyState');
       rows.innerHTML = '';
       var active = res.shares.filter(function(s){ return !s.revoked; });
+      state.activeHandbuchShares = active.length;
+      updateSharesStat();
       if (!active.length){
         empty.style.display = '';
         return;
@@ -617,6 +677,29 @@ tbody tr:hover{background:var(--surface-2)}
             body: JSON.stringify({ id: btn.getAttribute('data-revoke-hid') })
           }).then(loadHandbuchShares).catch(function(e){ alert(e.message); });
         });
+      });
+    });
+  }
+
+  // ---------- Aktivitaets-Log (admin-only) ----------
+  function loadActivity(){
+    api('/api/activity').then(function(res){
+      var rows = document.getElementById('activityRows');
+      var empty = document.getElementById('activityEmptyState');
+      rows.innerHTML = '';
+      if (!res.activity.length){
+        empty.style.display = '';
+        return;
+      }
+      empty.style.display = 'none';
+      res.activity.forEach(function(a){
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td class="meta">' + fmtDate(a.at) + '</td>' +
+          '<td class="meta">' + a.email + '</td>' +
+          '<td class="fname">' + a.action + '</td>' +
+          '<td class="meta-files">' + (a.detail || '') + '</td>';
+        rows.appendChild(tr);
       });
     });
   }
