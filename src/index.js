@@ -236,16 +236,17 @@ export default {
       return env.ASSETS.fetch(new Request(new URL("/share", request.url), request));
     }
 
-    // QM-Handbuch: absichtlich NICHT auf der oeffentlichen Website (alta-engineering.ch),
-    // sondern hier im per Cloudflare-Access geschuetzten Kundenportal, nur fuer eigene
-    // Mitarbeitende (nicht fuer Kunden, das Handbuch ist interner Natur). Die tatsaechliche
-    // HTML-Datei liegt unter dem Namen "_qm-handbuch-inner.html" (fuehrender Unterstrich,
-    // bewusst nicht die eigentliche URL), damit niemand sie am Mitarbeitenden-Check unten
-    // vorbei direkt ueber den generischen Static-Asset-Pfad abrufen kann.
+    // QM-Handbuch, eingeloggter Direktzugriff: absichtlich nur fuer Admins (Stefan/Michael), nicht
+    // automatisch fuer alle Mitarbeitenden oder Kunden. Wer sonst Zugriff braucht (eine bestimmte
+    // Mitarbeiterin, ein Kunde), bekommt stattdessen einen Freigabe-Link (siehe /handbook/<id>
+    // weiter unten), den ein Admin gezielt erstellt und zurueckziehen kann, statt pauschal allen
+    // eingeloggten Personen Zugriff zu geben. Die tatsaechliche HTML-Datei liegt unter dem Namen
+    // "_qm-handbuch-inner.html" (fuehrender Unterstrich, bewusst nicht die eigentliche URL), damit
+    // niemand sie an den Checks hier vorbei direkt ueber den Static-Asset-Pfad abrufen kann.
     if (url.pathname === "/qm-handbuch" && request.method === "GET") {
       const email = request.headers.get("Cf-Access-Authenticated-User-Email");
-      if (!email || !isMitarbeiterEmail(email)) {
-        return new Response("Kein Zugriff. Diese Seite ist nur fuer Alta-Mitarbeitende.", {
+      if (!email || !isAdminEmail(email)) {
+        return new Response("Kein Zugriff. Frag Stefan oder Michael nach einem Freigabe-Link.", {
           status: 403,
           headers: { "Content-Type": "text/plain; charset=utf-8" },
         });
@@ -255,9 +256,33 @@ export default {
       // bekaemen die Weiterleitung statt des Seiteninhalts zurueck.
       return env.ASSETS.fetch(new Request(new URL("/_qm-handbuch-inner", request.url), request));
     }
+
+    // Oeffentliche Freigabe-Seite fuers Handbuch (/handbook/<id>): kein Access-Login noetig,
+    // funktioniert wie die Datei-Freigabe-Links (/share/<id>) ueber einen zeitlich begrenzten,
+    // jederzeit zurueckziehbaren Eintrag in derselben SHARES-KV (Prefix "hshare:" statt "share:",
+    // damit beide Arten nebeneinander in derselben KV-Namespace leben koennen, ohne ein neues
+    // Binding in wrangler.toml zu brauchen). WICHTIG: dieser Pfad muss zusaetzlich als Bypass in
+    // der Cloudflare-Access-Policy eingetragen werden (Zero Trust Dashboard), genau wie /share/*
+    // und /request-access, sonst kommt niemand ohne Access-Login hierher durch Access selbst.
+    if (url.pathname.startsWith("/handbook/") && request.method === "GET") {
+      const id = url.pathname.slice("/handbook/".length);
+      const raw = id && (await env.SHARES.get("hshare:" + id));
+      const hshare = raw && JSON.parse(raw);
+      if (!hshare || !shareIsUsable(hshare)) {
+        return new Response(
+          "Dieser Link ist nicht (mehr) gueltig, abgelaufen oder wurde zurueckgezogen.",
+          { status: 410, headers: { "Content-Type": "text/plain; charset=utf-8" } },
+        );
+      }
+      hshare.viewCount = (hshare.viewCount || 0) + 1;
+      hshare.lastViewedAt = new Date().toISOString();
+      await env.SHARES.put("hshare:" + id, JSON.stringify(hshare));
+      return env.ASSETS.fetch(new Request(new URL("/_qm-handbuch-inner", request.url), request));
+    }
+
     // Direkten Zugriff auf die rohe Datei blockieren, sonst koennte jede eingeloggte Person
     // (auch Kunden, die nur fuer den eigenen Ordner freigeschaltet sind) den Dateinamen erraten
-    // und den obigen Mitarbeitenden-Check umgehen.
+    // und die Checks oben umgehen.
     if (url.pathname === "/_qm-handbuch-inner.html" || url.pathname === "/_qm-handbuch-inner") {
       return new Response("Not found.", { status: 404 });
     }
@@ -639,6 +664,61 @@ export default {
       }
       share.revoked = true;
       await env.SHARES.put("share:" + share.id, JSON.stringify(share));
+      return json({ ok: true });
+    }
+
+    // --- Freigabe-Links fuers QM-Handbuch (admin-only, siehe /handbook/<id> oben) ---
+    // Anders als Datei-Freigabe-Links darf das nur ein Admin erstellen/einsehen/zurueckziehen,
+    // nicht jede eingeloggte Person: das Handbuch ist kein eigener Upload einer Person, sondern
+    // ein einziges, firmenweites Dokument, dessen Weitergabe bewusst kontrolliert werden soll.
+
+    if (url.pathname === "/api/handbook-shares" && request.method === "GET") {
+      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
+      const list = await env.SHARES.list({ prefix: "hshare:" });
+      const items = [];
+      for (const k of list.keys) {
+        const raw = await env.SHARES.get(k.name);
+        if (raw) items.push(JSON.parse(raw));
+      }
+      items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      return json({ shares: items });
+    }
+
+    if (url.pathname === "/api/handbook-share" && request.method === "POST") {
+      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
+      const body = await request.json().catch(() => ({}));
+      const label = (body.label || "").trim().slice(0, 200);
+      const expiresAt = (body.expiresAt || "").trim();
+      if (!expiresAt || Number.isNaN(new Date(expiresAt).getTime())) {
+        return json({ error: "Kein gueltiges Ablaufdatum." }, 400);
+      }
+      if (new Date(expiresAt).getTime() <= Date.now()) {
+        return json({ error: "Das Ablaufdatum muss in der Zukunft liegen." }, 400);
+      }
+
+      const id = crypto.randomUUID();
+      const hshare = {
+        id,
+        createdBy: email,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(expiresAt).toISOString(),
+        label,
+        revoked: false,
+        viewCount: 0,
+      };
+      await env.SHARES.put("hshare:" + id, JSON.stringify(hshare));
+      const shareUrl = new URL("/handbook/" + id, url).toString();
+      return json({ ok: true, id, url: shareUrl });
+    }
+
+    if (url.pathname === "/api/handbook-share-revoke" && request.method === "POST") {
+      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
+      const body = await request.json().catch(() => ({}));
+      const raw = body.id && (await env.SHARES.get("hshare:" + body.id));
+      if (!raw) return json({ error: "Link nicht gefunden." }, 404);
+      const hshare = JSON.parse(raw);
+      hshare.revoked = true;
+      await env.SHARES.put("hshare:" + hshare.id, JSON.stringify(hshare));
       return json({ ok: true });
     }
 
