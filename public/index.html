@@ -138,6 +138,7 @@ tbody tr:hover{background:var(--surface-2)}
       <span>Kundenportal</span>
     </div>
     <div class="nav-actions">
+      <a class="back-link" href="/qm-handbuch" id="qmHandbuchLink" style="display:none">📘 QM-Handbuch</a>
       <a class="back-link" href="https://alta-engineering.ch">&larr; Zur Website</a>
       <button class="theme-toggle" id="themeToggle" aria-label="Darstellung wechseln" title="Darstellung wechseln">
         <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -286,6 +287,10 @@ tbody tr:hover{background:var(--surface-2)}
       whoBox.innerHTML =
         '<span class="email-mono">' + me.email + '</span>' +
         '<span class="badge' + (me.isAdmin ? ' admin' : '') + '">' + rollenText + '</span>';
+
+      if (me.isMitarbeiter){
+        document.getElementById('qmHandbuchLink').style.display = '';
+      }
 
       if (me.isAdmin){
         document.getElementById('adminPanel').style.display = '';

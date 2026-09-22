@@ -236,6 +236,32 @@ export default {
       return env.ASSETS.fetch(new Request(new URL("/share", request.url), request));
     }
 
+    // QM-Handbuch: absichtlich NICHT auf der oeffentlichen Website (alta-engineering.ch),
+    // sondern hier im per Cloudflare-Access geschuetzten Kundenportal, nur fuer eigene
+    // Mitarbeitende (nicht fuer Kunden, das Handbuch ist interner Natur). Die tatsaechliche
+    // HTML-Datei liegt unter dem Namen "_qm-handbuch-inner.html" (fuehrender Unterstrich,
+    // bewusst nicht die eigentliche URL), damit niemand sie am Mitarbeitenden-Check unten
+    // vorbei direkt ueber den generischen Static-Asset-Pfad abrufen kann.
+    if (url.pathname === "/qm-handbuch" && request.method === "GET") {
+      const email = request.headers.get("Cf-Access-Authenticated-User-Email");
+      if (!email || !isMitarbeiterEmail(email)) {
+        return new Response("Kein Zugriff. Diese Seite ist nur fuer Alta-Mitarbeitende.", {
+          status: 403,
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+        });
+      }
+      // Ohne .html anfordern (wie beim /share-Muster oben): Cloudflares Asset-Routing leitet
+      // Anfragen auf die "saubere" URL sonst mit 307 um, auch bei diesem internen Fetch, und wir
+      // bekaemen die Weiterleitung statt des Seiteninhalts zurueck.
+      return env.ASSETS.fetch(new Request(new URL("/_qm-handbuch-inner", request.url), request));
+    }
+    // Direkten Zugriff auf die rohe Datei blockieren, sonst koennte jede eingeloggte Person
+    // (auch Kunden, die nur fuer den eigenen Ordner freigeschaltet sind) den Dateinamen erraten
+    // und den obigen Mitarbeitenden-Check umgehen.
+    if (url.pathname === "/_qm-handbuch-inner.html" || url.pathname === "/_qm-handbuch-inner") {
+      return new Response("Not found.", { status: 404 });
+    }
+
     // Alles ausser /api/* wird als statische Datei aus ./public ausgeliefert
     // (siehe [assets] in wrangler.toml) — inkl. portal.html, Login-Seite etc.
     if (!url.pathname.startsWith("/api/")) {

@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QM-Handbuch | Kundenportal Alta Engineering AG</title>
+<meta name="color-scheme" content="light dark">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: light;
+  --bg:#ffffff; --alt:#f5f7f9; --surface:#ffffff; --surface-2:#f0f3f6; --chip:#eaf1f8;
+  --text:#1b2531; --muted:#586573; --line:#e4e8ed; --line-2:#d3d9e0;
+  --accent:#215d92; --accent-dark:#184a78; --btn:#215d92; --btn-hover:#184a78;
+  --header-bg:rgba(255,255,255,.9); --shadow:rgba(20,30,45,.09); --shadow-strong:rgba(20,30,45,.16);
+  --maxw:1180px; --gutter:clamp(18px,4.5vw,56px); --radius:10px;
+  --font:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#0d1218; --alt:#121a23; --surface:#16202b; --surface-2:#1c2833; --chip:rgba(96,168,235,.14);
+  --text:#e7edf3; --muted:#94a3b2; --line:#22303c; --line-2:#2f3f4d;
+  --accent:#5aa6ec; --accent-dark:#82bef2; --btn:#2f74b8; --btn-hover:#3d86cd;
+  --header-bg:rgba(13,18,24,.82); --shadow:rgba(0,0,0,.5); --shadow-strong:rgba(0,0,0,.62);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme]){
+    color-scheme: dark;
+    --bg:#0d1218; --alt:#121a23; --surface:#16202b; --surface-2:#1c2833; --chip:rgba(96,168,235,.14);
+    --text:#e7edf3; --muted:#94a3b2; --line:#22303c; --line-2:#2f3f4d;
+    --accent:#5aa6ec; --accent-dark:#82bef2; --btn:#2f74b8; --btn-hover:#3d86cd;
+    --header-bg:rgba(13,18,24,.82); --shadow:rgba(0,0,0,.5); --shadow-strong:rgba(0,0,0,.62);
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);color:var(--text);background:var(--bg);line-height:1.6;-webkit-font-smoothing:antialiased;transition:background .3s ease,color .3s ease}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:var(--maxw);margin:0 auto;padding-left:var(--gutter);padding-right:var(--gutter)}
+
+header{position:sticky;top:0;z-index:40;background:var(--header-bg);backdrop-filter:blur(9px);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:1rem;height:74px}
+.brand{display:flex;flex-direction:column;line-height:1.05}
+.brand b{font-weight:700;font-size:1.18rem;letter-spacing:.01em;color:var(--text)}
+.brand span{font-size:.68rem;color:var(--accent);letter-spacing:.08em;margin-top:3px;font-family:var(--mono);text-transform:uppercase}
+.nav-actions{display:flex;align-items:center;gap:.9rem}
+.theme-toggle{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:8px;border:1px solid var(--line-2);background:var(--surface);color:var(--text);cursor:pointer;transition:.2s}
+.theme-toggle:hover{border-color:var(--accent);color:var(--accent)}
+.theme-toggle svg{width:19px;height:19px}
+.theme-toggle .sun{display:none}
+.theme-toggle .moon{display:block}
+:root[data-theme="dark"] .theme-toggle .moon{display:none}
+:root[data-theme="dark"] .theme-toggle .sun{display:block}
+.back-link{font-size:.86rem;color:var(--muted);font-weight:500}
+.back-link:hover{color:var(--accent)}
+
+.handbuch-hero{background:var(--alt);border-bottom:1px solid var(--line);padding:clamp(34px,5vw,54px) 0}
+.handbuch-hero .kicker{font-size:.78rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-family:var(--mono)}
+.handbuch-hero h1{font-weight:700;font-size:clamp(1.7rem,3.6vw,2.3rem);letter-spacing:-.02em;margin-top:.6rem}
+.handbuch-hero p{color:var(--muted);margin-top:.7rem;max-width:62ch}
+.handbuch-flag{background:var(--chip);border:1px solid var(--line-2);border-radius:var(--radius);padding:1rem 1.2rem;margin-top:1.2rem;font-size:.92rem;color:var(--text);max-width:70ch}
+.handbuch-flag b{display:block;margin-bottom:.3rem}
+
+.handbuch-layout{display:grid;grid-template-columns:240px 1fr;gap:clamp(1.5rem,4vw,3rem);padding:clamp(32px,5vw,56px) 0;align-items:start}
+@media(max-width:860px){.handbuch-layout{grid-template-columns:1fr}}
+.handbuch-toc{position:sticky;top:90px;max-height:calc(100vh - 110px);overflow:auto;font-size:.86rem;padding-right:.5rem}
+@media(max-width:860px){.handbuch-toc{position:static;max-height:none;border:1px solid var(--line);border-radius:var(--radius);padding:1rem 1.2rem;background:var(--surface)}}
+.handbuch-toc a{display:block;padding:.32rem 0;color:var(--muted);border-left:2px solid transparent;padding-left:.7rem;transition:color .15s,border-color .15s}
+.handbuch-toc a:hover{color:var(--text)}
+.handbuch-toc a.lvl2{padding-left:1.4rem;font-size:.82rem}
+.handbuch-content section{padding-bottom:clamp(2.2rem,4vw,3rem);margin-bottom:clamp(2.2rem,4vw,3rem);border-bottom:1px solid var(--line)}
+.handbuch-content section:last-child{border-bottom:none}
+.handbuch-content h2{font-weight:700;font-size:clamp(1.3rem,2.6vw,1.7rem);letter-spacing:-.01em;scroll-margin-top:100px}
+.handbuch-content h3{font-weight:600;font-size:1.05rem;margin-top:1.6rem;scroll-margin-top:100px}
+.handbuch-content p{color:var(--muted);margin-top:.7rem;max-width:70ch}
+.handbuch-content p strong{color:var(--text);font-weight:600}
+.handbuch-content ul{color:var(--muted);margin-top:.7rem;padding-left:1.2rem;max-width:70ch}
+.handbuch-content li{margin-bottom:.3rem}
+.handbuch-table-wrap{overflow-x:auto;margin-top:1.1rem;border:1px solid var(--line);border-radius:var(--radius)}
+.handbuch-content table{width:100%;border-collapse:collapse;font-size:.87rem;min-width:480px}
+.handbuch-content th{background:var(--alt);color:var(--text);text-align:left;font-weight:600;padding:.6rem .8rem;border-bottom:1px solid var(--line);white-space:nowrap}
+.handbuch-content td{padding:.6rem .8rem;border-bottom:1px solid var(--line);color:var(--muted);vertical-align:top}
+.handbuch-content tr:last-child td{border-bottom:none}
+.handbuch-doclink{display:inline-flex;align-items:center;gap:.35rem;font-size:.82rem;color:var(--accent);border:1px dashed var(--line-2);border-radius:6px;padding:.15rem .5rem;margin:.15rem .3rem .15rem 0}
+.handbuch-todo{font-size:.72rem;color:var(--muted);font-style:italic}
+.foot-note{text-align:center;color:var(--muted);font-size:.8rem;margin-top:2rem;font-family:var(--mono)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <div class="brand">
+      <b>Alta Engineering AG</b>
+      <span>Kundenportal</span>
+    </div>
+    <div class="nav-actions">
+      <a class="back-link" href="/">&larr; Zurück zum Portal</a>
+      <button class="theme-toggle" id="themeToggle" aria-label="Darstellung wechseln" title="Darstellung wechseln">
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<section class="handbuch-hero">
+  <div class="wrap">
+    <div class="kicker">Managementsystem · nur für Alta-Mitarbeitende</div>
+    <h1>QM-Handbuch Alta Engineering AG</h1>
+    <p>Dieselben Inhalte wie im Word-Handbuch, hier als durchsuchbare Seite statt PDF: die Kapitel links, Vorlage- und Nachweisdokumente direkt als Link an der Stelle, wo sie im Prozess gebraucht werden. Diese Seite liegt im Kundenportal und ist wie der Rest davon nur mit Login erreichbar.</p>
+    <div class="handbuch-flag">
+      <b>Zwei Dinge zum Gegenlesen, bevor das an Kunden geht:</b>
+      In Kapitel 4.2 steht noch "<em>... Prozesse oder Produkte der Hirt Umwelttechnik AG ...</em>", offenbar aus einer älteren Vorlage stehen geblieben und nicht auf Alta Engineering angepasst. Ausserdem sind an ein paar Stellen (Kap. 4.1 Interessierte Parteien, Kap. 8.1 Marketing-Kennzahlen) noch <code>??</code>-Platzhalter im Originaltext. Beides unten 1:1 aus dem Word übernommen, nicht von mir stillschweigend ausgefüllt oder korrigiert.
+    </div>
+  </div>
+</section>
+
+<main>
+  <div class="wrap handbuch-layout">
+    <nav class="handbuch-toc" aria-label="Inhaltsverzeichnis">
+      <a href="#kap-0">0. Änderungs-Journal</a>
+      <a href="#kap-1">1. Einführung</a>
+      <a href="#kap-2">2. Anwendungsbereich</a>
+      <a href="#kap-3">3. Begriffe</a>
+      <a href="#kap-4">4. Kontext der Organisation</a>
+      <a href="#kap-5">5. Führungsprozess</a>
+      <a href="#kap-6">6. Planung</a>
+      <a href="#kap-7">7. Unterstützungsprozesse</a>
+      <a href="#kap-8">8. Operative Prozesse</a>
+      <a href="#kap-9">9. Bewertung der Leistung</a>
+      <a href="#kap-10">10. Verbesserung</a>
+      <a href="#kap-doks" class="lvl2">→ Vorlage-/Nachweisdokumente</a>
+    </nav>
+    <article class="handbuch-content">
+
+      <section id="kap-0">
+        <h2>0. Änderungs-Journal</h2>
+        <div class="handbuch-table-wrap">
+          <table>
+            <thead><tr><th>Datum</th><th>Kapitel</th><th>Änderung</th></tr></thead>
+            <tbody>
+              <tr><td>02.2018</td><td>-</td><td>Erstausgabe Managementsystem nach ISO 9001:2015</td></tr>
+              <tr><td>09.2020</td><td>5</td><td>Führung, 5.2 Organigramm nachgeführt</td></tr>
+              <tr><td>03.2021</td><td>5</td><td>Führung, 5.2 Organigramm nachgeführt</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="kap-1">
+        <h2>1. Einführung und Inkraftsetzung des Managementsystems</h2>
+        <h3>1.1 Unternehmensportrait</h3>
+        <div class="handbuch-table-wrap">
+          <table>
+            <tbody>
+              <tr><td>Gegründet</td><td>2012</td></tr>
+              <tr><td>Sitz des Unternehmens</td><td>6353 Weggis</td></tr>
+              <tr><td>Personalbestand</td><td>9 Mitarbeitende (keine Lernenden)</td></tr>
+              <tr><td>Tätigkeit</td><td>Ingenieurbüro für Maschinenbau und Elektrotechnik, Beratung für Managementsysteme</td></tr>
+              <tr><td>Anwendungsbereich</td><td>Maschinenbau, Elektrotechnik</td></tr>
+              <tr><td>Kunden</td><td>Allgemeine Industrie, Baubranche, Handel, Tourismus</td></tr>
+              <tr><td>Einsatzgebiet</td><td>Ganze Schweiz</td></tr>
+              <tr><td>Geschäftsjahr</td><td>1. Januar bis 31. Dezember</td></tr>
+              <tr><td>Verbände</td><td>keine</td></tr>
+              <tr><td>Webseite</td><td>www.alta-engineering.ch</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Das vorliegende Managementsystem erfüllt die Forderungen der Norm ISO 9001. Es besteht aus dem Management-Handbuch und den mitgeltenden Dokumenten und ist für alle Mitarbeitenden der Alta Engineering AG verbindlich.</p>
+        <p>Das Managementsystem trat am 1. Februar 2018 in Kraft.</p>
+        <p>6353 Weggis, im Januar 2018<br>Stefan Herger, Geschäftsführer</p>
+      </section>
+
+      <section id="kap-2">
+        <h2>2. Anwendungsbereich des Managementsystems</h2>
+        <p>Der Anwendungsbereich des vorliegenden Managementsystems bezieht sich auf die ganze Organisation der Alta Engineering AG unter Berücksichtigung der Schnittstellen zu den interessierten Parteien.</p>
+        <p><strong>Ausschlüsse:</strong> keine</p>
+        <p><strong>Outsourcing:</strong> Die Buchhaltung und Buchführung werden von einem Treuhandbüro ausgeführt.</p>
+      </section>
+
+      <section id="kap-3">
+        <h2>3. Begriffe</h2>
+        <div class="handbuch-table-wrap">
+          <table>
+            <tbody>
+              <tr><td>ASGS</td><td>Arbeitssicherheit und Gesundheitsschutz</td></tr>
+              <tr><td>CL</td><td>Checkliste</td></tr>
+              <tr><td>EKAS</td><td>Eidgenössische Koordinationsstelle für Arbeitssicherheit</td></tr>
+              <tr><td>FO</td><td>Formular</td></tr>
+              <tr><td>GL</td><td>Geschäftsleiter</td></tr>
+              <tr><td>GV</td><td>Generalversammlung</td></tr>
+              <tr><td>MA</td><td>Mitarbeitende</td></tr>
+              <tr><td>PL</td><td>Projektleiter</td></tr>
+              <tr><td>SB</td><td>Systembetreuer (Managementsystem)</td></tr>
+              <tr><td>SiBe</td><td>Sicherheitsbeauftragter</td></tr>
+              <tr><td>SQS</td><td>Schweizerische Vereinigung für Qualitäts- und Management-Systeme</td></tr>
+              <tr><td>SUVA</td><td>Schweizerische Unfallversicherungsanstalt</td></tr>
+              <tr><td>VKF</td><td>Vereinigung Kantonaler Feuerversicherungen</td></tr>
+              <tr><td>VR</td><td>Verwaltungsrat</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="kap-4">
+        <h2>4. Kontext der Organisation</h2>
+        <p>Der Kontext der Unternehmung ist in Kapitel 1.1 Unternehmensportrait dieses Management-Handbuchs umschrieben. Weitere Details können zudem den verschiedenen Firmen-Broschüren und der Firmenwebseite entnommen werden.</p>
+
+        <h3>4.1 Interessierte Parteien</h3>
+        <div class="handbuch-table-wrap">
+          <table>
+            <thead><tr><th>Interessierte Partei</th><th>Erfordernisse und Erwartungen</th><th>Kommunikation / Dokumentierte Information</th></tr></thead>
+            <tbody>
+              <tr><td>Kunden</td><td>Nachhaltige Qualität der Dienstleistungen und Produkte, reibungslose/wirtschaftliche Abwicklung und Verrechnung, Beratung und Unterstützung</td><td>Offerten, Auftragsbestätigungen, Werkverträge, Rechnungen, Lieferscheine</td></tr>
+              <tr><td>Aktionäre</td><td>Nachhaltigkeit, Ertrag <span class="handbuch-todo">(Original: ??)</span></td><td><span class="handbuch-todo">(Original: ??)</span></td></tr>
+              <tr><td>Mitbewerber</td><td>Einhalten fairer Grundsätze und Spielregeln</td><td>situative Informationen</td></tr>
+              <tr><td>Partner</td><td>Einhalten fairer Grundsätze und Spielregeln</td><td>situative Informationen</td></tr>
+              <tr><td>Lieferanten und Dienstleister</td><td>Verfügbarkeit der Dienstleistungen und Produkte, pünktliche Zahlung</td><td>Einkaufsbestellungen, Lieferantendokumente, Lieferscheine</td></tr>
+              <tr><td>Mitarbeitende</td><td>Gegenseitiges Erfüllen der Anstellungsbedingungen, Loyalität und gegenseitiger Respekt, soziale Sicherheit, sinnvolle Betätigung, zwischenmenschliche Kontakte, offene Kommunikation</td><td>Anschlagbrett, Formular Mitarbeitendengespräch, Mitarbeitenden-Informationen, Mitarbeitenden-Schulungen</td></tr>
+              <tr><td>Nachbarn</td><td>Gegenseitige Rücksichtnahme, offene Kommunikation</td><td>situative Informationen</td></tr>
+              <tr><td>Bevölkerung</td><td>Offene Kommunikation, Einhaltung der Grenzwerte</td><td>situative Informationen</td></tr>
+              <tr><td>Umwelt</td><td>Einhalten der gesetzlichen Vorschriften</td><td>situative Informationen</td></tr>
+              <tr><td>Behörden (Bund, Kanton, Gemeinde)</td><td>Einhalten der vereinbarten Abmachungen, Auflagen und gesetzlichen Vorschriften</td><td>Schriftliche Bewilligungen, Zeiterfassung, Lohnabrechnung</td></tr>
+              <tr><td>SUVA / EKAS</td><td>Umsetzung der EKAS-Richtlinien</td><td>Systematische Schulung, Unfallmeldungen</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>4.2 Gesetzliche Vorschriften und Normen</h3>
+        <p>Die Überprüfung der Aktualität der gesetzlichen Bestimmungen erfolgt jährlich im Rahmen der Bewertung des Managementsystems durch den Geschäftsführer. Änderungen in den gesetzlichen Bestimmungen werden im Bewertungsbericht erwähnt. Die Umsetzung der entsprechenden Anpassungen erfolgt durch die Prozessverantwortlichen.</p>
+
+        <h3>4.2.1 Gesetzliche Vorschriften</h3>
+        <div class="handbuch-table-wrap">
+          <table>
+            <thead><tr><th>Bereich</th><th>Nr.</th><th>Titel</th></tr></thead>
+            <tbody>
+              <tr><td>Arbeitsgesetz, AS/GS</td><td>741.211.5</td><td>Verordnung des UVEK über die Signalisation von Strassen, Fuss- und Wanderwegen</td></tr>
+              <tr><td>Arbeitsgesetz, AS/GS</td><td>819.1</td><td>Bundesgesetz über die Sicherheit von technischen Einrichtungen und Geräten</td></tr>
+              <tr><td>Arbeitsgesetz, AS/GS</td><td>822.11</td><td>Bundesgesetz über die Arbeit in Industrie, Gewerbe und Handel (Arbeitsgesetz)</td></tr>
+              <tr><td>Arbeitsgesetz, AS/GS</td><td>822.111</td><td>Verordnung 1 zum Arbeitsgesetz (ArGV 1)</td></tr>
+              <tr><td>Arbeitsgesetz, AS/GS</td><td>822.113</td><td>Verordnung 3 zum Arbeitsgesetz, Gesundheitsvorsorge (ArGV 3)</td></tr>
+              <tr><td>Arbeitsgesetz, AS/GS</td><td>822.116</td><td>Verordnung über die Eignung der Spezialistinnen und Spezialisten der Arbeitssicherheit</td></tr>
+              <tr><td>Arbeitsgesetz, AS/GS</td><td>822.14</td><td>Bundesgesetz über die Information und Mitsprache der Arbeitnehmenden (Mitwirkungsgesetz)</td></tr>
+              <tr><td>Arbeitsgesetz, AS/GS</td><td>822.21</td><td>Arbeitszeitgesetz (AZG)</td></tr>
+              <tr><td>Arbeitsgesetz, AS/GS</td><td>823.20</td><td>Entsendegesetz (EntsG) bzw. -verordnung (EntsV)</td></tr>
+              <tr><td>Arbeitsgesetz, AS/GS</td><td>832.20</td><td>Bundesgesetz über die Unfallversicherung (UVG)</td></tr>
+              <tr><td>Arbeitsgesetz, AS/GS</td><td>832.201</td><td>Verordnung über die Inkraftsetzung und Einführung des UVG</td></tr>
+              <tr><td>Arbeitsgesetz, AS/GS</td><td>832.202</td><td>Verordnung über die Unfallversicherung (UVV)</td></tr>
+              <tr><td>Arbeitsgesetz, AS/GS</td><td>832.30</td><td>Verordnung über die Verhütung von Unfällen und Berufskrankheiten (VUV)</td></tr>
+              <tr><td>Arbeitsgesetz, AS/GS</td><td>832.311.141</td><td>Bauarbeitenverordnung (BauAV)</td></tr>
+              <tr><td>Produkte</td><td>221.112.944</td><td>Produkthaftpflicht</td></tr>
+              <tr><td>Produkte</td><td>930.11</td><td>Produktsicherheitsgesetz (PrSG)</td></tr>
+              <tr><td>Umweltschutz</td><td>814.01</td><td>Umweltschutzgesetz (USG)</td></tr>
+              <tr><td>Umweltschutz</td><td>814.20</td><td>Gewässerschutzgesetz (GSchG)</td></tr>
+              <tr><td>Umweltschutz</td><td>814.201</td><td>Gewässerschutzverordnung (GSchV)</td></tr>
+              <tr><td>Umweltschutz</td><td>814.202</td><td>Verordnung über den Schutz der Gewässer vor wassergefährdenden Flüssigkeiten (VWF)</td></tr>
+              <tr><td>Umweltschutz</td><td>813.11</td><td>Chemikaliengesetz (ChemG)</td></tr>
+              <tr><td>Umweltschutz</td><td>813.101</td><td>Chemikalienverordnung (ChemV)</td></tr>
+              <tr><td>Umweltschutz</td><td>813.81</td><td>Chemikalien-Risikoreduktions-Verordnung (ChemRRV)</td></tr>
+              <tr><td>Umweltschutz</td><td>813.113.11</td><td>Verordnung über die Chemikalien-Ansprechperson</td></tr>
+              <tr><td>Umweltschutz</td><td>814.610</td><td>Verordnung über den Verkehr mit Sonderabfällen (VeVA)</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Die aktuelle Version aller nationalen und kantonalen Gesetze ist im Internet unter <a href="https://www.admin.ch" target="_blank" rel="noopener">www.admin.ch</a> und <a href="https://www.lu.ch" target="_blank" rel="noopener">www.lu.ch</a> abrufbar.</p>
+
+        <h3>4.2.2 Anwendbare Normen</h3>
+        <div class="handbuch-table-wrap">
+          <table>
+            <thead><tr><th>Norm</th><th>Titel</th><th>Relevante Prozesse</th></tr></thead>
+            <tbody>
+              <tr><td>ISO 9001:2015</td><td>Qualitätsmanagement-Systeme, Anforderungen</td><td>alle Prozesse</td></tr>
+              <tr><td>VKF Brandschutzvorschriften 2015</td><td>Brandschutzvorschriften</td><td>Operative Prozesse</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="kap-5">
+        <h2>5. Führungsprozess</h2>
+        <h3>5.1 Unternehmenspolitik</h3>
+        <p><strong>Kundenzufriedenheit:</strong> Von der Zufriedenheit unserer Kunden, ihren Aufträgen und Weiterempfehlungen hängen die Existenz und die Zukunftssicherung unseres Unternehmens ab. Durch hohe Flexibilität in der Dienstleistungserbringung, fundiertem Fachwissen sowie einem fairen Preis- und Leistungsverhältnis schaffen wir eine hohe Kundenzufriedenheit.</p>
+        <p><strong>Interessierte Parteien:</strong> Unseren Kunden, den Lieferanten, der Umwelt, den Behörden und weiteren interessierten Parteien begegnen wir stets mit gebührendem Respekt und offener Kommunikation. Die Einhaltung der gesetzlichen Vorschriften und Richtlinien sowie das korrekte Auftreten unserer Mitarbeitenden ist ein integrierter Bestandteil unserer Unternehmensaktivitäten.</p>
+        <p><strong>Qualität der Arbeitsausführung:</strong> Wir garantieren mit unseren qualifizierten Mitarbeitenden eine professionelle Ausführung und einen termingerechten Ablauf aller Arbeiten.</p>
+        <p><strong>Umwelt:</strong> Wir beurteilen unsere Umweltauswirkungen regelmässig und ergreifen Massnahmen, um unsere Umweltbelastungen auf ein Minimum zu reduzieren. Die Einhaltung der Umweltgesetze und Umweltvorschriften wird durch eine konsequente Überwachung sichergestellt.</p>
+        <p><strong>Mitarbeiterzufriedenheit:</strong> Wir fördern die Selbständigkeit und Fachkompetenz jedes Einzelnen durch gezielte Aus- und Weiterbildung und wollen uns dadurch stetig verbessern.</p>
+        <p><strong>Arbeitssicherheit und Gesundheitsschutz:</strong> Wir legen grossen Wert auf die Arbeitssicherheit und den Gesundheitsschutz für unsere Mitarbeitenden.</p>
+        <p><strong>Lieferantenqualität:</strong> Unsere Lieferanten binden wir in unser Managementsystem ein. Wir stellen hohe, aber faire Anforderungen an unsere Lieferanten hinsichtlich Qualifikation, Produkt- und Dienstleistungsqualität. Langfristige und persönliche Beziehungen haben dabei einen hohen Stellenwert.</p>
+        <p><strong>Managementsystem:</strong> Wir betrachten das vorliegende Managementsystem nach der Norm ISO 9001 als integriertes Führungs- und Organisationsinstrument zur fortlaufenden Verbesserung unserer Gesamtleistung.</p>
+
+        <h3>5.2 Organigramm</h3>
+        <p><span class="handbuch-doclink">📎 Organigramm (Grafik aus dem Word-Original, hier noch nicht eingebunden)</span></p>
+
+        <h3>5.3 Führungsinstrumente</h3>
+        <p><strong>5.3.1 Regelsitzungen (interne Kommunikation)</strong></p>
+        <div class="handbuch-table-wrap">
+          <table>
+            <thead><tr><th>Gremium</th><th>Inhalt</th><th>Teilnehmer</th><th>Periodizität</th><th>Dokument</th></tr></thead>
+            <tbody>
+              <tr><td>GV</td><td>Jahresabschluss, Décharge VR, Mittelfristplanung, Strategieüberprüfung</td><td>VR</td><td>1x jährlich (April)</td><td>GV-Protokoll</td></tr>
+              <tr><td>Management-Review</td><td>Zielerreichung, Normerfüllung ISO 9001 gem. Kap. 9.4</td><td>GL</td><td>1x jährlich</td><td>Management-Review Bericht</td></tr>
+              <tr><td>Mitarbeitenden-Anlass</td><td>Wertschätzung der MA, Geselligkeit, Firmenbesichtigungen</td><td>alle MA</td><td>1x jährlich</td><td>-</td></tr>
+              <tr><td>Mitarbeitenden-Gespräch</td><td>Persönliche Situation, Zielerreichung, Zielfestlegung, Schulungsbedarf, Zeitabrechnung</td><td>alle MA</td><td>1x jährlich (Dez.)</td><td>Formular Mitarbeitergespräch</td></tr>
+              <tr><td>Projekt-Besprechungen</td><td>Stand der Projekte, Planung</td><td>GL und MA</td><td>bei Bedarf</td><td>-</td></tr>
+              <tr><td>Teamsitzung</td><td>Informationsaustausch, Verbesserungsvorschläge</td><td>GL, alle MA</td><td>bei Bedarf</td><td>-</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p><strong>5.3.2 Externe Kommunikation</strong><br>Die externe Kommunikation wird von allen Mitarbeitenden stufengerecht wahrgenommen. Gegenüber Medien und Behörden kommuniziert der Geschäftsleiter Stefan Herger und in seiner Abwesenheit das externe Treuhandbüro.</p>
+
+        <h3>5.4 Verantwortungen und Kompetenzen</h3>
+        <div class="handbuch-table-wrap">
+          <table>
+            <thead><tr><th>Stelle</th><th>Inhalt</th><th>Verantwortlich</th></tr></thead>
+            <tbody>
+              <tr><td>Oberste Leitung / Geschäftsführer</td><td>Formulieren und Umsetzen der Unternehmenspolitik, Erfüllen der Anforderungen der ISO 9001, jährliche Bewertung des Managementsystems und Einleiten von Korrekturmassnahmen</td><td>Stefan Herger</td></tr>
+              <tr><td>Systembetreuer (SB)</td><td>Verwalten des Management-Handbuchs, Gewährleistung von Aktualität und Normkonformität, interne Audits bzw. Beauftragen des externen Auditors, Kontaktstelle zu externen Zertifizierungsorganen</td><td>Stefan Herger</td></tr>
+              <tr><td>Prozessverantwortliche gemäss Organigramm</td><td>Sicherstellen des Funktionierens des Prozesses, laufende Optimierung, Wirtschaftlichkeit, Dokumentation, gesetzliche Forderungen, Normen, Arbeitssicherheit, jährliche Beurteilung der Prozessführungsgrössen</td><td>Prozessverantwortliche</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>5.5 Prozessverantwortliche / Prozessführungsgrössen</h3>
+        <div class="handbuch-table-wrap">
+          <table>
+            <thead><tr><th>Hauptprozess</th><th>Nr.</th><th>Prozess</th><th>Verantwortlich</th><th>Prozessführungsgrössen</th></tr></thead>
+            <tbody>
+              <tr><td>Führungsprozess</td><td>5</td><td>-</td><td>Stefan Herger</td><td>Unternehmenspolitik, Zielerreichung, Kundenzufriedenheit, Mitarbeiterzufriedenheit</td></tr>
+              <tr><td>Unterstützung</td><td>7.1</td><td>Personalprozess</td><td>Stefan Herger</td><td>Fluktuationsrate, Absenz-Tage, Mitarbeiterzufriedenheit</td></tr>
+              <tr><td>Unterstützung</td><td>7.2</td><td>Arbeitssicherheit und Gesundheitsschutz</td><td>Stefan Herger</td><td>Unfallhäufigkeit, Prämienentwicklung (Broker)</td></tr>
+              <tr><td>Unterstützung</td><td>7.3</td><td>Rechnungswesen</td><td>extern</td><td>Liquidität, Budgeteinhaltung</td></tr>
+              <tr><td>Unterstützung</td><td>7.4</td><td>Administration</td><td>Stefan Herger</td><td>n/a</td></tr>
+              <tr><td>Unterstützung</td><td>7.5</td><td>Beschaffung</td><td>Stefan Herger</td><td>n/a</td></tr>
+              <tr><td>Unterstützung</td><td>7.6</td><td>Dokumentierte Information</td><td>Stefan Herger</td><td>Aktualität des Management-Handbuchs und der Vorgabedokumente, Aufbewahrungszeiten</td></tr>
+              <tr><td>Unterstützung</td><td>7.7</td><td>Informatik</td><td>Stefan Herger</td><td>Verfügbarkeit der Informatik-Systeme und Daten</td></tr>
+              <tr><td>Unterstützung</td><td>7.8</td><td>Infrastruktur</td><td>Stefan Herger</td><td>Verfügbarkeit der Infrastruktur und Betriebsmittel</td></tr>
+              <tr><td>Operative Prozesse</td><td>8.1</td><td>Marketing</td><td>Stefan Herger</td><td><span class="handbuch-todo">(Original: ??)</span></td></tr>
+              <tr><td>Operative Prozesse</td><td>8.2</td><td>Verkauf</td><td>Stefan Herger</td><td>Anzahl aktive Kunden, Anzahl Neukunden</td></tr>
+              <tr><td>Operative Prozesse</td><td>8.3</td><td>Maschinenbau</td><td>Stefan Herger</td><td>Deckungsbeitrag, Kundenzufriedenheit</td></tr>
+              <tr><td>Operative Prozesse</td><td>8.4</td><td>Elektrotechnik</td><td>Stefan Herger</td><td>Deckungsbeitrag, Kundenzufriedenheit</td></tr>
+              <tr><td>Operative Prozesse</td><td>8.5</td><td>Managementsysteme</td><td>Stefan Herger</td><td>Deckungsbeitrag, Kundenzufriedenheit</td></tr>
+              <tr><td>Bewertung der Leistung</td><td>9.1</td><td>Kundenzufriedenheit</td><td>Stefan Herger</td><td>Kundenzufriedenheit</td></tr>
+              <tr><td>Bewertung der Leistung</td><td>9.2</td><td>Behandlung von Fehlern</td><td>Stefan Herger</td><td>Kundenreklamationen, interne Fehler, Lieferantenfehler</td></tr>
+              <tr><td>Bewertung der Leistung</td><td>9.3</td><td>Interne Audits</td><td>Stefan Herger</td><td>Überprüfung und Aktualisierung des Managementsystems</td></tr>
+              <tr><td>Bewertung der Leistung</td><td>9.4</td><td>Managementbewertung</td><td>Stefan Herger</td><td>Wirksamkeit der Prozesse und des Managementsystems</td></tr>
+              <tr><td>Verbesserung</td><td>10</td><td>Korrektur- od. Vorbeugemassnahmen</td><td>Stefan Herger</td><td>Durchgeführte Massnahmen und Verbesserungen</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>5.6 Unterschriften- und Kompetenzregelung</h3>
+        <div class="handbuch-table-wrap">
+          <table>
+            <thead><tr><th>Funktion</th><th>Name</th><th>Unterzeichnen mit</th></tr></thead>
+            <tbody><tr><td>GL / VRP</td><td>Stefan Herger</td><td>Einzelunterschrift</td></tr></tbody>
+          </table>
+        </div>
+        <div class="handbuch-table-wrap" style="margin-top:1rem">
+          <table>
+            <thead><tr><th>Prozesse</th><th>Dokumente</th><th>Unterschrift / Kompetenz</th></tr></thead>
+            <tbody>
+              <tr><td>Allgemeine Korrespondenz</td><td>Briefe (mit Briefkopf)</td><td>alle MA</td></tr>
+              <tr><td>Spezifizierte Korrespondenz</td><td>Rechtskorrespondenz, Behördenkontakt</td><td>GL</td></tr>
+              <tr><td>Verträge</td><td>Allgemeine Verträge, Werkverträge, Dienstleistungsverträge, Versicherungen</td><td>GL</td></tr>
+              <tr><td>Finanz- und Rechnungswesen</td><td>alle Dokumente</td><td>GL</td></tr>
+              <tr><td>Personalprozess</td><td>Arbeitsverträge, Stellenbeschreibungen, Arbeitszeugnisse</td><td>GL</td></tr>
+              <tr><td>Personalprozess</td><td>Lohnbuchhaltung, Lohnausweise</td><td>GL</td></tr>
+              <tr><td>Investitionen</td><td>Fahrzeuge, Einrichtungen</td><td>GL</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="kap-6">
+        <h2>6. Planung für das Führungssystem</h2>
+        <h3>6.1 Chancen und Risiken</h3>
+        <p>Der Umgang mit Chancen und Risiken wird vom Geschäftsleiter der Alta Engineering AG wahrgenommen.</p>
+        <h3>6.2 Qualitätsziele und Massnahmen zu deren Erreichung</h3>
+        <p>Die Qualitätsziele werden anlässlich der Managementbewertung durch den Geschäftsleiter festgelegt (siehe Kap. 9.4).</p>
+      </section>
+
+      <section id="kap-7">
+        <h2>7. Unterstützungsprozesse</h2>
+
+        <h3>7.1 Personal</h3>
+        <div class="handbuch-table-wrap">
+          <table>
+            <thead><tr><th>Prozess</th><th>Inhalt / Tätigkeiten</th><th>Dokumente / Details</th></tr></thead>
+            <tbody>
+              <tr><td>Rekrutierung</td><td>Individuelle Gespräche mit den Bewerbern</td><td>Deckblatt Bewerbungsunterlagen</td></tr>
+              <tr><td>Einstellung</td><td>Eröffnen Personaldossier mittels CL Eintritt, Anmeldungen AHV/BVG/SUVA</td><td><span class="handbuch-doclink">📄 Anstellungsvertrag</span><span class="handbuch-doclink">📄 Stellenbeschreibung</span><span class="handbuch-doclink">📄 Personalstammblatt</span><span class="handbuch-doclink">📄 Checkliste Mitarbeiter Eintritt</span> - Ausweise, Versicherungsdokumente</td></tr>
+              <tr><td>Einstellung</td><td>Abgabe von Dokumenten</td><td><span class="handbuch-doclink">📄 Anstellungsbedingungen</span><span class="handbuch-doclink">📄 Merkblatt AS/GS</span><span class="handbuch-doclink">📄 Karte Notfall-Nummern</span> - Formulare Arbeitszeit/Sollzeit/Absenzen, AHV-Ausweis, Vorsorgeausweis</td></tr>
+              <tr><td>Einstellung</td><td>Abgabe von Material</td><td>Persönliche Schutzausrüstung (Helm, Sicherheitsschuhe, Jacke, Weste, Schutzbrille), Schlüssel/Garagenöffner</td></tr>
+              <tr><td>Einführung</td><td>Individuell durch den zuständigen MA</td><td><span class="handbuch-doclink">📄 Checkliste Eintritt</span> (dient auch als Einführungsprogramm)</td></tr>
+              <tr><td>Schulung</td><td>Ermittlung der Schulungsbedürfnisse</td><td><span class="handbuch-doclink">📄 Formular Mitarbeitergespräch</span></td></tr>
+              <tr><td>Schulung</td><td>Externe Schulungen</td><td>Fachkurse, AS/GS-Kurse usw.</td></tr>
+              <tr><td>Schulung</td><td>Interne Schulungen</td><td>Instruktionen, Schulung Managementsystem, Arbeitssicherheit</td></tr>
+              <tr><td>Schulung</td><td>Dokumentation extern durchgeführter Schulungen</td><td>Externe Schulungsbestätigung im Personaldossier, Kursbeurteilung</td></tr>
+              <tr><td>Mitarbeiter-Gespräch</td><td>Zweimal jährlich</td><td><span class="handbuch-doclink">📄 Formular Mitarbeitergespräch</span> - Vereinbarung Zeitabrechnung</td></tr>
+              <tr><td>Austritt</td><td>Austrittsgespräch mittels CL Austritt, Rückgabe Schutzausrüstung/Schlüssel, Löschen Berechtigungen</td><td>Arbeitszeugnis, <span class="handbuch-doclink">📄 Checkliste Austritt</span> mit Austrittsinformationen</td></tr>
+              <tr><td>Abmeldung</td><td>Abmelden BVG</td><td>online</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>7.2 Arbeitssicherheit und Gesundheitsschutz</h3>
+        <div class="handbuch-table-wrap">
+          <table>
+            <thead><tr><th>Zuständig</th><th>Inhalt / Tätigkeiten</th><th>Dokumente</th></tr></thead>
+            <tbody>
+              <tr><td>Sicherheitsbeauftragter (Stefan Herger)</td><td>Aktualisieren des Management-Handbuchs bezüglich AS/GS</td><td>Management-Handbuch</td></tr>
+              <tr><td>Sicherheitsbeauftragter</td><td>Aufbau und Aufrechterhaltung der Notfallorganisation (Erste Hilfe, Brandschutz, Umweltschutz, Notfall-Telefonnummern)</td><td><span class="handbuch-doclink">📄 Merkblatt AS/GS</span></td></tr>
+              <tr><td>Sicherheitsbeauftragter</td><td>Beschaffung und Unterhalt von Sicherheitsmaterial</td><td>SUVA-Checklisten</td></tr>
+              <tr><td>Sicherheitsbeauftragter</td><td>Schulung und Beratung der Mitarbeitenden in AS/GS-Belangen</td><td>Merkblatt AS/GS</td></tr>
+              <tr><td>Sicherheitsbeauftragter</td><td>Instruktion von Neueintretenden sowie Temporärpersonal bei Arbeitsantritt</td><td>Merkblatt AS/GS</td></tr>
+              <tr><td>Sicherheitsbeauftragter</td><td>Erweiterung des Wissens durch Literaturstudium, Kurse, Internet-Recherchen</td><td>Kursbestätigungen</td></tr>
+              <tr><td>Sicherheitsbeauftragter</td><td>Erfassen und Analysieren besonderer Ereignisse (Berufsunfälle, Berufskrankheiten)</td><td>Unfallmeldungen</td></tr>
+              <tr><td>Sicherheitsbeauftragter</td><td>Kontaktstelle zu SUVA, EKAS und anderen externen Stellen</td><td>SUVA-Checklisten</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p><strong>Persönliche Schutzausrüstung</strong> (beim SiBe erhältlich): Helm, Schutzbrille, Sicherheitsschuhe, Jacke, Weste, Gehörschutz.</p>
+        <p><strong>Notfallorganisation:</strong> Alarmierung von Polizei, Feuerwehr, Sanität, Arzt und zuständiger Behörde. Jeder Mitarbeitende besitzt eine Karte Notfall-Nummern. Feuerlöscheinrichtungen, Fluchtwege und Gefahrensymbole sind am Anschlagbrett vermerkt. Sammelplatz bei Brand: Wiese vor der Firma.</p>
+        <div class="handbuch-table-wrap">
+          <table>
+            <tbody>
+              <tr><td>Notruf</td><td>112</td></tr>
+              <tr><td>Polizei</td><td>117</td></tr>
+              <tr><td>Feuerwehr</td><td>118</td></tr>
+              <tr><td>Sanität</td><td>144</td></tr>
+              <tr><td>Vergiftung</td><td>145</td></tr>
+              <tr><td>Rega</td><td>1414</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>7.2.1 Gefährdungsanalyse, Massnahmen, Überprüfung</h3>
+        <p>Erhebung des Gefährdungspotenzials für folgende Tätigkeiten: Büroarbeit, Lenkung von Fahrzeugen, Baustellen- und Firmenbesuche.</p>
+        <p>Risiko-Zonen: <strong>1</strong> = erhöhte Schutzwirkung dringend notwendig, <strong>2</strong> = normale Schutzwirkung notwendig, <strong>3</strong> = organisatorische und personenbezogene Massnahmen. Schadenausmass: I = tödliche Verletzung, II = schwere Invalidität, III = leichte Invalidität, IV = Verletzung mit Arbeitsausfall, V = Verletzung ohne Arbeitsausfall.</p>
+
+        <h3>7.2.2 Gefährdungsanalyse, Stand Februar 2018</h3>
+        <div class="handbuch-table-wrap">
+          <table>
+            <thead><tr><th>Tätigkeit</th><th>Gefährdung</th><th>Zone ohne Massnahmen</th><th>Massnahmen</th><th>Zone nach Massnahmen</th></tr></thead>
+            <tbody>
+              <tr><td>Arbeiten am PC</td><td>Rücken-Beschwerden, Kopfweh</td><td>2</td><td>Ergonomie am Arbeitsplatz</td><td>3</td></tr>
+              <tr><td>Lenkung von Fahrzeugen</td><td>Verkehrsunfall</td><td>1</td><td>Einhalten der Strassenverkehrsgesetze, regelmässige Fahrzeugkontrollen, bei Müdigkeit Pausen</td><td>1</td></tr>
+              <tr><td>Heben von Lasten von Hand</td><td>Rückenverletzung</td><td>2</td><td>"Hirne bim Lüpfe", Schulung im Umgang mit Lasten und Transporten</td><td>3</td></tr>
+              <tr><td>Arbeiten auf Gerüst/Hebebühnen</td><td>Kopfverletzung, Sturz, Kippen</td><td>1</td><td>Helm obligatorisch, nur schwindelfreie Personen, korrekte Abstützung</td><td>2</td></tr>
+              <tr><td>Arbeiten auf Leitern</td><td>Sturz, Kippen</td><td>1</td><td>Leiter auf Stabilität/Beschädigung prüfen, Sicherung der Leiter</td><td>2</td></tr>
+              <tr><td>Arbeiten in Gruben und Schächten</td><td>Verschüttung, Erstickungsgefahr, herunterfallendes Material</td><td>1</td><td>Korrekte Baugrubensicherung, Belüftung, Beleuchtung, freie Fluchtwege, Helmpflicht</td><td>2</td></tr>
+              <tr><td>Arbeiten an oder auf Strassen</td><td>Verkehrsunfall</td><td>1</td><td>Korrekte Signalisation und Absperrung, Warnweste</td><td>2</td></tr>
+              <tr><td>Arbeiten mit bauchemischen Produkten, Reinigungsmitteln</td><td>Vergiftungs-/Explosionsgefahr</td><td>1</td><td>Sicherheitsvorschriften auf der Verpackung, Schulung, Rauchverbot</td><td>2</td></tr>
+              <tr><td>Materialtransport, Auf-/Ablad von LKW</td><td>Absturz, Kollision, Quetschen, Gefährdung Dritter</td><td>1</td><td>Beteiligte Personen und Umgebung im Auge behalten, instruiertes Personal mit Ausweis</td><td>1</td></tr>
+              <tr><td>Allgemeine Ordnung und Sauberkeit</td><td>Stolpern, Ausrutschen</td><td>1</td><td>Ordnung und Sauberkeit, Ölflecken sofort entfernen, Hindernisse markieren</td><td>2</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>7.3 Rechnungswesen</h3>
+        <p>FiBu, Debitoren- und Kreditorenbuchhaltung, Mahnwesen, Liquiditäts- und Budgetüberwachung, Controlling, Lohnabrechnungen, Spesenabrechnungen, Unfall-/Krankmeldungen, MwSt.-Abrechnung, Lohnausweise, Anlagenbuchhaltung, Sozialversicherungen, Mutationen, Monats-/Halbjahres-/Jahresabrechnungen. Verantwortlich: extern (Treuhandbüro).</p>
+
+        <h3>7.4 Administration</h3>
+        <div class="handbuch-table-wrap">
+          <table>
+            <thead><tr><th>Haupttätigkeit</th><th>Inhalt</th><th>Dokumente</th><th>Verantw.</th></tr></thead>
+            <tbody>
+              <tr><td>Versicherungen</td><td>Versicherungswesen</td><td>E-Mail-/Papier-Korrespondenz, Policen</td><td>GL</td></tr>
+              <tr><td>Zeiterfassung und Absenzen-Kontrolle</td><td>Abgleich von Soll- und Istzeit</td><td><span class="handbuch-doclink">📄 Arbeitsrapport</span></td><td>GL</td></tr>
+              <tr><td>Allgemeine Arbeiten</td><td>Korrespondenz, Unterstützung Rechnungswesen, Büromaterial, Archivverwaltung, Telefon, interne Kommunikation/Post, Kopien</td><td>E-Mail-/Papier-Korrespondenz</td><td>Admin</td></tr>
+              <tr><td>Kontrolle Ersthilfe-Material</td><td>Periodische Kontrolle im Büro sowie in den Firmenfahrzeugen</td><td>-</td><td>Admin</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>7.5 Beschaffung</h3>
+        <p><strong>7.5.1 Lieferantengruppen:</strong> Büro- und Verbrauchsmaterial (Admin), IT-Support und Buchhaltung (GL).</p>
+        <div class="handbuch-table-wrap">
+          <table>
+            <thead><tr><th>Prozess</th><th>Inhalt / Tätigkeiten</th><th>Dokumente</th><th>Verantw.</th></tr></thead>
+            <tbody>
+              <tr><td>Suche, Auswahl, Beurteilung neuer Lieferanten</td><td>Qualität, Preis-/Leistungsverhältnis, geografische Nähe, Zuverlässigkeit, persönliche Beziehung</td><td>Internet, Lieferantenunterlagen, Referenzen</td><td>MA</td></tr>
+              <tr><td>Freigabe neuer Lieferanten/Leistungen</td><td>Akzeptanz der ersten, einwandfreien Lieferung (formlos), ggf. Musterlieferung</td><td>Lieferpapiere</td><td>GL</td></tr>
+              <tr><td>Bestellablauf</td><td>Telefonisch oder schriftlich, auftragsbezogen oder auf Lager</td><td>Bestellung</td><td>MA</td></tr>
+              <tr><td>Auftragsbestätigung des Lieferanten</td><td>Gemäss Entscheid Besteller</td><td>Auftragsbestätigung</td><td>MA</td></tr>
+              <tr><td>Wareneingangsprüfung</td><td>Identifikation, Menge, Zustand, Vollständigkeit der Lieferdokumente</td><td>Lieferschein, Bestellung, Auftragsbestätigung</td><td>MA</td></tr>
+              <tr><td>Fehlerhafte Lieferung</td><td>Fehler auf Kopie Lieferschein vermerken, Meldung an SB, Erfassung in WORA</td><td>Lieferschein</td><td>MA</td></tr>
+              <tr><td>Lieferantenbewertung</td><td>Rollend, zusammenfassend im Rahmen der jährlichen Managementbewertung</td><td>Management-Review</td><td>GL</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>7.6 Dokumentierte Information</h3>
+        <p><strong>7.6.1 Anforderung an die Dokumentation.</strong> Das Management-Handbuch wird in der Regel einmal jährlich aktualisiert, trägt auf jeder Seite das aktuelle Datum (MM.JJJJ) und ein 5 Jahre zurück verfolgbares Änderungsjournal. Verteiler: elektronisch an alle MA gemäss Organigramm, Korrekturexemplar in Papierform beim SB.</p>
+        <p><strong>Vorgabedokumente</strong> (Zeichnungen, technische Spezifikationen, Formulare) beschreiben "was zu tun ist" und sind immer auf dem aktuellen Stand. Jedes Dokument trägt Titel, Freigabedatum und Ersteller.</p>
+        <p><strong>Nachweisdokumente</strong> (Prüfprotokolle, ausgefüllte Formulare und Checklisten) beschreiben "was getan wurde". Jedes Dokument trägt Datum und Unterschrift/Visum des Erstellers und wird aufbewahrt.</p>
+
+        <h3>7.6.2 Mindestaufbewahrungsdauer von Dokumenten und Daten</h3>
+        <div class="handbuch-table-wrap">
+          <table>
+            <thead><tr><th>Prozess</th><th>Dokument</th><th>Dauer</th><th>Ort</th><th>Grund</th></tr></thead>
+            <tbody>
+              <tr><td>Finanz- und Rechnungswesen, Lohnbuchhaltung</td><td>alle Dokumente</td><td>10 Jahre</td><td>GL</td><td>Gesetzliche Vorschrift OR</td></tr>
+              <tr><td>Führungsprozesse</td><td>alle Dokumente</td><td>5 Jahre</td><td>GL</td><td>Information</td></tr>
+              <tr><td>Organisation der Informationen</td><td>Management-Handbuch</td><td>2 Jahre</td><td>SB</td><td>Rückverfolgbarkeit</td></tr>
+              <tr><td>Personalprozesse, Arbeitssicherheit</td><td>Personaldossier und Schulungsnachweise</td><td>10 Jahre</td><td>GL</td><td>Haftpflicht</td></tr>
+              <tr><td>Personalprozesse</td><td>sensible Daten</td><td>Vernichtung nach Austritt</td><td>-</td><td>Datenschutzgesetz</td></tr>
+              <tr><td>Anfragen, Auftragsbestätigungen, Auftragsunterlagen</td><td>alle Dokumente</td><td>10 Jahre</td><td>Archiv</td><td>Gesetzliche Vorschrift OR, Know-how-Sicherung</td></tr>
+              <tr><td>Korrektur- und Verbesserungsprozesse</td><td>alle Dokumente</td><td>5 Jahre</td><td>SB</td><td>Statistik</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>7.7 Informatik</h3>
+        <p>PCs und Notebooks im Büro laufen unter Windows. Backup: wöchentlich (Donnerstag) auf externe Festplatte, Wechsel wochenweise, verantwortlich GL. Internet-Auftritt: <a href="https://www.alta-engineering.ch" target="_blank" rel="noopener">www.alta-engineering.ch</a>.</p>
+
+        <h3>7.8 Infrastruktur / Arbeitsumgebung / Betriebsmittel / Messmittel</h3>
+        <p><strong>7.8.1</strong> Die Unternehmung ist Mieterin der Büroräumlichkeiten und damit nur für die Reinigung des Büros verantwortlich.</p>
+        <p><strong>7.8.2 Logistik.</strong> Papier, Karton, PET, Batterien: Entsorgung in der Gemeinde-Entsorgungsstelle (Admin). Archivmaterial: Entsorgung nach Ablauf der Aufbewahrungsfristen durch den GL.</p>
+        <p><strong>7.8.3 Kundeneigentum.</strong> Besondere Beachtung für geistiges Eigentum (Zeichnungen, Berechnungen, Beschreibungen), Sicherstellung vor Missbrauch, Know-how-Weitergabe und Verlust. Dokumente: Kundendokumente, Vertraulichkeitserklärungen. Verantwortlich: GL und MA.</p>
+        <p><strong>7.8.4</strong> Im Moment werden keine Mess- und Prüfmittel eingesetzt.</p>
+      </section>
+
+      <section id="kap-8">
+        <h2>8. Operative Prozesse</h2>
+
+        <h3>8.1 Marketing</h3>
+        <div class="handbuch-table-wrap">
+          <table>
+            <thead><tr><th>Prozess</th><th>Inhalt / Tätigkeiten</th><th>Dokumente</th><th>Verantw.</th></tr></thead>
+            <tbody><tr><td>Werbung / Neukundengewinnung</td><td>Akquisition, Kundenkontakt, Weiterempfehlungen, Internet, Werbung</td><td>Prospekte, Homepage, Broschüren</td><td>GL</td></tr></tbody>
+          </table>
+        </div>
+
+        <h3>8.2 Verkauf</h3>
+        <div class="handbuch-table-wrap">
+          <table>
+            <thead><tr><th>Schritt</th><th>Inhalt / Tätigkeiten</th><th>Dokument</th><th>Verantw.</th></tr></thead>
+            <tbody>
+              <tr><td>Akquisition</td><td>Web-Suche nach Firmen und aktive Akquisition</td><td>-</td><td>GL</td></tr>
+              <tr><td>Anfragen</td><td>Kundenanfragen per E-Mail/Telefon</td><td>E-Mail</td><td>GL</td></tr>
+              <tr><td>Machbarkeit</td><td>Prüfung auf technische, logistische und kommerzielle Machbarkeit</td><td>-</td><td>GL</td></tr>
+              <tr><td>ggf. Absage</td><td>Mündlich oder schriftlich</td><td>E-Mail</td><td>GL</td></tr>
+              <tr><td>Kalkulation</td><td>Kosten- und Preiskalkulation bei positiver Machbarkeit</td><td>-</td><td>GL</td></tr>
+              <tr><td>Offerte</td><td>Erstellen der Offerte, Zahlungskonditionen festlegen</td><td>Offerte</td><td>GL</td></tr>
+              <tr><td>Versand</td><td>Versenden der Offerte</td><td>Offerte</td><td>GL</td></tr>
+              <tr><td>Offertverfolgung</td><td>Nachfragen, Aufträge entgegennehmen oder Absagen dokumentieren</td><td>WORA</td><td>GL</td></tr>
+              <tr><td>Bestellung</td><td>Eingang der Bestellung</td><td>Bestellung</td><td>GL</td></tr>
+              <tr><td>Prüfung</td><td>Abgleich der Bestellung mit der Offerte</td><td>Bestellung/Offerte</td><td>GL</td></tr>
+              <tr><td>Bestätigung</td><td>Bestätigen der Bestellung</td><td>Auftragsbestätigung (AB)</td><td>GL</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>8.3 Maschinenbau</h3>
+        <div class="handbuch-table-wrap">
+          <table>
+            <thead><tr><th>Schritt</th><th>Inhalt / Tätigkeiten</th><th>Dokument</th><th>Verantw.</th></tr></thead>
+            <tbody>
+              <tr><td>Grobplanung</td><td>Projektleiter oder Sachbearbeiter bestimmen</td><td>-</td><td>GL</td></tr>
+              <tr><td>Auftrag besprochen</td><td>Auftragsdetails, Kundenanforderungen und spezielle Anforderungen besprechen</td><td>-</td><td>GL und MA</td></tr>
+              <tr><td>Auftragsstart</td><td>Start vor Ort beim Kunden und Auftragsaufnahme</td><td>-</td><td>MA</td></tr>
+              <tr><td>Rechnungstellung</td><td>Monatlich nach Aufwand</td><td>Rechnung</td><td>GL</td></tr>
+              <tr><td>Kundenzufriedenheit</td><td>Besuch der aktiven Kunden, Befragung</td><td>-</td><td>GL</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>8.4 Elektrotechnik</h3>
+        <p>Gleicher Ablauf wie Kapitel 8.3 Maschinenbau: Grobplanung, Auftrag besprechen, Auftragsstart vor Ort, monatliche Rechnungstellung nach Aufwand, Besuch und Befragung aktiver Kunden zur Kundenzufriedenheit.</p>
+
+        <h3>8.5 Managementsysteme</h3>
+        <div class="handbuch-table-wrap">
+          <table>
+            <thead><tr><th>Schritt</th><th>Inhalt / Tätigkeiten</th><th>Dokument</th><th>Verantw.</th></tr></thead>
+            <tbody>
+              <tr><td>Grobplanung</td><td>Projektleiter oder Sachbearbeiter bestimmen</td><td>-</td><td>GL</td></tr>
+              <tr><td>Auftrag besprochen</td><td>Auftragsdetails, Kundenanforderungen und spezielle Anforderungen besprechen</td><td>-</td><td>GL und MA</td></tr>
+              <tr><td>Auftragsdurchführung</td><td>Durchführung der Arbeit vor Ort beim Kunden</td><td>Auditprogramm, Auditbericht, Managementbewertung</td><td>MA</td></tr>
+              <tr><td>Rechnungstellung</td><td>Monatlich nach Aufwand</td><td>Rechnung</td><td>GL</td></tr>
+              <tr><td>Kundenzufriedenheit</td><td>Besuch der aktiven Kunden, Befragung</td><td>-</td><td>GL</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="kap-9">
+        <h2>9. Bewertung der Leistung</h2>
+
+        <h3>9.1 Kundenzufriedenheit</h3>
+        <p>Täglicher Kundenkontakt sowie Jahresendgespräche, ausgewertet im Management-Review. Verantwortlich: GL.</p>
+
+        <h3>9.2 Behandlung von Fehlern</h3>
+        <div class="handbuch-table-wrap">
+          <table>
+            <thead><tr><th>Fehlerart</th><th>Details</th><th>Massnahmen</th></tr></thead>
+            <tbody>
+              <tr><td>Kundenreklamationen</td><td>Massabweichung, Terminverzögerung</td><td>Reklamation entgegennehmen und an GF weiterleiten</td></tr>
+              <tr><td>Interne Fehler</td><td>Zeichnungs-, Spezifikations-, Planungsfehler</td><td>Situative Besprechung und Behebung</td></tr>
+              <tr><td>Lieferantenfehler</td><td>Falsche Ware, Materialfehler, Mengenfehler, Beschädigung</td><td>Abklärung mit dem Lieferanten, ggf. Rücksendung</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>9.3 Interne Audits</h3>
+        <div class="handbuch-table-wrap">
+          <table>
+            <thead><tr><th>Schritt</th><th>Inhalt / Details</th><th>Durchführung</th></tr></thead>
+            <tbody>
+              <tr><td>Planung</td><td>1x jährlich Terminfestlegung, Information der Mitarbeitenden, Auditprogramm mit detailliertem Zeitplan</td><td>SB</td></tr>
+              <tr><td>Basis</td><td>Management-Handbuch und frühere Auditberichte gelten als Checkliste</td><td>SB</td></tr>
+              <tr><td>Durchführung</td><td>Betriebsrundgang, Sichtung der Dokumente, Befragung der Mitarbeitenden, i.d.R. 1 Tag, Stichproben</td><td>SB</td></tr>
+              <tr><td>Dokumentation</td><td>Ergänzen der Management-Review mit dem Resultat des internen Audits</td><td>SB</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>9.4 Bewertung des Managementsystems durch den Geschäftsleiter</h3>
+        <p>Die Wirksamkeit des Managementsystems wird einmal jährlich durch den Geschäftsleiter bewertet und schriftlich dokumentiert.</p>
+        <p><strong>Bewertungskriterien:</strong></p>
+        <ul>
+          <li>Status von Massnahmen früherer Managementbewertungen</li>
+          <li>Veränderungen bei externen und internen Themen</li>
+          <li>Kundenzufriedenheit und Rückmeldungen relevanter, interessierter Parteien</li>
+          <li>Zielerreichung des Managementsystems</li>
+          <li>Prozessleistung und Konformität von Produkten und Dienstleistungen</li>
+          <li>Nicht-Konformitäten und Korrekturmassnahmen</li>
+          <li>Ergebnisse von Überwachungen und Messungen</li>
+          <li>Auditergebnisse</li>
+          <li>Leistung externer Anbieter</li>
+          <li>Angemessenheit von Ressourcen</li>
+          <li>Wirksamkeit durchgeführter Massnahmen zu Risiken und Chancen</li>
+          <li>Durchgeführte Verbesserungen</li>
+          <li>Neue Ziele</li>
+        </ul>
+      </section>
+
+      <section id="kap-10">
+        <h2>10. Verbesserung</h2>
+        <h3>10.1 Korrekturmassnahmen</h3>
+        <p><strong>Auslösung:</strong> Reklamationen, systematische Fehler, Verbesserungsvorschläge.<br><strong>Mögliche Massnahmen:</strong> Prozessänderungen, personelle Massnahmen, Schulungen, Anweisungen, Investitionen. Verantwortlich: GL.</p>
+        <h3>10.2 Vorbeugungsmassnahmen</h3>
+        <p><strong>Auslösung:</strong> Konkurrenzbeobachtung, Erkenntnisse aus Kundenbesuchen, Hinweise von Mitarbeitenden/Lieferanten/interessierten Parteien, neue absehbare Gesetze und Normen, Beinahe-Unfälle.<br><strong>Mögliche Massnahmen:</strong> Prozessänderungen, personelle Massnahmen, Schulungen, Anweisungen, Investitionen. Verantwortlich: GL.</p>
+      </section>
+
+      <section id="kap-doks">
+        <h2>Vorlage- und Nachweisdokumente</h2>
+        <p>Jedes <span class="handbuch-doclink">📄 markierte Dokument</span> oben ist ein Vorlage- oder Nachweisdokument, das im Original als eigene Datei existiert (Formular, Checkliste, Merkblatt). Die eigentlichen Dateien liegen mir noch nicht vor, hier deshalb erst als Liste, nicht als klickbarer Link. Sobald die Dateien da sind (blanko als Vorlage, ausgefüllt als Beispiel-Nachweis), verlinke ich sie direkt an der jeweiligen Stelle oben.</p>
+        <p style="margin-top:1.4rem"><strong>Personal:</strong> Anstellungsvertrag &middot; Stellenbeschreibung &middot; Personalstammblatt &middot; Checkliste Mitarbeiter Eintritt &middot; Anstellungsbedingungen &middot; Checkliste Austritt &middot; Formular Mitarbeitergespräch</p>
+        <p><strong>Arbeitssicherheit:</strong> Merkblatt Arbeitssicherheit und Gesundheitsschutz &middot; Karte Notfall-Nummern &middot; SUVA-Checklisten</p>
+        <p><strong>Administration/Zeiterfassung:</strong> Arbeitsrapport</p>
+        <p><strong>Qualität/Audit:</strong> Auditprogramm &middot; Auditbericht &middot; Management-Review Bericht</p>
+        <p class="handbuch-todo" style="margin-top:1rem">Ein echtes Beispiel für ein ausgefülltes Personalstammblatt liegt mir zwar vor, das enthält aber Michaels echte Personendaten (Adresse, Geburtsdatum, AHV-Nummer, IBAN), deshalb bewusst nicht auf diese öffentlich erreichbare Seite hochgeladen. Für ein Beispiel-Nachweisdokument bräuchte es entweder eine anonymisierte Version, oder wir verlinken vorerst nur die leere Vorlage.</p>
+      </section>
+
+    </article>
+  </div>
+</main>
+
+<p class="foot-note">alta-engineering.ch · Kundenportal läuft geschützt über Cloudflare Access</p>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  var toggle = document.getElementById('themeToggle');
+  function currentTheme(){
+    var set = root.getAttribute('data-theme');
+    if (set) return set;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  if (toggle){
+    toggle.addEventListener('click', function(){
+      var next = currentTheme() === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('theme', next); } catch(e){}
+    });
+  }
+  try {
+    var saved = localStorage.getItem('theme');
+    if (saved) root.setAttribute('data-theme', saved);
+  } catch(e){}
+})();
+</script>
+</body>
+</html>
