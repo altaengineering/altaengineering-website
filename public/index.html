@@ -228,52 +228,6 @@ tbody tr:hover{background:var(--surface-2)}
       <div class="folder-grid" id="folderGrid"></div>
     </div>
 
-    <div class="panel accent" id="handbuchPanel" style="display:none">
-      <h2>📘 QM-Handbuch</h2>
-      <div class="sub">Nur Admins haben direkten Zugriff. Für alle anderen (Mitarbeitende oder Kunden) hier einen Freigabe-Link erstellen, kein Login nötig, jederzeit zurückziehbar.</div>
-      <div class="row">
-        <a class="btn-lg primary" href="/qm-handbuch" target="_blank" rel="noopener">📘 QM-Handbuch öffnen</a>
-        <button class="btn-lg ghost" id="createHandbuchShare">Freigabe-Link erstellen</button>
-      </div>
-      <div id="handbuchSharesTableWrap" class="table-wrap">
-        <table>
-          <thead>
-            <tr><th>Bezeichnung</th><th>Gültig bis</th><th>Aufrufe</th><th></th></tr>
-          </thead>
-          <tbody id="handbuchShareRows"></tbody>
-        </table>
-        <div class="empty" id="handbuchSharesEmptyState" style="display:none">Noch keine Freigabe-Links für das Handbuch erstellt.</div>
-      </div>
-    </div>
-
-    <div class="panel" id="accessRequestsPanel" style="display:none">
-      <h2>Zugangsanfragen</h2>
-      <div class="sub">Personen, die über «Zugang anfragen» auf der Website um Zugriff gebeten haben.</div>
-      <div id="accessRequestsTableWrap" class="table-wrap">
-        <table>
-          <thead>
-            <tr><th>Name</th><th>E-Mail</th><th>Firma</th><th>Nachricht</th><th>Angefragt</th><th></th></tr>
-          </thead>
-          <tbody id="accessRequestRows"></tbody>
-        </table>
-        <div class="empty" id="accessRequestsEmptyState" style="display:none">Keine offenen Anfragen.</div>
-      </div>
-    </div>
-
-    <div class="panel" id="activityPanel" style="display:none">
-      <h2>Aktivität</h2>
-      <div class="sub">Was zuletzt im Portal passiert ist, und wer es gemacht hat.</div>
-      <div id="activityTableWrap" class="table-wrap">
-        <table>
-          <thead>
-            <tr><th>Zeit</th><th>Wer</th><th>Was</th><th>Details</th></tr>
-          </thead>
-          <tbody id="activityRows"></tbody>
-        </table>
-        <div class="empty" id="activityEmptyState" style="display:none">Noch keine Aktivität aufgezeichnet.</div>
-      </div>
-    </div>
-
     <div class="panel">
       <h2>Datei hochladen</h2>
       <div class="sub">Alle Dateitypen erlaubt, auch grosse CAD-/Plandateien.</div>
@@ -320,6 +274,52 @@ tbody tr:hover{background:var(--surface-2)}
           <tbody id="shareRows"></tbody>
         </table>
         <div class="empty" id="sharesEmptyState" style="display:none">Noch keine Freigabe-Links erstellt.</div>
+      </div>
+    </div>
+
+    <div class="panel accent" id="handbuchPanel" style="display:none">
+      <h2>📘 QM-Handbuch</h2>
+      <div class="sub">Nur Admins haben direkten Zugriff. Für alle anderen (Mitarbeitende oder Kunden) hier einen Freigabe-Link erstellen, kein Login nötig, jederzeit zurückziehbar.</div>
+      <div class="row">
+        <a class="btn-lg primary" href="/qm-handbuch" target="_blank" rel="noopener">📘 QM-Handbuch öffnen</a>
+        <button class="btn-lg ghost" id="createHandbuchShare">Freigabe-Link erstellen</button>
+      </div>
+      <div id="handbuchSharesTableWrap" class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Bezeichnung</th><th>Gültig bis</th><th>Aufrufe</th><th></th></tr>
+          </thead>
+          <tbody id="handbuchShareRows"></tbody>
+        </table>
+        <div class="empty" id="handbuchSharesEmptyState" style="display:none">Noch keine Freigabe-Links für das Handbuch erstellt.</div>
+      </div>
+    </div>
+
+    <div class="panel" id="accessRequestsPanel" style="display:none">
+      <h2>Zugangsanfragen</h2>
+      <div class="sub">Personen, die über «Zugang anfragen» auf der Website um Zugriff gebeten haben.</div>
+      <div id="accessRequestsTableWrap" class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Name</th><th>E-Mail</th><th>Firma</th><th>Nachricht</th><th>Angefragt</th><th></th></tr>
+          </thead>
+          <tbody id="accessRequestRows"></tbody>
+        </table>
+        <div class="empty" id="accessRequestsEmptyState" style="display:none">Keine offenen Anfragen.</div>
+      </div>
+    </div>
+
+    <div class="panel" id="activityPanel" style="display:none">
+      <h2>Aktivität</h2>
+      <div class="sub">Was zuletzt im Portal passiert ist, und wer es gemacht hat.</div>
+      <div id="activityTableWrap" class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Zeit</th><th>Wer</th><th>Was</th><th>Details</th></tr>
+          </thead>
+          <tbody id="activityRows"></tbody>
+        </table>
+        <div class="empty" id="activityEmptyState" style="display:none">Noch keine Aktivität aufgezeichnet.</div>
       </div>
     </div>
 

@@ -1,6 +1,6 @@
 # Alta Engineering — Website & Kundenportal — Projekt-Referenz
 
-**Status (Stand 2026-09-10):** Beide Teile sind live und aktiv in Weiterentwicklung. Dieses Repo
+**Status (Stand 2026-09-23):** Beide Teile sind live und aktiv in Weiterentwicklung. Dieses Repo
 enthält *zwei* getrennt deployte Dinge nebeneinander:
 
 | Teil | Was | Deployment | Domain |
@@ -438,6 +438,40 @@ Dropdown), und eine Admin-Konsole, die zeigt "was gemacht wurde, wer hat's erled
   Endpunkte weiterhin unveraendert (Regressionstest). Visuell mit injizierten Testdaten geprueft
   (Stat-Zeile, Ordner-Karten, Aktivitaets-Tabelle, mobile Kopfzeile), da `/api/folders` echte
   B2-Zugangsdaten braucht, die dieser Session lokal nicht vorliegen.
+
+### 2.6.3 Panel-Reihenfolge im Dashboard (2026-09-23)
+
+Michael meldete, die Sortierung sei "dumm": oben die Ordner-Auswahl, dann eine Menge
+unabhängiges Zeug, dann erst ganz unten die eigentlichen Daten (Dateien). `public/index.html`
+zeigte vorher direkt nach "Ordner ansehen" die drei admin-only Verwaltungs-Panels (QM-Handbuch,
+Zugangsanfragen, Aktivität), erst danach Upload und Dateiliste.
+
+Neue Reihenfolge: Ordner ansehen → Datei hochladen → Dateiliste → Freigabe-Links (eigene) →
+QM-Handbuch → Zugangsanfragen → Aktivität. Der Kern-Workflow (Ordner wählen, Datei sehen/hochladen,
+freigeben) steht jetzt direkt zusammen, die drei unabhängigen Verwaltungs-Panels sind ans Ende
+gerutscht. Reine DOM-Umsortierung (die vier `<div class="panel" id="...">`-Blöcke unverändert
+verschoben), kein JS angefasst, `getElementById`-Aufrufe sind ohnehin reihenfolge-unabhängig.
+Verifiziert über den statischen Vorschau-Server (`alta-website-preview` in `.claude/launch.json`,
+liegt im anderen lokalen Checkout `L:\altaengineering-kundenportal-update` und zeigt auf dieses
+Repo) mit per JS injizierten Testdaten (kein echter Worker/Backend lokal verfügbar, siehe 2.7):
+neue Reihenfolge per `get_page_text` und Screenshot bestätigt, keine neuen Konsolenfehler
+(der eine verbleibende 404 ist der erwartete `/api/me`-Aufruf gegen den reinen Static-Server, nicht
+von dieser Änderung verursacht).
+
+### 2.6.4 QM-Handbuch-Freigabe-Links verlangen noch Login (offen, 2026-09-23)
+
+Michael meldete: Aufruf eines `/handbook/<id>`-Links verlangt noch einen Cloudflare-Access-Login,
+obwohl das laut 2.6.1 ein öffentlicher, login-freier Pfad sein soll. Code-seitig ist das korrekt
+implementiert (`src/index.js`, `/handbook/<id>` prüft nur den `SHARES`-KV-Eintrag, keinen
+Access-Header). Die Ursache ist exakt der in 2.6.1 als offen markierte Punkt: **die Cloudflare-
+Access-Policy braucht einen manuellen Bypass-Eintrag für `/handbook/*`**, sonst fängt Access den
+Aufruf ab, bevor der Worker-Code ihn überhaupt sieht, genau wie es für `/share`, `/api/share-info`
+und `/api/share-download` schon eingerichtet wurde (siehe 2.4). Das ist eine
+Sicherheits-/Zugriffssteuerungs-Einstellung im Cloudflare Zero Trust Dashboard, kein Code-Fix, und
+wird von Claude bewusst **nicht** selbst vorgenommen (siehe Sicherheitsregeln, "Modifying system or
+security settings"). Michael oder Stefan müssen im Zero Trust Dashboard, in derselben Access-App
+"kundenportal oeffentlich" (Policy "Jeder"), unter Destinations einen vierten Eintrag `.../handbook`
+ergänzen, exakt nach demselben Muster wie die bestehenden drei.
 
 ### 2.7 Lokale Entwicklung
 
