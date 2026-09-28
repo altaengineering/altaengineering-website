@@ -1,6 +1,6 @@
 # Alta Engineering — Website & Kundenportal — Projekt-Referenz
 
-**Status (Stand 2026-09-23):** Beide Teile sind live und aktiv in Weiterentwicklung. Dieses Repo
+**Status (Stand 2026-09-28):** Beide Teile sind live und aktiv in Weiterentwicklung. Dieses Repo
 enthält *zwei* getrennt deployte Dinge nebeneinander:
 
 | Teil | Was | Deployment | Domain |
@@ -110,6 +110,23 @@ unsichtbar oder hängen, je nach Browser. Fix: die `:hover`-Variante der Regel i
 Problem nicht). Verifiziert über `matchMedia('(hover: hover)')`, das bei emulierten
 Touch-Geräten korrekt `false` liefert, entsprechend bleibt der Tooltip dort standardmässig
 verborgen, auf Desktop mit echter Maus unverändert sichtbar bei Hover.
+
+### 1.4 Meta-Descriptions gekürzt (2026-09-28)
+
+Anlass: Michael liess die Seite crawlen (Screaming Frog, `internal_all.csv`) und fragte nach einer
+Einschätzung. Crawl selbst war sauber (keine 4xx/5xx, jede Seite mit Title/Description/H1, Crawl-
+Tiefe überall 1, keine Duplicate Content, 0 Spelling/Grammar-Fehler), der einzige echte Befund:
+die Meta-Descriptions lagen auf den meisten Seiten über der von Google praktisch noch vollständig
+angezeigten Breite (Richtwert ca. 155 Zeichen / ~920px, hier teils bis 1525px auf der Startseite).
+Über dieser Breite schneidet Google entweder mit "..." ab oder ignoriert die Description ganz
+zugunsten eines selbst generierten Snippets.
+
+Gekürzt auf Startseite, Firma, Entwicklung+Design, Berechnung, Konstruktion, Management-Systeme,
+Projektleitung (alle jetzt 125–145 Zeichen). Kontakt, Jobs und CAD-Support waren mit 794–885px
+bereits im sicheren Bereich, nicht angefasst. `og:description`/`twitter:description` pro Seite
+identisch mit `<meta name="description">` gehalten (bestehende Konvention aus der SEO-Session vom
+2026-09-21, siehe 1.2), alle drei Tags also synchron mit demselben gekürzten Text aktualisiert.
+Reine Text-Kürzung, keine inhaltliche Änderung der Kernaussage pro Seite.
 
 ## 2. Kundenportal (Cloudflare Worker)
 
