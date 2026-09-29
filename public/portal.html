@@ -60,19 +60,21 @@ a{color:inherit;text-decoration:none}
    Wiederholungen bleibt statt wie Tapete zu wirken. */
 .app-bg{position:fixed;inset:0;z-index:-1;pointer-events:none;
   background-image:
-    radial-gradient(1400px 760px at 42% -12%, color-mix(in srgb, var(--accent) 32%, transparent), transparent 64%),
-    radial-gradient(1000px 620px at 96% 92%, color-mix(in srgb, var(--accent) 20%, transparent), transparent 68%),
-    radial-gradient(900px 560px at 12% 108%, color-mix(in srgb, var(--accent-2) 22%, transparent), transparent 70%);
-  background-size:100% 100%,100% 100%,100% 100%;
+    radial-gradient(1400px 760px at 42% -12%, color-mix(in srgb, var(--accent) 40%, transparent), transparent 64%),
+    radial-gradient(1000px 620px at 96% 92%, color-mix(in srgb, var(--accent) 24%, transparent), transparent 68%),
+    radial-gradient(900px 560px at 12% 108%, color-mix(in srgb, var(--accent-2) 26%, transparent), transparent 70%),
+    linear-gradient(128deg, transparent 40%, color-mix(in srgb, var(--accent) 7%, transparent) 52%, transparent 64%);
+  background-size:100% 100%,100% 100%,100% 100%,100% 100%;
   mask-image: radial-gradient(1900px 1500px at 50% 25%, black 0%, transparent 94%);
   -webkit-mask-image: radial-gradient(1900px 1500px at 50% 25%, black 0%, transparent 94%);
-  animation: app-bg-atmen 14s ease-in-out infinite;
+  animation: app-bg-atmen 14s ease-in-out infinite, app-bg-drift 26s ease-in-out infinite;
 }
 .app-bg-traces{position:absolute;inset:0;width:100%;height:100%}
 .pcb-trace{fill:none;stroke:color-mix(in srgb, var(--accent) 15%, transparent);stroke-width:1.1;stroke-linecap:round}
 .pcb-via{fill:color-mix(in srgb, var(--accent) 25%, transparent)}
 .pcb-pad{fill:none;stroke:color-mix(in srgb, var(--accent-2) 22%, transparent);stroke-width:1.1}
 @keyframes app-bg-atmen{0%,100%{opacity:.85}50%{opacity:1}}
+@keyframes app-bg-drift{0%,100%{background-position:0 0,0 0,0 0,0 0}50%{background-position:1.5% -1%,-1% 1.5%,1% -1.5%,0 0}}
 @media (prefers-reduced-motion: reduce){.app-bg{animation:none}}
 
 /* ===== Rundgang (Hilfe-Fragezeichen oben rechts) ===== */
