@@ -476,7 +476,12 @@ export default {
     if (url.pathname === "/api/folders" && request.method === "GET") {
       if (!admin) return json({ error: "Keine Berechtigung." }, 403);
       const listed = await listObjects(env, "", "/");
-      const folderNames = listed.prefixes.map((p) => p.replace(/\/$/, "")).sort();
+      // "_dms" ist kein Kundenordner, sondern die Ablage der Dokumentenlenkung (siehe /api/dms/*
+      // weiter unten), soll hier also nicht als Kundenordner auftauchen.
+      const folderNames = listed.prefixes
+        .map((p) => p.replace(/\/$/, ""))
+        .filter((name) => name !== "_dms")
+        .sort();
       // Dateianzahl pro Ordner mitliefern, damit die Ordner-Uebersicht auf einen Blick zeigt, wo
       // ueberhaupt etwas liegt, statt nur eine reine Namensliste zu sein.
       const folders = [];
@@ -767,6 +772,158 @@ export default {
       }
       items.sort((a, b) => new Date(b.at) - new Date(a.at));
       return json({ activity: items.slice(0, 100) });
+    }
+
+    // --- Dokumentenlenkung / DMS (/dms) ---
+    // Bewusst komplett admin-only, anders als die normale Dateiverwaltung oben: das ist unser
+    // internes QM-Dokumentenmanagement (Entwurf/Geprueft/Freigegeben, Versionsverlauf), noch keine
+    // Kunden-/Mitarbeitenden-Freigabe wie beim Handbuch. Metadaten liegen in der KV-Namespace DMS
+    // ("doc:<id>"), die Dateien selbst wie ueberall sonst in B2, Praefix "_dms/<id>/vN__<name>"
+    // (siehe Filter in /api/folders oben, damit das nicht als Kundenordner auftaucht).
+
+    const DMS_STATUSES = ["entwurf", "geprueft", "freigegeben"];
+    const DMS_STATUS_LABEL = { entwurf: "Entwurf", geprueft: "Geprüft", freigegeben: "Freigegeben" };
+
+    async function loadDmsDoc(id) {
+      const raw = id && (await env.DMS.get("doc:" + id));
+      return raw ? JSON.parse(raw) : null;
+    }
+
+    if (url.pathname === "/api/dms/documents" && request.method === "GET") {
+      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
+      const list = await env.DMS.list({ prefix: "doc:" });
+      const items = [];
+      for (const k of list.keys) {
+        const raw = await env.DMS.get(k.name);
+        if (raw) items.push(JSON.parse(raw));
+      }
+      items.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      return json({ documents: items });
+    }
+
+    if (url.pathname === "/api/dms/documents" && request.method === "POST") {
+      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
+      const body = await request.json().catch(() => ({}));
+      const title = (body.title || "").trim().slice(0, 200);
+      const category = (body.category || "").trim().slice(0, 80) || "Allgemein";
+      if (!title) return json({ error: "Kein Titel angegeben." }, 400);
+      const id = crypto.randomUUID();
+      const now = new Date().toISOString();
+      const doc = {
+        id,
+        title,
+        category,
+        status: "entwurf",
+        currentVersion: 0,
+        versions: [],
+        createdAt: now,
+        createdBy: email,
+        updatedAt: now,
+        updatedBy: email,
+      };
+      await env.DMS.put("doc:" + id, JSON.stringify(doc));
+      await logActivity(env, { email, action: "DMS-Dokument angelegt", detail: `${title} (${category})` });
+      return json({ ok: true, document: doc });
+    }
+
+    if (url.pathname === "/api/dms/documents" && request.method === "DELETE") {
+      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
+      const doc = await loadDmsDoc(url.searchParams.get("id"));
+      if (!doc) return json({ error: "Dokument nicht gefunden." }, 404);
+      const client = b2Client(env);
+      for (const v of doc.versions) {
+        const objectUrl = bucketUrl(env) + "/" + v.key.split("/").map(encodeURIComponent).join("/");
+        await client.fetch(objectUrl, { method: "DELETE" }).catch(() => {});
+      }
+      await env.DMS.delete("doc:" + doc.id);
+      await logActivity(env, { email, action: "DMS-Dokument geloescht", detail: doc.title });
+      return json({ ok: true });
+    }
+
+    if (url.pathname === "/api/dms/upload-url" && request.method === "POST") {
+      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
+      const body = await request.json().catch(() => ({}));
+      const doc = await loadDmsDoc(body.docId);
+      if (!doc) return json({ error: "Dokument nicht gefunden." }, 404);
+      const filename = (body.filename || "").trim();
+      if (!filename) return json({ error: "Kein Dateiname uebergeben." }, 400);
+      if (filename.includes("/")) return json({ error: "Dateiname darf kein '/' enthalten." }, 400);
+
+      const nextVersion = doc.currentVersion + 1;
+      const key = `_dms/${doc.id}/v${nextVersion}__${filename}`;
+      const client = b2Client(env);
+      const objectUrl = new URL(bucketUrl(env) + "/" + key.split("/").map(encodeURIComponent).join("/"));
+      objectUrl.searchParams.set("X-Amz-Expires", "3600");
+      const signed = await client.sign(new Request(objectUrl, { method: "PUT" }), { aws: { signQuery: true } });
+      return json({ uploadUrl: signed.url, key, version: nextVersion, filename });
+    }
+
+    // Wie /api/upload-done oben: der Worker sieht die Datei-Bytes nie (Upload direkt Browser -> B2
+    // ueber die presigned URL), hier wird nur die Versions-Metadaten-Zeile ergaenzt.
+    if (url.pathname === "/api/dms/upload-done" && request.method === "POST") {
+      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
+      const body = await request.json().catch(() => ({}));
+      const doc = await loadDmsDoc(body.docId);
+      if (!doc) return json({ error: "Dokument nicht gefunden." }, 404);
+      const version = Number(body.version) || doc.currentVersion + 1;
+      const filename = (body.filename || "").trim();
+      const key = (body.key || "").trim();
+      if (!filename || !key) return json({ error: "Unvollstaendige Angaben." }, 400);
+
+      doc.versions.push({
+        version,
+        key,
+        filename,
+        size: Number(body.size) || 0,
+        uploadedAt: new Date().toISOString(),
+        uploadedBy: email,
+      });
+      doc.currentVersion = version;
+      // Jede neue Version geht zurueck auf "Entwurf": eine neue Version ist per Definition noch
+      // nicht geprueft/freigegeben, auch wenn der Vorgaenger es schon war.
+      doc.status = "entwurf";
+      doc.updatedAt = new Date().toISOString();
+      doc.updatedBy = email;
+      await env.DMS.put("doc:" + doc.id, JSON.stringify(doc));
+      await logActivity(env, { email, action: "DMS-Version hochgeladen", detail: `${doc.title} (v${version})` });
+      return json({ ok: true, document: doc });
+    }
+
+    if (url.pathname === "/api/dms/status" && request.method === "POST") {
+      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
+      const body = await request.json().catch(() => ({}));
+      const doc = await loadDmsDoc(body.docId);
+      if (!doc) return json({ error: "Dokument nicht gefunden." }, 404);
+      const status = (body.status || "").trim();
+      if (!DMS_STATUSES.includes(status)) return json({ error: "Ungueltiger Status." }, 400);
+      if (doc.currentVersion === 0) return json({ error: "Dokument hat noch keine Version." }, 400);
+      const oldLabel = DMS_STATUS_LABEL[doc.status];
+      doc.status = status;
+      doc.updatedAt = new Date().toISOString();
+      doc.updatedBy = email;
+      await env.DMS.put("doc:" + doc.id, JSON.stringify(doc));
+      await logActivity(env, {
+        email,
+        action: "DMS-Status geaendert",
+        detail: `${doc.title}: ${oldLabel} -> ${DMS_STATUS_LABEL[status]}`,
+      });
+      return json({ ok: true, document: doc });
+    }
+
+    if (url.pathname === "/api/dms/download" && request.method === "GET") {
+      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
+      const doc = await loadDmsDoc(url.searchParams.get("docId"));
+      if (!doc) return json({ error: "Dokument nicht gefunden." }, 404);
+      const version = Number(url.searchParams.get("version")) || doc.currentVersion;
+      const entry = doc.versions.find((v) => v.version === version);
+      if (!entry) return json({ error: "Version nicht gefunden." }, 404);
+      const client = b2Client(env);
+      const objectUrl = bucketUrl(env) + "/" + entry.key.split("/").map(encodeURIComponent).join("/");
+      const upstream = await client.fetch(objectUrl);
+      if (!upstream.ok) return json({ error: "Datei nicht gefunden." }, 404);
+      const headers = new Headers(upstream.headers);
+      headers.set("Content-Disposition", `attachment; filename="${entry.filename}"`);
+      return new Response(upstream.body, { headers });
     }
 
     return json({ error: "Unbekannter Endpunkt." }, 404);

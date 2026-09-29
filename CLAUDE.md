@@ -1,6 +1,6 @@
 # Alta Engineering — Website & Kundenportal — Projekt-Referenz
 
-**Status (Stand 2026-09-28):** Beide Teile sind live und aktiv in Weiterentwicklung. Dieses Repo
+**Status (Stand 2026-09-29):** Beide Teile sind live und aktiv in Weiterentwicklung. Dieses Repo
 enthält *zwei* getrennt deployte Dinge nebeneinander:
 
 | Teil | Was | Deployment | Domain |
@@ -489,6 +489,42 @@ wird von Claude bewusst **nicht** selbst vorgenommen (siehe Sicherheitsregeln, "
 security settings"). Michael oder Stefan müssen im Zero Trust Dashboard, in derselben Access-App
 "kundenportal oeffentlich" (Policy "Jeder"), unter Destinations einen vierten Eintrag `.../handbook`
 ergänzen, exakt nach demselben Muster wie die bestehenden drei.
+
+### 2.6.5 Dokumentenlenkung / DMS, erster Bauschritt (2026-09-29)
+
+Michael will ein eigenes DMS bauen statt eines Marktprodukts (siehe Business-Case-Artefakt
+"Software als zweites Standbein"), reuses dafuer bewusst die bestehende Kundenportal-Infrastruktur
+statt eines neuen Systems. Diese Session hat den ersten funktionsfaehigen Baustein gebaut, gedacht
+als Demo fuer Stefan, noch nicht live geschaltet:
+
+- **Neue Seite `/dms`** (`public/dms.html`), Design 1:1 vom Kundenportal uebernommen (gleiche
+  CSS-Tokens, Panel-/Tabellen-/Badge-Stil aus `public/index.html` kopiert, nicht neu erfunden).
+  Bewusst komplett admin-only (nur Stefan/Michael), anders als die normale Dateiverwaltung: das ist
+  das interne QM-Tool, noch keine Kunden-/Mitarbeitenden-Freigabe wie beim Handbuch.
+- **Backend** (`src/index.js`, neuer Abschnitt "Dokumentenlenkung / DMS"): Dokumente mit Titel,
+  Kategorie, Status (Entwurf/Geprueft/Freigegeben) und vollem Versionsverlauf. Metadaten in neuer
+  KV-Namespace `DMS` (`doc:<id>`), Dateien wie ueberall sonst in B2 unter `_dms/<id>/vN__<name>`
+  (Underscore-Praefix, damit `/api/folders` das nicht als Kundenordner anzeigt, dort entsprechend
+  gefiltert). Jede neue Version setzt den Status automatisch zurueck auf "Entwurf" (eine neue
+  Version ist per Definition ungeprueft, selbst wenn der Vorgaenger freigegeben war).
+- Endpunkte: `GET/POST/DELETE /api/dms/documents`, `POST /api/dms/upload-url`,
+  `POST /api/dms/upload-done`, `POST /api/dms/status`, `GET /api/dms/download`. Alle admin-only.
+- Suche/Filter (Titel-Text, Kategorie, Status) laeuft rein clientseitig über die schon geladene
+  Dokumentliste, keine Volltextsuche in Dateiinhalten, das war so auch im Business-Case-Papier nicht
+  versprochen.
+- Link zur neuen Seite im Kundenportal-Header ergaenzt (`🗂️ Dokumentenlenkung`, admin-only,
+  gleiches Muster wie der bestehende `📘 QM-Handbuch`-Link).
+- **Noch offen vor dem ersten Deploy:** KV-Namespace-ID fuer `DMS` in `wrangler.toml` ist noch
+  Platzhalter (`HIER_KV_NAMESPACE_ID_EINTRAGEN`), erzeugen mit `npx wrangler kv namespace create DMS`
+  und eintragen, exakt gleiches Vorgehen wie seinerzeit bei `REQUESTS` (siehe 2.3). Bewusst nicht von
+  Claude selbst angelegt, siehe etablierte Konvention in diesem Repo: Deploy-/Infra-Schritte bleiben
+  manuell bei Michael/Stefan.
+- Verifiziert nur visuell mit injizierten Testdaten über den lokalen Static-Server
+  (`alta-website-preview`, siehe `.claude/launch.json`), da lokal kein echtes B2/Access-Backend zur
+  Verfuegung steht, gleiches Vorgehen wie beim Panel-Reorder in 2.6.3.
+- Bewusst NICHT gebaut in diesem ersten Schritt: eigene Freigabe-Links fuers DMS (wie
+  `/handbook/<id>`), Volltextsuche, E-Mail-Benachrichtigungen bei Statuswechsel. Naechste
+  ausbaufaehige Schritte, kein Blocker fuer eine erste Chef-Demo.
 
 ### 2.7 Lokale Entwicklung
 
