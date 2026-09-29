@@ -552,6 +552,33 @@ Michael wollte das DMS direkt live sehen koennen fuer die Chef-Demo, nicht nur l
   Sobald Michael oder Stefan einmal ueber "Version hochladen" eine echte Datei nachreicht, ist der
   Effekt sogar ein guter Demo-Moment: der Status springt live sichtbar zurück auf "Entwurf".
 
+### 2.6.7 Hintergrund vom Zeiterfassungstool, Rundgang, einheitliche Kopfzeile (2026-09-29)
+
+Drei Nachbesserungen an `public/index.html` (Auswahlseite), `public/portal.html` und
+`public/dms.html`, alle drei identisch umgesetzt:
+
+- **PCB-Leiterbahnen-Hintergrund**, 1:1 vom Zeiterfassungstool (`zft_check/src/app/layout.tsx` +
+  `globals.css`) uebernommen: echtes SVG-`<pattern>` (400px-Kachel, Motiv nur in der linken oberen
+  Ecke, sonst wie im Zeiterfassungstool zu dicht/"wie Tapete", siehe Lektion dort), themefaehig ueber
+  `color-mix(in srgb, var(--accent) ...)`. Als `.app-bg`-Div direkt nach `<body>`, `position:fixed`,
+  `z-index:-1`, `pointer-events:none`, malt oberhalb des body-Hintergrunds (das bestehende Punktraster
+  bleibt sichtbar) aber unterhalb des Inhalts. `dms.html` nutzt dafuer den schon vorhandenen
+  `--warn`-Farbton statt eines neuen Tokens, `index.html`/`portal.html` bekamen dafuer ein neues
+  `--accent-2` (Gold, gleicher Wert wie `--warn` in dms.html), vorher nicht vorhanden.
+- **Rundgang ("?"-Button oben rechts):** modales Schritt-fuer-Schritt-Overlay (`.tour-overlay`), pro
+  Seite eigener Inhalt (Auswahlseite erklaert die Wahl, Kundenportal erklaert Upload/Freigabe-Links/
+  QM-Handbuch/DMS, DMS erklaert Anlegen/Versionen/Status/Suche). Kein Element-Spotlight (kein
+  Shepherd.js o.ae. eingebunden), bewusst ein einfaches Info-Modal mit Weiter/Zurueck/Überspringen,
+  passend zum Rest des Repos ohne Build-Schritt/Fremdabhaengigkeiten.
+- **Einheitliche Kopfzeile:** Michael meldete, das QM-Handbuch-Icon sei "mal da, mal nicht" oben in
+  der Navigation. Ursache: `dms.html` und die (neue) Auswahlseite hatten dieses Link-Markup schlicht
+  nie, nur `portal.html`. Jetzt zeigen alle drei Seiten dieselben drei admin-only Links (📁
+  Kundenportal, 🗂️ Dokumentenlenkung, 📘 QM-Handbuch, IDs `navPortalLink`/`navDmsLink`/
+  `navHandbuchLink`), sichtbar/unsichtbar ausschliesslich abhaengig vom `/api/me`-Adminstatus, nicht
+  mehr davon, auf welcher der drei Seiten man gerade ist. Bewusst auch ein Selbst-Link in Kauf
+  genommen (z.B. "Kundenportal" ist auch auf `/portal` selbst sichtbar) statt Spezialfaellen pro
+  Seite, einfacher zu warten und garantiert wirklich "ueberall gleich".
+
 ### 2.7 Lokale Entwicklung
 
 ```
