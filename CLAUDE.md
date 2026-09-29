@@ -495,7 +495,7 @@ ergänzen, exakt nach demselben Muster wie die bestehenden drei.
 Michael will ein eigenes DMS bauen statt eines Marktprodukts (siehe Business-Case-Artefakt
 "Software als zweites Standbein"), reuses dafuer bewusst die bestehende Kundenportal-Infrastruktur
 statt eines neuen Systems. Diese Session hat den ersten funktionsfaehigen Baustein gebaut, gedacht
-als Demo fuer Stefan, noch nicht live geschaltet:
+als Demo fuer Stefan (Live-Schaltung siehe 2.6.6 direkt im Anschluss):
 
 - **Neue Seite `/dms`** (`public/dms.html`), Design 1:1 vom Kundenportal uebernommen (gleiche
   CSS-Tokens, Panel-/Tabellen-/Badge-Stil aus `public/index.html` kopiert, nicht neu erfunden).
@@ -514,17 +514,43 @@ als Demo fuer Stefan, noch nicht live geschaltet:
   versprochen.
 - Link zur neuen Seite im Kundenportal-Header ergaenzt (`🗂️ Dokumentenlenkung`, admin-only,
   gleiches Muster wie der bestehende `📘 QM-Handbuch`-Link).
-- **Noch offen vor dem ersten Deploy:** KV-Namespace-ID fuer `DMS` in `wrangler.toml` ist noch
-  Platzhalter (`HIER_KV_NAMESPACE_ID_EINTRAGEN`), erzeugen mit `npx wrangler kv namespace create DMS`
-  und eintragen, exakt gleiches Vorgehen wie seinerzeit bei `REQUESTS` (siehe 2.3). Bewusst nicht von
-  Claude selbst angelegt, siehe etablierte Konvention in diesem Repo: Deploy-/Infra-Schritte bleiben
-  manuell bei Michael/Stefan.
-- Verifiziert nur visuell mit injizierten Testdaten über den lokalen Static-Server
+- Verifiziert visuell mit injizierten Testdaten über den lokalen Static-Server
   (`alta-website-preview`, siehe `.claude/launch.json`), da lokal kein echtes B2/Access-Backend zur
   Verfuegung steht, gleiches Vorgehen wie beim Panel-Reorder in 2.6.3.
 - Bewusst NICHT gebaut in diesem ersten Schritt: eigene Freigabe-Links fuers DMS (wie
   `/handbook/<id>`), Volltextsuche, E-Mail-Benachrichtigungen bei Statuswechsel. Naechste
   ausbaufaehige Schritte, kein Blocker fuer eine erste Chef-Demo.
+
+### 2.6.6 DMS live geschaltet, Bereichs-Auswahl, Beispieldaten (2026-09-29, direkt im Anschluss an 2.6.5)
+
+Michael wollte das DMS direkt live sehen koennen fuer die Chef-Demo, nicht nur lokal. Umgesetzt:
+
+- **KV-Namespace `DMS` erzeugt** (`npx wrangler kv namespace create DMS`, ID
+  `d6c060376e6b41e0b42be7785c95c541`) und in `wrangler.toml` eingetragen. Anders als sonst in diesem
+  Repo diesmal bewusst von Claude selbst ausgefuehrt, auf explizite Anweisung von Michael hin ("okay
+  pushe es mal ... erledige das bitte"), inkl. `npx wrangler deploy`. Der Worker ist damit live unter
+  `https://alta-kundenportal.alta-engineering.workers.dev` mit dem neuen Code.
+- **Neue Bereichs-Auswahl unter `/`** (`public/index.html`, komplett neu geschrieben): fragt zuerst
+  "Wohin möchtest du?" mit zwei Karten, Kundenportal (Dateien teilen) und Dokumentenlenkung. Das
+  bisherige Kundenportal ist dafuer von `public/index.html` nach `public/portal.html` umgezogen
+  (`/portal`), keine Worker-Routen-Aenderung noetig, das laeuft weiterhin ueber das normale
+  Static-Asset-Ausliefern. Nicht-Admins sehen die Auswahl gar nicht: `/api/me` wird beim Laden
+  geprueft, ohne Admin-Rechte leitet die Seite sofort per `location.replace('/portal')` weiter, weil
+  das DMS fuer sie ohnehin nicht nutzbar ist (komplett admin-only, siehe 2.6.5). Folgelinks
+  angepasst: `_qm-handbuch-inner.html` und `dms.html` verlinken "Zurück zum Portal" jetzt auf
+  `/portal` statt auf `/` (das waere jetzt die Auswahl, nicht das Portal selbst).
+- **Fünf Beispieldokumente** direkt in die neue KV-Namespace geschrieben (`npx wrangler kv key put
+  --binding=DMS`, nicht ueber die API, siehe unten warum): QM-Handbuch (freigegeben, v6, 2 Versionen),
+  Verfahrensanweisung Wareneingang (geprüft, v2, 2 Versionen), Nichtkonformitäten-Formular (Entwurf,
+  v1), Prüfprotokoll Stahlbau EN 1090 (freigegeben, v3) und Schulungsnachweise & Kompetenzmatrix
+  (Entwurf, v1), mit plausiblen Zeitstempeln/Bearbeiter:innen.
+  **Wichtige Einschränkung:** das sind nur die Metadaten (Titel, Kategorie, Status, Versionshistorie),
+  es liegen KEINE echten Dateien in B2 dahinter. Klick auf "Herunterladen" bei diesen fünf Dokumenten
+  schlägt fehl (404), bis jemand tatsächlich eine Version darüber hochlädt. Grund: Claude kann sich
+  nicht durch Cloudflare Access einloggen (das ist eine echte Login-Identität von Michael/Stefan),
+  daher ging der Upload-Weg über die App selbst nicht, nur der direkte KV-Metadaten-Weg via wrangler.
+  Sobald Michael oder Stefan einmal ueber "Version hochladen" eine echte Datei nachreicht, ist der
+  Effekt sogar ein guter Demo-Moment: der Status springt live sichtbar zurück auf "Entwurf".
 
 ### 2.7 Lokale Entwicklung
 
