@@ -30,6 +30,18 @@ id = "b53e83d645ec4b80bbc3a996b7e82e25"
 binding = "SHARES"
 id = "7b37acfe34d242adbced9f3d7c474a52"
 
+# Dokumentenlenkung (/dms, /api/dms/*): Metadaten der DMS-Dokumente (Titel, Kategorie, Status
+# Entwurf/Geprueft/Freigegeben, Versionsliste). Die Dateien selbst liegen wie alles andere in B2,
+# unter dem Praefix "_dms/<dokument-id>/vN__<dateiname>" (fuehrender Unterstrich, damit der Ordner
+# nicht in der Kundenordner-Uebersicht unter /api/folders auftaucht, siehe Filter dort). Noch KEIN
+# eigener Bucket/keine eigene Freigabe-Logik, nutzt dieselbe B2-Anbindung wie der Rest.
+# ID noch Platzhalter, vor dem ersten Deploy erzeugen mit:
+#   npx wrangler kv namespace create DMS
+# und die zurueckgegebene ID hier eintragen (gleiches Vorgehen wie seinerzeit bei REQUESTS).
+[[kv_namespaces]]
+binding = "DMS"
+id = "HIER_KV_NAMESPACE_ID_EINTRAGEN"
+
 # Aktivitaets-Log fuers Admin-Panel (wer hat was gemacht, z.B. Upload, Loeschen,
 # Freigabe-Link erstellt). Keys als "log:<ISO-Zeitstempel>:<zufall>", damit
 # env.ACTIVITY.list() sie automatisch chronologisch liefert (KV sortiert

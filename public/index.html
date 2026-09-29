@@ -193,6 +193,7 @@ tbody tr:hover{background:var(--surface-2)}
       </div>
     </a>
     <div class="nav-actions">
+      <a class="back-link handbuch-link" href="/dms" id="dmsLink" style="display:none"><span>🗂️</span><span class="lbl">Dokumentenlenkung</span></a>
       <a class="back-link handbuch-link" href="/qm-handbuch" id="qmHandbuchLink" style="display:none"><span>📘</span><span class="lbl">QM-Handbuch</span></a>
       <a class="back-link" href="https://alta-engineering.ch" target="_blank" rel="noopener">
         <span class="lbl">Hauptwebsite</span>
@@ -387,6 +388,7 @@ tbody tr:hover{background:var(--surface-2)}
 
       if (me.isAdmin){
         document.getElementById('statRow').style.display = '';
+        document.getElementById('dmsLink').style.display = '';
         document.getElementById('qmHandbuchLink').style.display = '';
         document.getElementById('adminPanel').style.display = '';
         document.getElementById('uploadTargetRow').style.display = '';
