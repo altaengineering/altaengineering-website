@@ -268,6 +268,13 @@ tbody tr.doc-row{cursor:pointer}
     <div class="kicker">Internes QM-System</div>
     <h1>Dokumentenlenkung</h1>
     <div class="who" id="whoBox">Lade Nutzerinfo …</div>
+    <div class="row" id="tenantRow" style="display:none;margin-top:1rem;margin-bottom:0">
+      <div class="field" id="tenantSwitcherField" style="display:none">
+        <label class="small" for="tenantSwitcher">Kunde</label>
+        <select id="tenantSwitcher"></select>
+      </div>
+      <button class="btn-lg ghost" id="manageTenantsBtn" style="display:none">Kunden verwalten</button>
+    </div>
     <div class="stat-row" id="statRow" style="display:none">
       <div class="stat"><div class="num" id="statTotal">–</div><div class="lbl">Dokumente</div></div>
       <div class="stat"><div class="num" id="statFreigegeben">–</div><div class="lbl">Freigegeben</div></div>
@@ -279,7 +286,37 @@ tbody tr.doc-row{cursor:pointer}
 <main>
   <div class="wrap" id="appWrap" style="display:none">
 
-    <div class="panel">
+    <div class="panel" id="tenantsPanel" style="display:none">
+      <h2>Kunden verwalten</h2>
+      <div class="sub">Jeder Kunde hat seine eigene Dokumentenlenkung mit eigenen Kategorien, komplett getrennt von den anderen. Eine Domain ordnet eingeloggten Personen automatisch den richtigen Kunden zu.</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Kunde</th><th>Domain(s)</th><th>Kategorien</th><th>Dokumente</th><th></th></tr>
+          </thead>
+          <tbody id="tenantRows"></tbody>
+        </table>
+      </div>
+      <div class="row" style="margin-top:1.2rem;margin-bottom:0">
+        <div class="field">
+          <label class="small" for="newTenantName">Name</label>
+          <input type="text" id="newTenantName" placeholder="z.B. Muster AG" style="min-width:200px">
+        </div>
+        <div class="field">
+          <label class="small" for="newTenantDomains">Domain(s)</label>
+          <input type="text" id="newTenantDomains" placeholder="z.B. muster-ag.ch" style="min-width:200px">
+        </div>
+        <div class="field">
+          <label class="small" for="newTenantTemplate">Kategorien übernehmen von</label>
+          <select id="newTenantTemplate">
+            <option value="">Standard-Kategorien</option>
+          </select>
+        </div>
+        <button class="btn-lg primary" id="createTenantBtn" style="align-self:flex-end">Kunde anlegen</button>
+      </div>
+    </div>
+
+    <div class="panel" id="newDocPanel">
       <h2>Neues Dokument</h2>
       <div class="sub">Titel und Kategorie anlegen, die erste Version lädst du danach direkt in der Tabelle hoch.</div>
       <div class="row" style="margin-bottom:0">
@@ -289,20 +326,13 @@ tbody tr.doc-row{cursor:pointer}
         </div>
         <div class="field">
           <label class="small" for="newCategory">Kategorie</label>
-          <input type="text" id="newCategory" list="categoryOptions" placeholder="z.B. QM-Handbuch" style="min-width:200px">
-          <datalist id="categoryOptions">
-            <option value="QM-Handbuch">
-            <option value="Verfahrensanweisung">
-            <option value="Formular">
-            <option value="Nachweis">
-            <option value="Prüfprotokoll">
-          </datalist>
+          <select id="newCategory" style="min-width:200px"></select>
         </div>
         <button class="btn-lg primary" id="createDocBtn" style="align-self:flex-end">Anlegen</button>
       </div>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="documentsPanel">
       <div class="row" style="justify-content:space-between;align-items:baseline">
         <h2 style="margin:0">Dokumente</h2>
       </div>
@@ -330,13 +360,13 @@ tbody tr.doc-row{cursor:pointer}
 
     <input type="file" id="versionFileInput" style="display:none">
 
-    <p class="foot-note">alta-engineering.ch · Dokumentenlenkung läuft geschützt über Cloudflare Access, nur für Admins</p>
+    <p class="foot-note">alta-engineering.ch · Dokumentenlenkung läuft geschützt über Cloudflare Access</p>
   </div>
 
   <div class="wrap" id="deniedWrap" style="display:none">
     <div class="panel">
       <h2>Kein Zugriff</h2>
-      <div class="sub">Die Dokumentenlenkung ist aktuell nur für Stefan und Michael sichtbar.</div>
+      <div class="sub">Deine Firma ist (noch) nicht als Kunde in der Dokumentenlenkung hinterlegt. Wende dich an deinen Ansprechpartner bei Alta Engineering.</div>
     </div>
   </div>
 </main>
@@ -367,7 +397,10 @@ tbody tr.doc-row{cursor:pointer}
 <script>
 (function(){
   var STATUS_LABEL = { entwurf: 'Entwurf', geprueft: 'Geprüft', freigegeben: 'Freigegeben' };
-  var state = { email: null, isAdmin: false, documents: [], expanded: {}, pendingUploadDocId: null };
+  var state = {
+    email: null, isAdmin: false, documents: [], expanded: {}, pendingUploadDocId: null,
+    tenants: [], currentTenant: null, tenantsLoaded: false
+  };
 
   function fmtDate(iso){
     var d = new Date(iso);
@@ -394,18 +427,139 @@ tbody tr.doc-row{cursor:pointer}
     return api('/api/me').then(function(me){
       state.email = me.email;
       state.isAdmin = me.isAdmin;
-      if (!me.isAdmin){
+      var whoBox = document.getElementById('whoBox');
+
+      if (me.isAdmin){
+        document.getElementById('navPortalLink').style.display = '';
+        document.getElementById('navHandbuchLink').style.display = '';
+        whoBox.innerHTML = '<span class="email-mono">' + me.email + '</span><span class="badge admin">Admin</span>';
+
+        state.tenants = me.dmsTenants || [];
+        if (!state.tenants.length){
+          document.getElementById('appWrap').style.display = '';
+          document.getElementById('tenantRow').style.display = '';
+          document.getElementById('manageTenantsBtn').style.display = '';
+          document.getElementById('tenantsPanel').style.display = '';
+          document.getElementById('newDocPanel').style.display = 'none';
+          document.getElementById('documentsPanel').style.display = 'none';
+          document.getElementById('statRow').style.display = 'none';
+          loadTenantsPanel();
+          return;
+        }
+
+        var savedTenantId = null;
+        try { savedTenantId = localStorage.getItem('dmsTenantId'); } catch(e){}
+        var initial = state.tenants.find(function(t){ return t.id === savedTenantId; }) || state.tenants[0];
+        state.currentTenant = initial;
+
+        document.getElementById('appWrap').style.display = '';
+        document.getElementById('statRow').style.display = '';
+        document.getElementById('tenantRow').style.display = '';
+        document.getElementById('tenantSwitcherField').style.display = '';
+        document.getElementById('manageTenantsBtn').style.display = '';
+        populateTenantSwitcher();
+        loadDocuments();
+        return;
+      }
+
+      // Kunden-Nutzer:in: automatisch per E-Mail-Domain zugeordneter Tenant, kein Umschalter.
+      if (!me.dmsOwnTenant){
         document.getElementById('deniedWrap').style.display = '';
         return;
       }
+      state.currentTenant = me.dmsOwnTenant;
       document.getElementById('appWrap').style.display = '';
       document.getElementById('statRow').style.display = '';
-      document.getElementById('navPortalLink').style.display = '';
-      document.getElementById('navHandbuchLink').style.display = '';
-      var whoBox = document.getElementById('whoBox');
-      whoBox.innerHTML = '<span class="email-mono">' + me.email + '</span><span class="badge admin">Admin</span>';
+      whoBox.innerHTML = '<span class="email-mono">' + me.email + '</span><span class="badge">' + me.dmsOwnTenant.name + '</span>';
       loadDocuments();
     });
+  }
+
+  function populateTenantSwitcher(){
+    var select = document.getElementById('tenantSwitcher');
+    select.innerHTML = state.tenants.map(function(t){
+      return '<option value="' + t.id + '"' + (t.id === state.currentTenant.id ? ' selected' : '') + '>' + t.name + '</option>';
+    }).join('');
+  }
+
+  function switchTenant(tenantId){
+    var tenant = state.tenants.find(function(t){ return t.id === tenantId; });
+    if (!tenant) return;
+    state.currentTenant = tenant;
+    try { localStorage.setItem('dmsTenantId', tenantId); } catch(e){}
+    loadDocuments();
+  }
+
+  // ---------- Kunden (Tenants) verwalten, nur Admins ----------
+
+  function loadTenantsPanel(){
+    return api('/api/dms/tenants').then(function(res){
+      state.tenants = res.tenants.map(function(t){ return { id: t.id, name: t.name }; });
+      renderTenantsTable(res.tenants);
+      var templateSelect = document.getElementById('newTenantTemplate');
+      templateSelect.innerHTML = '<option value="">Standard-Kategorien</option>' +
+        res.tenants.map(function(t){ return '<option value="' + t.id + '">Wie ' + t.name + '</option>'; }).join('');
+      if (state.currentTenant){
+        populateTenantSwitcher();
+      }
+    });
+  }
+
+  function renderTenantsTable(tenants){
+    var rows = document.getElementById('tenantRows');
+    rows.innerHTML = '';
+    tenants.forEach(function(t){
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td class="fname">' + t.name + '</td>' +
+        '<td class="meta">' + (t.domains && t.domains.length ? t.domains.join(', ') : '–') + '</td>' +
+        '<td class="meta">' + (t.categories || []).length + '</td>' +
+        '<td class="meta">' + (t.documentCount || 0) + '</td>' +
+        '<td><div class="actions">' +
+          '<button class="iconbtn" data-edit-tenant="' + t.id + '">Bearbeiten</button>' +
+          '<button class="iconbtn danger" data-delete-tenant="' + t.id + '">Löschen</button>' +
+        '</div></td>';
+      rows.appendChild(tr);
+    });
+    rows.querySelectorAll('[data-edit-tenant]').forEach(function(btn){
+      btn.addEventListener('click', function(){ editTenant(btn.getAttribute('data-edit-tenant'), tenants); });
+    });
+    rows.querySelectorAll('[data-delete-tenant]').forEach(function(btn){
+      btn.addEventListener('click', function(){ deleteTenant(btn.getAttribute('data-delete-tenant'), tenants); });
+    });
+  }
+
+  function editTenant(id, tenants){
+    var t = tenants.find(function(x){ return x.id === id; });
+    if (!t) return;
+    var name = prompt('Name des Kunden:', t.name);
+    if (name === null) return;
+    var domains = prompt('Domain(s), kommagetrennt (ordnet Login-E-Mails automatisch diesem Kunden zu):', (t.domains || []).join(', '));
+    if (domains === null) return;
+    var categories = prompt('Kategorien, kommagetrennt:', (t.categories || []).join(', '));
+    if (categories === null) return;
+    api('/api/dms/tenants', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: id, name: name, domains: domains, categories: categories })
+    }).then(function(){
+      loadTenantsPanel();
+      if (state.currentTenant && state.currentTenant.id === id) loadDocuments();
+    }).catch(function(e){ alert(e.message); });
+  }
+
+  function deleteTenant(id, tenants){
+    var t = tenants.find(function(x){ return x.id === id; });
+    if (!t) return;
+    if (!confirm('Kunde "' + t.name + '" wirklich löschen? Alle ' + (t.documentCount || 0) + ' Dokumente dieses Kunden werden unwiderruflich mitgelöscht.')) return;
+    api('/api/dms/tenants?id=' + encodeURIComponent(id), { method: 'DELETE' }).then(function(){
+      loadTenantsPanel().then(function(){
+        if (state.currentTenant && state.currentTenant.id === id){
+          state.currentTenant = state.tenants[0] || null;
+          if (state.currentTenant) loadDocuments();
+        }
+      });
+    }).catch(function(e){ alert(e.message); });
   }
 
   function updateStats(){
@@ -416,20 +570,38 @@ tbody tr.doc-row{cursor:pointer}
     document.getElementById('statInArbeit').textContent = total - freigegeben;
   }
 
+  function tenantCategories(){
+    if (state.currentTenant && state.currentTenant.categories && state.currentTenant.categories.length){
+      return state.currentTenant.categories;
+    }
+    // Fallback, falls der Tenant (noch) keine Kategorien hat: aus den vorhandenen Dokumenten ableiten.
+    return Array.from(new Set(state.documents.map(function(d){ return d.category; }))).sort();
+  }
+
   function updateCategoryFilter(){
     var select = document.getElementById('categoryFilter');
     var current = select.value;
-    var cats = Array.from(new Set(state.documents.map(function(d){ return d.category; }))).sort();
+    var cats = tenantCategories();
     select.innerHTML = '<option value="">Alle Kategorien</option>' +
       cats.map(function(c){ return '<option value="' + c + '">' + c + '</option>'; }).join('');
     select.value = cats.indexOf(current) >= 0 ? current : '';
   }
 
+  function updateNewCategorySelect(){
+    var select = document.getElementById('newCategory');
+    var cats = tenantCategories();
+    select.innerHTML = cats.map(function(c){ return '<option value="' + c + '">' + c + '</option>'; }).join('');
+  }
+
   function loadDocuments(){
-    return api('/api/dms/documents').then(function(res){
+    if (!state.currentTenant) return Promise.resolve();
+    var qs = state.isAdmin ? '?tenantId=' + encodeURIComponent(state.currentTenant.id) : '';
+    return api('/api/dms/documents' + qs).then(function(res){
       state.documents = res.documents;
+      if (res.tenant) state.currentTenant = res.tenant; // volle Kategorienliste nachladen
       updateStats();
       updateCategoryFilter();
+      updateNewCategorySelect();
       renderDocuments();
     });
   }
@@ -526,16 +698,49 @@ tbody tr.doc-row{cursor:pointer}
 
   document.getElementById('createDocBtn').addEventListener('click', function(){
     var title = document.getElementById('newTitle').value.trim();
-    var category = document.getElementById('newCategory').value.trim();
+    var category = document.getElementById('newCategory').value;
     if (!title){ alert('Bitte einen Titel angeben.'); return; }
+    if (!state.currentTenant){ alert('Kein Kunde ausgewählt.'); return; }
     api('/api/dms/documents', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: title, category: category })
+      body: JSON.stringify({ title: title, category: category, tenantId: state.currentTenant.id })
     }).then(function(){
       document.getElementById('newTitle').value = '';
-      document.getElementById('newCategory').value = '';
       loadDocuments();
+    }).catch(function(e){ alert(e.message); });
+  });
+
+  document.getElementById('tenantSwitcher').addEventListener('change', function(){
+    switchTenant(this.value);
+  });
+
+  document.getElementById('manageTenantsBtn').addEventListener('click', function(){
+    var panel = document.getElementById('tenantsPanel');
+    var opening = panel.style.display === 'none';
+    panel.style.display = opening ? '' : 'none';
+    if (opening) loadTenantsPanel();
+  });
+
+  document.getElementById('createTenantBtn').addEventListener('click', function(){
+    var name = document.getElementById('newTenantName').value.trim();
+    var domains = document.getElementById('newTenantDomains').value.trim();
+    var copyFromTenantId = document.getElementById('newTenantTemplate').value;
+    if (!name){ alert('Bitte einen Namen angeben.'); return; }
+    api('/api/dms/tenants', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name, domains: domains, copyFromTenantId: copyFromTenantId || undefined })
+    }).then(function(res){
+      document.getElementById('newTenantName').value = '';
+      document.getElementById('newTenantDomains').value = '';
+      document.getElementById('statRow').style.display = '';
+      document.getElementById('tenantSwitcherField').style.display = '';
+      document.getElementById('newDocPanel').style.display = '';
+      document.getElementById('documentsPanel').style.display = '';
+      return loadTenantsPanel().then(function(){
+        switchTenant(res.tenant.id);
+      });
     }).catch(function(e){ alert(e.message); });
   });
 
@@ -581,7 +786,8 @@ tbody tr.doc-row{cursor:pointer}
 <script>
 (function(){
   var STEPS = [
-    { icon: '🗂️', title: 'Dokumentenlenkung', text: 'Unser internes QM-System: jedes Dokument hat einen Status (Entwurf, Geprüft, Freigegeben) und einen vollständigen Versionsverlauf.' },
+    { icon: '🗂️', title: 'Dokumentenlenkung', text: 'Ein QM-System für mehrere Kunden gleichzeitig: jeder Kunde hat seine eigenen Dokumente, Kategorien und Status, komplett voneinander getrennt.' },
+    { icon: '🏷️', title: 'Kunden verwalten', text: 'Als Admin wechselst du oben zwischen Kunden und kannst dort neue anlegen, Domains zuordnen (für den automatischen Login ihrer Mitarbeitenden) und Kategorien bearbeiten.' },
     { icon: '➕', title: 'Neues Dokument', text: 'Titel und Kategorie eingeben, anlegen. Die erste Version lädst du danach direkt in der Tabelle über «Version hochladen» hoch.' },
     { icon: '🔄', title: 'Versionen & Status', text: 'Jede neue Version setzt den Status automatisch zurück auf «Entwurf», eine neue Version ist ja noch nicht geprüft. Klick auf den Titel zeigt den ganzen Verlauf.' },
     { icon: '🔍', title: 'Suche & Filter', text: 'Nach Titel suchen oder nach Kategorie/Status filtern, praktisch sobald mehr Dokumente dazukommen.' }
