@@ -1,6 +1,6 @@
 # Alta Engineering — Website & Kundenportal — Projekt-Referenz
 
-**Status (Stand 2026-09-29):** Beide Teile sind live und aktiv in Weiterentwicklung. Dieses Repo
+**Status (Stand 2026-10-01):** Beide Teile sind live und aktiv in Weiterentwicklung. Dieses Repo
 enthält *zwei* getrennt deployte Dinge nebeneinander:
 
 | Teil | Was | Deployment | Domain |
@@ -578,6 +578,60 @@ Drei Nachbesserungen an `public/index.html` (Auswahlseite), `public/portal.html`
   mehr davon, auf welcher der drei Seiten man gerade ist. Bewusst auch ein Selbst-Link in Kauf
   genommen (z.B. "Kundenportal" ist auch auf `/portal` selbst sichtbar) statt Spezialfaellen pro
   Seite, einfacher zu warten und garantiert wirklich "ueberall gleich".
+
+### 2.6.8 DMS: Multi-Tenant (ein Kunde = eine eigene Dokumentenlenkung) (2026-10-01)
+
+Feedback vom Chef nach der ersten Demo: das DMS soll kein internes Alta-only-Tool bleiben, sondern
+die Grundlage fuer ein verkaufbares Produkt sein, das Alta fuer mehrere Kunden gleichzeitig betreibt
+und zentral verwaltet ("ich will diese Software vertreiben koennen und managen"). Deshalb
+grundlegend umgebaut, analog zum Mitarbeiter-Modell im Zeiterfassungstool, nur auf Firmenebene statt
+Personenebene:
+
+- **Tenants** (KV-Namespace DMS, `tenant:<id>`): `{id, name, domains[], categories[], createdAt,
+  createdBy}`. Jedes DMS-Dokument (`doc:<id>`) hat jetzt ein `tenantId`-Feld, Dateien in B2 liegen
+  unter `_dms/<tenantId>/<docId>/vN__<name>` (Tenant-Ebene ergaenzt, Rest wie bisher).
+- **Zugriff:** Admins (Stefan/Michael) sehen alle Tenants und schalten oben per Dropdown zwischen
+  ihnen um (Auswahl in `localStorage` gemerkt). Kunden-Nutzer:innen werden automatisch ihrem Tenant
+  zugeordnet, und zwar über die Domain ihrer Login-E-Mail (`email.split('@')[1]` gegen
+  `tenant.domains`) -- kein Pflegeaufwand pro Person, eine Domain reicht fuer die ganze Kundenfirma.
+  Ohne passende Domain: "Kein Zugriff"-Seite mit Hinweis, sich zu melden.
+  **Wichtige Grenze:** das regelt nur, welchem Tenant eine bereits eingeloggte Person zugeordnet
+  wird, nicht OB sie sich einloggen darf -- echte neue Kunden-Logins muessen weiterhin manuell im
+  Cloudflare-Access-Dashboard freigeschaltet werden (gleiche Grenze wie bei den Access-Bypass-Pfaden
+  anderswo in dieser Datei, von Claude bewusst nicht selbst vorgenommen).
+- **"Kunden verwalten"**-Panel (Button neben dem Umschalter): Tabelle aller Tenants mit
+  Domain(s)/Kategorienzahl/Dokumentenzahl, Bearbeiten (per `prompt()`, gleiches leichtgewichtiges
+  Muster wie bei den Freigabe-Links in `portal.html`, bewusst kein grosses Formular) und Loeschen
+  (mit Bestaetigung, loescht kaskadierend alle Dokumente samt B2-Dateien). Neuer Kunde: Name,
+  Domain(s), Kategorien entweder Standard-Satz oder von einem bestehenden Kunden kopiert.
+- **Kategorien pro Tenant statt global**, auf Wunsch "je nach Abteilung" sinnvoll: Alta Engineering
+  (Engineering, Qualitätsmanagement, Administration, Finanzen, Vertrieb, Allgemein, dazu "HR" weil
+  Stefan das schon so benutzt hat), industrietaucher.ch (Tauchprotokolle & Einsätze, Sicherheit &
+  Zertifikate, Ausrüstung, Projektberichte, Qualitätsmanagement), Polytrona AG (Fertigung,
+  Elektronik-Entwicklung, Qualitätsmanagement, Prüfung & Test, Einkauf & Lieferanten) -- Branchen via
+  Websuche grob recherchiert (industrietaucher.ch: Unterwasserinspektion/-instandhaltung; Polytrona:
+  Elektronikfertigung/Leiterplatten/Transformatoren in Stansstad). "Neues Dokument" nutzt jetzt ein
+  `<select>` mit den Kategorien des aktuell gewaehlten Tenants statt freiem Text + Datalist.
+- **Drei Beispielkunden live angelegt** zum Herumspielen: Alta Engineering AG (die sechs
+  bestehenden Dokumente dorthin migriert, **inklusive eines echten, von Stefan selbst schon
+  angelegten Dokuments "Stammblatt"** mit echter hochgeladener Datei, nicht angetastet ausser dem
+  neuen `tenantId`-Feld), industrietaucher.ch und Polytrona AG (je 3 neue Beispieldokumente,
+  Metadaten-only wie beim ersten Seed, siehe 2.6.6 fuer die Einschraenkung dazu).
+- Migration und Seed-Daten diesmal bewusst ueber Dateien + `--path` statt Inline-JSON an
+  `wrangler kv key put` geschrieben: Inline-JSON mit Umlauten über die Git-Bash-Kommandozeile kam
+  auf diesem Windows-Rechner korrupt an ("Qualit�tsmanagement" statt "Qualitätsmanagement"), über
+  eine von Node mit explizitem UTF-8 geschriebene Datei kam es korrekt an. Beim naechsten Mal gleich
+  so vorgehen, nicht nochmal per Inline-String mit Sonderzeichen.
+- Backend-seitig lokal mit `wrangler dev` (lokal simulierte KV, nicht die echte) end-to-end
+  getestet: Tenant anlegen/bearbeiten/loeschen, Dokument anlegen/auflisten, Status ohne Version
+  (erwarteter Fehler), fremder Tenant darf nicht loeschen (403). Dabei einen echten Bug gefunden und
+  behoben: Tenant-/Dokument-Loeschen baute immer einen B2-Client auf, auch wenn gar keine Version zu
+  loeschen war, das crasht ohne B2-Secrets (lokal) unnoetig -- jetzt nur noch, wenn tatsaechlich eine
+  Version existiert.
+- Bewusst NICHT angefasst: das alte, separate `/qm-handbuch`-System mit echtem Handbuch-Inhalt in
+  `_qm-handbuch-inner.html` lebt unveraendert weiter (Admin-Direktzugriff + Freigabe-Links), um
+  keinen echten Inhalt zu riskieren. Das neue DMS deckt "QM-Handbuch" nur noch als Kategorie pro
+  Tenant ab, eine echte Zusammenfuehrung beider Systeme ist ein spaeterer Schritt, kein Blocker hier.
 
 ### 2.7 Lokale Entwicklung
 

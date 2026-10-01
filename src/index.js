@@ -427,7 +427,20 @@ export default {
     const ownFolder = folderFor(email);
 
     if (url.pathname === "/api/me" && request.method === "GET") {
-      return json({ email, isAdmin: admin, isMitarbeiter: isMitarbeiterEmail(email), folder: ownFolder });
+      // DMS-Tenant-Zuordnung mitliefern (siehe "Dokumentenlenkung / DMS" weiter unten): Admins
+      // bekommen die volle Kundenliste fuers Umschalten, Kunden-Nutzer:innen nur ihren eigenen,
+      // per E-Mail-Domain aufgeloesten Tenant (oder null, falls ihre Domain noch keinem Kunden
+      // zugeordnet ist).
+      const dmsTenants = admin ? await listTenants() : [];
+      const dmsOwnTenant = admin ? null : await resolveTenantForEmail(email);
+      return json({
+        email,
+        isAdmin: admin,
+        isMitarbeiter: isMitarbeiterEmail(email),
+        folder: ownFolder,
+        dmsTenants: dmsTenants.map((t) => ({ id: t.id, name: t.name })),
+        dmsOwnTenant: dmsOwnTenant ? { id: dmsOwnTenant.id, name: dmsOwnTenant.name } : null,
+      });
     }
 
     // --- Admin: offene Zugriffsanfragen verwalten ---
@@ -775,42 +788,201 @@ export default {
     }
 
     // --- Dokumentenlenkung / DMS (/dms) ---
-    // Bewusst komplett admin-only, anders als die normale Dateiverwaltung oben: das ist unser
-    // internes QM-Dokumentenmanagement (Entwurf/Geprueft/Freigegeben, Versionsverlauf), noch keine
-    // Kunden-/Mitarbeitenden-Freigabe wie beim Handbuch. Metadaten liegen in der KV-Namespace DMS
-    // ("doc:<id>"), die Dateien selbst wie ueberall sonst in B2, Praefix "_dms/<id>/vN__<name>"
-    // (siehe Filter in /api/folders oben, damit das nicht als Kundenordner auftaucht).
+    // Multi-Tenant seit 2026-10-01 (Feedback vom Chef: "muss wie beim Zeiterfassungstool pro Kunde
+    // sein"): jeder Kunde (Firma) ist ein eigener "Tenant" mit eigenen Kategorien und eigenem
+    // Dokumentenbestand, Zugriff entweder als Alta-Admin (sieht/verwaltet alle Tenants ueber den
+    // Umschalter in der UI) oder als Kunden-Nutzer:in (automatisch dem Tenant zugeordnet, dessen
+    // Domains die eigene E-Mail-Domain enthalten, siehe resolveTenant unten). Metadaten weiterhin
+    // in der KV-Namespace DMS: "tenant:<id>" fuer Tenants, "doc:<id>" fuer Dokumente (jetzt mit
+    // tenantId-Feld). Dateien in B2 unter "_dms/<tenantId>/<docId>/vN__<name>".
+    //
+    // Echte Logins fuer fremde Kunden-Domains kann nur Michael/Stefan im Cloudflare-Access-Dashboard
+    // freischalten (gleiche Grenze wie bei den Access-Bypass-Pfaden anderswo in dieser Datei) --
+    // das hier regelt nur, WELCHEM Tenant eine bereits eingeloggte Person zugeordnet wird, nicht OB
+    // sie sich ueberhaupt einloggen darf.
 
     const DMS_STATUSES = ["entwurf", "geprueft", "freigegeben"];
     const DMS_STATUS_LABEL = { entwurf: "Entwurf", geprueft: "Geprüft", freigegeben: "Freigegeben" };
+    const DMS_DEFAULT_CATEGORIES = [
+      "Engineering",
+      "Qualitätsmanagement",
+      "Administration",
+      "Finanzen",
+      "Vertrieb",
+      "Allgemein",
+    ];
 
     async function loadDmsDoc(id) {
       const raw = id && (await env.DMS.get("doc:" + id));
       return raw ? JSON.parse(raw) : null;
     }
 
-    if (url.pathname === "/api/dms/documents" && request.method === "GET") {
-      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
-      const list = await env.DMS.list({ prefix: "doc:" });
+    async function loadTenant(id) {
+      const raw = id && (await env.DMS.get("tenant:" + id));
+      return raw ? JSON.parse(raw) : null;
+    }
+
+    async function listTenants() {
+      const list = await env.DMS.list({ prefix: "tenant:" });
       const items = [];
       for (const k of list.keys) {
         const raw = await env.DMS.get(k.name);
         if (raw) items.push(JSON.parse(raw));
       }
+      items.sort((a, b) => a.name.localeCompare(b.name, "de"));
+      return items;
+    }
+
+    // Ordnet eine eingeloggte, nicht-admin E-Mail ihrem Tenant zu, ueber die Domain nach dem "@".
+    // Erste passende Domain gewinnt bei Ueberschneidungen (sollte in der Praxis nicht vorkommen,
+    // Domains sind pro Tenant eindeutig zu halten -- das Admin-UI warnt dafuer nicht extra, bewusst
+    // einfach gehalten).
+    async function resolveTenantForEmail(mail) {
+      const domain = mail.split("@")[1]?.toLowerCase();
+      if (!domain) return null;
+      const tenants = await listTenants();
+      return tenants.find((t) => (t.domains || []).some((d) => d.toLowerCase() === domain)) || null;
+    }
+
+    // Admins duerfen jeden Tenant ueber ?tenantId= ansteuern (Umschalter in der UI), Kunden-Nutzer:innen
+    // sind immer auf ihren eigenen, per Domain aufgeloesten Tenant beschraenkt -- ein falscher/fremder
+    // tenantId-Parameter von ihnen wird ignoriert bzw. abgelehnt, nie vertraut.
+    async function resolveAccessibleTenant(request_, admin_, email_, requestedTenantId) {
+      if (admin_) {
+        if (requestedTenantId) return loadTenant(requestedTenantId);
+        const all = await listTenants();
+        return all[0] || null;
+      }
+      return resolveTenantForEmail(email_);
+    }
+
+    if (url.pathname === "/api/dms/tenants" && request.method === "GET") {
+      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
+      const tenants = await listTenants();
+      // Dokumentenzahl pro Tenant mitliefern, fuers Admin-Uebersichtstable (Kunden verwalten).
+      const docList = await env.DMS.list({ prefix: "doc:" });
+      const counts = {};
+      for (const k of docList.keys) {
+        const raw = await env.DMS.get(k.name);
+        if (!raw) continue;
+        const d = JSON.parse(raw);
+        counts[d.tenantId] = (counts[d.tenantId] || 0) + 1;
+      }
+      return json({ tenants: tenants.map((t) => ({ ...t, documentCount: counts[t.id] || 0 })) });
+    }
+
+    if (url.pathname === "/api/dms/tenants" && request.method === "POST") {
+      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
+      const body = await request.json().catch(() => ({}));
+      const name = (body.name || "").trim().slice(0, 200);
+      if (!name) return json({ error: "Kein Name angegeben." }, 400);
+      const domains = Array.isArray(body.domains)
+        ? body.domains.map((d) => String(d).trim().toLowerCase()).filter(Boolean)
+        : String(body.domains || "")
+            .split(",")
+            .map((d) => d.trim().toLowerCase())
+            .filter(Boolean);
+
+      let categories = Array.isArray(body.categories) ? body.categories.map((c) => String(c).trim()).filter(Boolean) : [];
+      if (categories.length === 0 && body.copyFromTenantId) {
+        const vorlage = await loadTenant(body.copyFromTenantId);
+        categories = vorlage ? [...vorlage.categories] : [...DMS_DEFAULT_CATEGORIES];
+      }
+      if (categories.length === 0) categories = [...DMS_DEFAULT_CATEGORIES];
+
+      const id = crypto.randomUUID();
+      const now = new Date().toISOString();
+      const tenant = { id, name, domains, categories, createdAt: now, createdBy: email };
+      await env.DMS.put("tenant:" + id, JSON.stringify(tenant));
+      await logActivity(env, { email, action: "DMS-Kunde angelegt", detail: name });
+      return json({ ok: true, tenant });
+    }
+
+    if (url.pathname === "/api/dms/tenants" && request.method === "PUT") {
+      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
+      const body = await request.json().catch(() => ({}));
+      const tenant = await loadTenant(body.id);
+      if (!tenant) return json({ error: "Kunde nicht gefunden." }, 404);
+      if (body.name != null) tenant.name = String(body.name).trim().slice(0, 200) || tenant.name;
+      if (body.domains != null) {
+        tenant.domains = Array.isArray(body.domains)
+          ? body.domains.map((d) => String(d).trim().toLowerCase()).filter(Boolean)
+          : String(body.domains)
+              .split(",")
+              .map((d) => d.trim().toLowerCase())
+              .filter(Boolean);
+      }
+      if (body.categories != null) {
+        tenant.categories = Array.isArray(body.categories)
+          ? body.categories.map((c) => String(c).trim()).filter(Boolean)
+          : String(body.categories)
+              .split(",")
+              .map((c) => c.trim())
+              .filter(Boolean);
+      }
+      await env.DMS.put("tenant:" + tenant.id, JSON.stringify(tenant));
+      await logActivity(env, { email, action: "DMS-Kunde bearbeitet", detail: tenant.name });
+      return json({ ok: true, tenant });
+    }
+
+    if (url.pathname === "/api/dms/tenants" && request.method === "DELETE") {
+      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
+      const tenant = await loadTenant(url.searchParams.get("id"));
+      if (!tenant) return json({ error: "Kunde nicht gefunden." }, 404);
+
+      // Cascade: alle Dokumente dieses Tenants inkl. ihrer B2-Dateien mitloeschen, sonst blieben
+      // verwaiste Dokumente ohne zugehoerigen Tenant zurueck (koennten dann von niemandem mehr
+      // eingesehen oder aufgeraeumt werden). b2Client() erst bauen, wenn tatsaechlich eine Version
+      // zu loeschen ist -- sonst scheitert das Loeschen eines leeren Kunden unnoetig, falls B2 mal
+      // nicht erreichbar ist (bzw. lokal ohne B2-Secrets, siehe Lokale Entwicklung in CLAUDE.md).
+      const docList = await env.DMS.list({ prefix: "doc:" });
+      let client = null;
+      for (const k of docList.keys) {
+        const raw = await env.DMS.get(k.name);
+        if (!raw) continue;
+        const d = JSON.parse(raw);
+        if (d.tenantId !== tenant.id) continue;
+        if (d.versions.length > 0) {
+          if (!client) client = b2Client(env);
+          for (const v of d.versions) {
+            const objectUrl = bucketUrl(env) + "/" + v.key.split("/").map(encodeURIComponent).join("/");
+            await client.fetch(objectUrl, { method: "DELETE" }).catch(() => {});
+          }
+        }
+        await env.DMS.delete(k.name);
+      }
+      await env.DMS.delete("tenant:" + tenant.id);
+      await logActivity(env, { email, action: "DMS-Kunde geloescht", detail: tenant.name });
+      return json({ ok: true });
+    }
+
+    if (url.pathname === "/api/dms/documents" && request.method === "GET") {
+      const tenant = await resolveAccessibleTenant(request, admin, email, url.searchParams.get("tenantId"));
+      if (!tenant) return json({ error: "Kein Kunde zugeordnet." }, 403);
+      const list = await env.DMS.list({ prefix: "doc:" });
+      const items = [];
+      for (const k of list.keys) {
+        const raw = await env.DMS.get(k.name);
+        if (!raw) continue;
+        const d = JSON.parse(raw);
+        if (d.tenantId === tenant.id) items.push(d);
+      }
       items.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-      return json({ documents: items });
+      return json({ documents: items, tenant });
     }
 
     if (url.pathname === "/api/dms/documents" && request.method === "POST") {
-      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
       const body = await request.json().catch(() => ({}));
+      const tenant = await resolveAccessibleTenant(request, admin, email, body.tenantId);
+      if (!tenant) return json({ error: "Kein Kunde zugeordnet." }, 403);
       const title = (body.title || "").trim().slice(0, 200);
-      const category = (body.category || "").trim().slice(0, 80) || "Allgemein";
+      const category = (body.category || "").trim().slice(0, 80) || tenant.categories[0] || "Allgemein";
       if (!title) return json({ error: "Kein Titel angegeben." }, 400);
       const id = crypto.randomUUID();
       const now = new Date().toISOString();
       const doc = {
         id,
+        tenantId: tenant.id,
         title,
         category,
         status: "entwurf",
@@ -822,18 +994,21 @@ export default {
         updatedBy: email,
       };
       await env.DMS.put("doc:" + id, JSON.stringify(doc));
-      await logActivity(env, { email, action: "DMS-Dokument angelegt", detail: `${title} (${category})` });
+      await logActivity(env, { email, action: "DMS-Dokument angelegt", detail: `${title} (${tenant.name}, ${category})` });
       return json({ ok: true, document: doc });
     }
 
     if (url.pathname === "/api/dms/documents" && request.method === "DELETE") {
-      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
       const doc = await loadDmsDoc(url.searchParams.get("id"));
       if (!doc) return json({ error: "Dokument nicht gefunden." }, 404);
-      const client = b2Client(env);
-      for (const v of doc.versions) {
-        const objectUrl = bucketUrl(env) + "/" + v.key.split("/").map(encodeURIComponent).join("/");
-        await client.fetch(objectUrl, { method: "DELETE" }).catch(() => {});
+      const tenant = await resolveAccessibleTenant(request, admin, email, doc.tenantId);
+      if (!tenant || tenant.id !== doc.tenantId) return json({ error: "Keine Berechtigung." }, 403);
+      if (doc.versions.length > 0) {
+        const client = b2Client(env);
+        for (const v of doc.versions) {
+          const objectUrl = bucketUrl(env) + "/" + v.key.split("/").map(encodeURIComponent).join("/");
+          await client.fetch(objectUrl, { method: "DELETE" }).catch(() => {});
+        }
       }
       await env.DMS.delete("doc:" + doc.id);
       await logActivity(env, { email, action: "DMS-Dokument geloescht", detail: doc.title });
@@ -841,16 +1016,17 @@ export default {
     }
 
     if (url.pathname === "/api/dms/upload-url" && request.method === "POST") {
-      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
       const body = await request.json().catch(() => ({}));
       const doc = await loadDmsDoc(body.docId);
       if (!doc) return json({ error: "Dokument nicht gefunden." }, 404);
+      const tenant = await resolveAccessibleTenant(request, admin, email, doc.tenantId);
+      if (!tenant || tenant.id !== doc.tenantId) return json({ error: "Keine Berechtigung." }, 403);
       const filename = (body.filename || "").trim();
       if (!filename) return json({ error: "Kein Dateiname uebergeben." }, 400);
       if (filename.includes("/")) return json({ error: "Dateiname darf kein '/' enthalten." }, 400);
 
       const nextVersion = doc.currentVersion + 1;
-      const key = `_dms/${doc.id}/v${nextVersion}__${filename}`;
+      const key = `_dms/${doc.tenantId}/${doc.id}/v${nextVersion}__${filename}`;
       const client = b2Client(env);
       const objectUrl = new URL(bucketUrl(env) + "/" + key.split("/").map(encodeURIComponent).join("/"));
       objectUrl.searchParams.set("X-Amz-Expires", "3600");
@@ -861,10 +1037,11 @@ export default {
     // Wie /api/upload-done oben: der Worker sieht die Datei-Bytes nie (Upload direkt Browser -> B2
     // ueber die presigned URL), hier wird nur die Versions-Metadaten-Zeile ergaenzt.
     if (url.pathname === "/api/dms/upload-done" && request.method === "POST") {
-      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
       const body = await request.json().catch(() => ({}));
       const doc = await loadDmsDoc(body.docId);
       if (!doc) return json({ error: "Dokument nicht gefunden." }, 404);
+      const tenant = await resolveAccessibleTenant(request, admin, email, doc.tenantId);
+      if (!tenant || tenant.id !== doc.tenantId) return json({ error: "Keine Berechtigung." }, 403);
       const version = Number(body.version) || doc.currentVersion + 1;
       const filename = (body.filename || "").trim();
       const key = (body.key || "").trim();
@@ -890,10 +1067,11 @@ export default {
     }
 
     if (url.pathname === "/api/dms/status" && request.method === "POST") {
-      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
       const body = await request.json().catch(() => ({}));
       const doc = await loadDmsDoc(body.docId);
       if (!doc) return json({ error: "Dokument nicht gefunden." }, 404);
+      const tenant = await resolveAccessibleTenant(request, admin, email, doc.tenantId);
+      if (!tenant || tenant.id !== doc.tenantId) return json({ error: "Keine Berechtigung." }, 403);
       const status = (body.status || "").trim();
       if (!DMS_STATUSES.includes(status)) return json({ error: "Ungueltiger Status." }, 400);
       if (doc.currentVersion === 0) return json({ error: "Dokument hat noch keine Version." }, 400);
@@ -911,9 +1089,10 @@ export default {
     }
 
     if (url.pathname === "/api/dms/download" && request.method === "GET") {
-      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
       const doc = await loadDmsDoc(url.searchParams.get("docId"));
       if (!doc) return json({ error: "Dokument nicht gefunden." }, 404);
+      const tenant = await resolveAccessibleTenant(request, admin, email, doc.tenantId);
+      if (!tenant || tenant.id !== doc.tenantId) return json({ error: "Keine Berechtigung." }, 403);
       const version = Number(url.searchParams.get("version")) || doc.currentVersion;
       const entry = doc.versions.find((v) => v.version === version);
       if (!entry) return json({ error: "Version nicht gefunden." }, 404);
