@@ -1,6 +1,6 @@
 # Alta Engineering — Website & Kundenportal — Projekt-Referenz
 
-**Status (Stand 2026-10-01):** Beide Teile sind live und aktiv in Weiterentwicklung. Dieses Repo
+**Status (Stand 2026-10-05):** Beide Teile sind live und aktiv in Weiterentwicklung. Dieses Repo
 enthält *zwei* getrennt deployte Dinge nebeneinander:
 
 | Teil | Was | Deployment | Domain |
@@ -127,6 +127,35 @@ bereits im sicheren Bereich, nicht angefasst. `og:description`/`twitter:descript
 identisch mit `<meta name="description">` gehalten (bestehende Konvention aus der SEO-Session vom
 2026-09-21, siehe 1.2), alle drei Tags also synchron mit demselben gekürzten Text aktualisiert.
 Reine Text-Kürzung, keine inhaltliche Änderung der Kernaussage pro Seite.
+
+### 1.5 Neue Seite "Software" (2026-10-05)
+
+Michael will weg vom reinen Konstrukteur-Image und Software-Lösungen verkaufen (Zeiterfassung nach
+Mass, Kundenportale, Dokumentenlenkung, Datenprojekte usw., alles mit Claude Code gebaut). Neu:
+
+- **`software.html`**, grosse Verkaufsseite: Kopf mit CSS-Mockup eines App-Fensters (rein aus
+  HTML/CSS, kein Bild, personenfrei), Kennzahlen, neun Lösungskarten (Zeiterfassung, Kundenportal,
+  Dokumentenlenkung, Datenprojekte, digitale Formulare/Prüfprotokolle, Offert-/Kalkulationswerkzeuge,
+  Wartung/Serviceplanung, Automatisierung, Websites), Vorher/Nachher, Ablauf in vier Schritten,
+  "Warum Alta", FAQ (als `<details>` plus `FAQPage`-JSON-LD, Texte identisch halten), CTA-Band. Eigener
+  Title/Description/Canonical/OG/Twitter nach der Konvention aus 1.2, `Service`-JSON-LD, Eintrag in
+  `sitemap.xml`.
+- **Navigation und Footer** aller zehn bestehenden Seiten: Eintrag "Software" (mit kleinem "Neu"-Hinweis,
+  `.nav-new`) nach "Entwicklung+Design". **Startseite:** Banner (`.promo`) direkt unter dem Hero,
+  Schema-Beschreibung um Software-Lösungen ergänzt.
+- **Navigations-Überlauf behoben:** schon vor dieser Änderung hatte die Hauptnavigation (inkl.
+  "Kundenportal") bei 1440px keinen Platz im 1180px-Container, mit "Software" lief sie sogar über den
+  Bildschirmrand (Seite horizontal scrollbar). Jetzt: Kopfzeile hat einen eigenen breiteren Container
+  (max 1440px), ab 1401px kompakter gesetzt (kleinere Schrift/Abstände), darunter Burger-Menü
+  (Breakpoint von 1080 auf 1400px angehoben). Gemessen bei 1401, 1440, 1920 (kein Überlauf) und 375
+  (Mobile).
+- **Inhaltliche Annahmen, bitte Michael prüfen:** keine Preise genannt (nur "Fixpreis nach Gespräch");
+  die Seite sagt, dass mit KI-gestützten Werkzeugen entwickelt wird; "Ihre Daten gehören Ihnen, Export
+  jederzeit" und "Betrieb auf Wunsch gegen kleine monatliche Pauschale" sind Zusagen, die er so halten
+  muss; Kennzahl "14 Mitarbeitende nutzen unsere Zeiterfassung täglich" entspricht den 14 Logins. Keine
+  erfundenen Kundenreferenzen. Die Karten "Bei uns im Einsatz" (Zeiterfassung, Kundenportal,
+  Dokumentenlenkung) stimmen mit dem Stand der echten Tools überein, die DMS-Beispieldaten für
+  Fremdfirmen sind aber Demo (siehe 2.6.6/2.6.8).
 
 ## 2. Kundenportal (Cloudflare Worker)
 
