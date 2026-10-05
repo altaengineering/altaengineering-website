@@ -157,6 +157,25 @@ Mass, Kundenportale, Dokumentenlenkung, Datenprojekte usw., alles mit Claude Cod
   Dokumentenlenkung) stimmen mit dem Stand der echten Tools überein, die DMS-Beispieldaten für
   Fremdfirmen sind aber Demo (siehe 2.6.6/2.6.8).
 
+### 1.6 Leiterplatten-Hintergrund und Software-Seite mit mehr Verkaufswirkung (2026-10-05)
+
+- **Hintergrund wie im Zeiterfassungstool, ohne Gitter:** `main.js` setzt beim Laden ein
+  `<div class="app-bg">` (fixierte Ebene, `z-index:-1`) mit SVG-Leiterbahnmuster ein, `style.css`
+  (Block am Ende, "Leiterplatten-Hintergrund") hält die Farbverläufe (Akzentblau oben/rechts unten,
+  Gold `--accent-2` links unten), langsames Atmen/Driften, `prefers-reduced-motion` aus. Damit er
+  durchscheint, sind `.util/.phero/.sec-alt/.cta-band` jetzt halbtransparent (`color-mix` mit `--alt`).
+  Neue Seiten brauchen nichts extra, solange sie `main.js` laden. Die Portalseiten (`public/*.html`)
+  haben ihren eigenen Hintergrund inkl. Gitter, unverändert.
+- **`software.html` überarbeitet:** Hero mit schwebenden Chips und Vertrauenszeile, Branchen-Laufband,
+  Kennzahl mit Hochzählen, **Produkt-Tour mit vier Tabs** (Zeiterfassung mit Ferien-Zeilen, Kundenportal,
+  Dokumentenlenkung, Auswertung mit SVG-Diagramm; Beispieldaten, neutrale Namen), neun Lösungskarten,
+  animiertes Datenfluss-Diagramm (SVG), Vorher/Nachher, **ROI-Rechner** (Regler, 220 Arbeitstage,
+  als Beispielrechnung gekennzeichnet), Vergleichstabelle Excel/Standardsoftware/Alta, Versprechen-Kacheln,
+  Ablauf, Warum Alta, FAQ, grosses Abschluss-Band und auf Mobile eine feste Kontakt-Schaltfläche.
+- **`software.js`** (nur diese Seite): Tabs mit ARIA/Pfeiltasten und Autoplay (pausiert bei Interaktion),
+  Rechner, Hochzählen, Sticky-Button. CSS dazu mit Präfix `sw-` in `style.css`.
+
+
 ## 2. Kundenportal (Cloudflare Worker)
 
 ### 2.1 Architektur
