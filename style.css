@@ -493,13 +493,10 @@ header .wrap.nav{max-width:1440px;padding-left:clamp(18px,2.2vw,36px);padding-ri
 .sw-trust span::before{content:"";width:.7rem;height:.38rem;border-left:2.5px solid var(--accent);border-bottom:2.5px solid var(--accent);transform:rotate(-45deg) translateY(-2px)}
 
 /* Laufband mit Branchen */
-.sw-marquee{overflow:hidden;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--surface) 70%,transparent);padding:1rem 0;-webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent)}
-.sw-marquee-label{text-align:center;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:.7rem}
-.sw-marquee-track{display:flex;gap:2.6rem;width:max-content;animation:sw-scroll 42s linear infinite}
-.sw-marquee-track span{font-size:1.05rem;font-weight:600;color:var(--muted);white-space:nowrap;display:inline-flex;align-items:center;gap:2.6rem}
-.sw-marquee-track span::after{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent);opacity:.55}
-@keyframes sw-scroll{to{transform:translateX(-50%)}}
-@media(prefers-reduced-motion:reduce){.sw-marquee-track{animation:none;flex-wrap:wrap;width:auto;justify-content:center}}
+.sw-marquee{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--surface) 70%,transparent);padding:1.1rem 0 1.2rem;text-align:center}
+.sw-marquee-label{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:.8rem}
+.sw-marquee-track{display:flex;flex-wrap:wrap;justify-content:center;gap:.5rem .6rem;max-width:960px;margin:0 auto;padding:0 16px}
+.sw-marquee-track span{font-size:.9rem;font-weight:600;color:var(--muted);border:1px solid var(--line-2);border-radius:99px;padding:.3rem .85rem;background:var(--surface)}
 
 /* Produkt-Tour */
 .sw-tabs{display:flex;flex-wrap:wrap;justify-content:center;gap:.6rem;margin-bottom:2rem}
