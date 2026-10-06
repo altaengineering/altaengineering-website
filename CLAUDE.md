@@ -713,6 +713,10 @@ M-Files; "onefiles" vermutlich M-Files gemeint). Kein Demo mehr, ein Produkt. Au
 - **Dokumente:** Freigabe-Workflow, Dokumentnummern, Wiedervorlage, Verlauf, Lesebestätigung, Check-out,
   Verknüpfungen, Archiv, CSV-Export, Mails an Zuständige (wirkt erst mit `RESEND_API_KEY`). Prüfer und
   Freigeber werden aus den Mitgliedern gewählt.
+- **Dokument-Vorschau:** Beim Anklicken eines Dokuments öffnet sich neben dem Detail-Fenster eine Vorschau (ab 1300px
+  Breite links daneben, darunter als Reiter "Vorschau"). PDF, Bilder (PNG/JPG/GIF) und TXT werden im Browser
+  angezeigt (`download?inline=1`), Version wählbar; Word/Excel/CAD zeigen einen Download-Hinweis. Serverseitig
+  keine CSP-Sandbox für PDF (sonst zeigt Chrome nichts), nur `nosniff`, kein HTML/SVG inline.
 - **Optik:** wie das Zeiterfassungstool (dunkle Kopfleiste, Karten, Kacheln, Hell/Dunkel). Das Gitter ist
   weg, stattdessen eine Blueprint-Zeichnung (`blueprint.js`: Zahnrad, Flansch, Wellenschnitt, Winkel,
   Bemassung, Schriftfeld, Zeichnungsrahmen). Auch `portal.html` und `index.html` (Auswahlseite) nutzen sie
