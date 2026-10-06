@@ -767,7 +767,7 @@
         { name: 'adminEmail', label: 'E-Mail des ersten Administrators', type: 'email', required: true, placeholder: 'chef@muster-metallbau.ch' },
         { name: 'adminName', label: 'Name des Administrators', placeholder: 'z.B. Hans Muster' },
         { name: 'copy', label: 'Kategorien und Regeln', type: 'select', options: [{ value: '', label: 'Standard (Qualität, Engineering, Administration …)' }].concat(existing.map(function (t) { return { value: t.id, label: 'Wie bei ' + t.name }; })), value: '' },
-        { name: 'hb', label: 'QM-Handbuch', type: 'select', options: [{ value: 'iso9001', label: 'Vorlage nach ISO 9001 anlegen' }, { value: 'leer', label: 'Leeres Handbuch anlegen' }, { value: '', label: 'Später anlegen' }], value: 'iso9001' },
+        { name: 'hb', label: 'QM-Handbuch', type: 'select', options: [{ value: 'iso9001', label: 'Bewährte ISO-9001-Vorlage von Alta anlegen' }, { value: 'leer', label: 'Leeres Handbuch anlegen' }, { value: '', label: 'Später anlegen' }], value: 'iso9001' },
         { name: 'vier', label: 'Vier-Augen-Prinzip einschalten', type: 'checkbox', value: true }
       ],
       ok: 'Kunde anlegen'
@@ -824,7 +824,7 @@
     var hb = S.hb;
     if (!hb.exists) {
       var emp = '<div class="page-head"><div><h1>QM-Handbuch</h1><p>Das Managementhandbuch von ' + esc(S.tenant.name) + '.</p></div></div><div class="card"><div class="empty"><b>Das Handbuch ist noch nicht angelegt</b>';
-      if (hb.canInit) emp += 'Starte mit einer Vorlage nach ISO 9001 (10 Kapitel mit Hinweisen zum Ausfüllen) oder mit einem leeren Handbuch.<div class="row" style="justify-content:center;margin-top:1rem"><button class="btn primary" id="hbInit">Vorlage nach ISO 9001 anlegen</button><button class="btn" id="hbInitLeer">Leer beginnen</button></div>';
+      if (hb.canInit) emp += 'Starte mit der bewährten Vorlage von Alta Engineering (ISO 9001, 11 Kapitel mit Prozessen, Rollen und Nachweisen). Alles, was firmenspezifisch ist, steht in [eckigen Klammern] und wird von dir ausgefüllt. Oder beginne mit einem leeren Handbuch.<div class="row" style="justify-content:center;margin-top:1rem"><button class="btn primary" id="hbInit">Bewährte Vorlage anlegen (empfohlen)</button><button class="btn" id="hbInitLeer">Leer beginnen</button></div>';
       else emp += 'Eine Administratorin oder ein Administrator legt es an.';
       $('page').innerHTML = emp + '</div></div>';
       var a = $('hbInit'); if (a) a.addEventListener('click', function () { initHb('iso9001'); });

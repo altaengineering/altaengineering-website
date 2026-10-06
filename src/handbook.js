@@ -7,6 +7,7 @@
 // harmloser Tags, keine Skripte, keine Attribute ausser href).
 
 import { can, resolveAccess } from "./dms-core.js";
+import { ALTA_TEMPLATE } from "./handbook-template.js";
 
 const ALLOWED_TAGS = new Set([
   "p", "h2", "h3", "h4", "ul", "ol", "li", "strong", "b", "em", "i", "u", "a", "br", "hr",
@@ -67,22 +68,11 @@ function cleanTitle(v, fallback) {
   return String(v || "").replace(/\s+/g, " ").trim().slice(0, 150) || fallback || "Ohne Titel";
 }
 
-// Vorlage nach ISO 9001: Kapitel mit kurzen Hinweisen zum Ausfuellen.
+// Vorlage: das bewaehrte ISO-9001-Handbuch der Alta Engineering AG mit neutralisierten Firmenangaben
+// (siehe handbook-template.js). {{firma}} wird zum Firmennamen, Stellen in eckigen Klammern sind auszufuellen.
 export function isoTemplate(firma) {
-  const p = (t) => `<p>${t}</p>`;
-  const ul = (items) => "<ul>" + items.map((i) => `<li>${i}</li>`).join("") + "</ul>";
-  return [
-    ["Einführung und Inkraftsetzung", p(`Dieses Handbuch beschreibt das Managementsystem der ${firma}. Es gilt für alle Mitarbeitenden und ist für alle verbindlich.`) + p("<em>Hier Zweck, Geltungsbereich und Inkraftsetzung durch die Geschäftsleitung beschreiben.</em>")],
-    ["Anwendungsbereich", p(`Das Managementsystem der ${firma} umfasst folgende Standorte, Tätigkeiten und Produkte:`) + ul(["<em>Standort(e)</em>", "<em>Leistungen und Produkte</em>", "<em>Ausgeschlossene Anforderungen mit Begründung</em>"])],
-    ["Begriffe und Abkürzungen", p("Begriffe, die in diesem Handbuch verwendet werden.") + "<table><thead><tr><th>Begriff</th><th>Bedeutung</th></tr></thead><tbody><tr><td>QM</td><td>Qualitätsmanagement</td></tr><tr><td><em>…</em></td><td><em>…</em></td></tr></tbody></table>"],
-    ["Kontext der Organisation", p(`Die ${firma} bestimmt die internen und externen Themen, die ihre Ziele beeinflussen, sowie die Anforderungen der interessierten Parteien.`) + ul(["<em>Interne Themen (Strategie, Kultur, Ressourcen)</em>", "<em>Externe Themen (Markt, Gesetze, Technologie)</em>", "<em>Interessierte Parteien und ihre Erwartungen</em>"])],
-    ["Führung und Verantwortung", p("Die Geschäftsleitung zeigt Führung und Verpflichtung gegenüber dem Managementsystem.") + ul(["<em>Qualitätspolitik</em>", "<em>Rollen, Verantwortlichkeiten und Befugnisse</em>", "<em>Organigramm</em>"])],
-    ["Planung", p("Umgang mit Risiken und Chancen sowie Qualitätsziele und deren Planung.") + ul(["<em>Risiken und Chancen</em>", "<em>Qualitätsziele mit Kennzahlen und Terminen</em>", "<em>Änderungen am Managementsystem planen</em>"])],
-    ["Unterstützung", p("Ressourcen, Kompetenz, Bewusstsein, Kommunikation und dokumentierte Information.") + ul(["<em>Personal, Infrastruktur, Arbeitsumgebung</em>", "<em>Kompetenz und Schulung</em>", "<em>Lenkung dokumentierter Information (siehe Dokumentenlenkung)</em>"])],
-    ["Betrieb", p("Planung und Steuerung der operativen Prozesse, von der Anfrage bis zur Lieferung.") + ul(["<em>Anfrage, Angebot, Auftrag</em>", "<em>Entwicklung und Konstruktion</em>", "<em>Beschaffung und Lieferantenbewertung</em>", "<em>Produktion und Dienstleistung</em>", "<em>Freigabe und Auslieferung</em>", "<em>Umgang mit nichtkonformen Ergebnissen</em>"])],
-    ["Bewertung der Leistung", p("Überwachung, Messung, Analyse, interne Audits und Managementbewertung.") + ul(["<em>Kundenzufriedenheit</em>", "<em>Interne Audits (Plan und Ergebnis)</em>", "<em>Managementbewertung</em>"])],
-    ["Verbesserung", p("Nichtkonformitäten, Korrekturmassnahmen und fortlaufende Verbesserung.") + ul(["<em>Meldung und Behandlung von Abweichungen</em>", "<em>Korrekturmassnahmen</em>", "<em>Verbesserungsvorschläge</em>"])],
-  ].map(([title, html]) => ({ id: chapterId(), title, html, updatedAt: new Date().toISOString(), updatedBy: "" }));
+  const name = String(firma || "").replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[ch]));
+  return ALTA_TEMPLATE.map((k) => ({ id: chapterId(), title: k.title, html: k.html.replace(/{{firma}}/g, name), updatedAt: new Date().toISOString(), updatedBy: "" }));
 }
 
 async function loadHb(env, tid) {
