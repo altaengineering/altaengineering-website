@@ -118,5 +118,6 @@ export function publicTenant(t) {
     vierAugen: !!t.vierAugen,
     defaultReviewMonths: t.defaultReviewMonths,
     members: (t.members || []).map((m) => ({ email: m.email, name: m.name, role: m.role })),
+    groups: (t.groups || []).map((g) => ({ id: g.id, name: g.name, members: g.members || [] })),
   };
 }

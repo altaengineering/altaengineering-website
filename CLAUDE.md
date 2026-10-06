@@ -717,6 +717,19 @@ M-Files; "onefiles" vermutlich M-Files gemeint). Kein Demo mehr, ein Produkt. Au
   Breite links daneben, darunter als Reiter "Vorschau"). PDF, Bilder (PNG/JPG/GIF) und TXT werden im Browser
   angezeigt (`download?inline=1`), Version wählbar; Word/Excel/CAD zeigen einen Download-Hinweis. Serverseitig
   keine CSP-Sandbox für PDF (sonst zeigt Chrome nichts), nur `nosniff`, kein HTML/SVG inline.
+- **Sechs Zusatzfunktionen (2026-10-06, `public/dms-features.js`, Hooks in `dms.js`, `window.__dms`/`window.DMSX`):**
+  (1) **Dokumentvorlagen** (`src/templates.js`: Verfahrensanweisung, Arbeitsanweisung, Prüfprotokoll, Checkliste,
+  Sitzungsprotokoll, Schulungsnachweis; eigene Vorlagen pro Kunde in `tenant.templates`): neues Dokument aus
+  Vorlage, Word-Startdatei per `GET /api/dms/template-file` (`src/docx.js`, gültiges .docx mit fflate).
+  (2) **Übersicht/Dashboard** (neuer Reiter, Standardseite): Freigaben pro Monat, Dokumente pro Abteilung nach
+  Status, Durchlaufzeit (Einreichen bis Freigabe aus dem Verlauf), Aktualität der Überprüfungen, jeweils mit
+  Tooltip und Tabellenansicht, Diagrammfarben nach den Dataviz-Regeln (validierte Palette).
+  (3) **Auditbericht** `GET /api/dms/audit-report` (PDF, `src/audit.js` mit eigenem Mini-PDF-Erzeuger `src/pdf.js`).
+  (4) **Suche im Dateiinhalt:** pdf.js (CDN) liest PDF/TXT im Browser, Text geht per `POST /api/dms/index` nach
+  `txt:<docId>:<version>`; `GET /api/dms/search`; Index automatisch beim Hochladen, Nachziehen über Banner oder
+  Einstellungen. (5) **Versionsvergleich** (Änderungen als Satz-/Wortdiff und Nebeneinander) und
+  **Änderungen im Handbuch-Journal**. (6) **Gruppen und Verteiler** (`tenant.groups`, Lesepflicht pro Gruppe via
+  `doc.readGroups`, Mail an die Gruppe bei Freigabe).
 - **Beispieldateien:** `public/demo-files/<dokument-id>-v<version>.<endung>` (echte, gefüllte PDFs und Excel-Dateien für
   alle Beispieldokumente). Liegt zu einer Version keine Datei im Speicher, liefert `/api/dms/download` diese
   Datei als Rückfall aus. Echte Uploads haben immer Vorrang. Wenn die Demo ausgedient hat, kann der Ordner samt
