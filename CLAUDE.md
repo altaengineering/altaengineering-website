@@ -681,40 +681,47 @@ Personenebene:
   keinen echten Inhalt zu riskieren. Das neue DMS deckt "QM-Handbuch" nur noch als Kategorie pro
   Tenant ab, eine echte Zusammenfuehrung beider Systeme ist ein spaeterer Schritt, kein Blocker hier.
 
-### 2.6.9 DMS 2.0 nach dem Vorbild von Wivio (WBI) und M-Files (2026-10-06)
+### 2.6.9 DMS als Produkt: Rollen, Benutzerverwaltung, Online-Handbuch, Blueprint-Optik (2026-10-06)
 
-Michael fand das DMS "viel zu simpel", Orientierung an Wivio (WBI, siehe Softwaretest-Bericht) und
-"onefiles" (vermutlich M-Files gemeint, bitte bei Gelegenheit bestätigen). Neu und komplett in
-`src/dms.js` (statt inline in `src/index.js`, dort nur noch `handleDms(...)` plus Import von
-`listTenants`/`resolveTenantForEmail`), Oberfläche neu in `public/dms.html`:
+Michael will das DMS wie das Zeiterfassungstool oder M-Files an Kunden abgeben (Vorbild Wivio/WBI und
+M-Files; "onefiles" vermutlich M-Files gemeint). Kein Demo mehr, ein Produkt. Aufbau:
 
-- **Freigabe-Workflow** `POST /api/dms/workflow` (Aktionen einreichen, pruefen, freigeben, ablehnen,
-  zurueckziehen, ueberprueft, archivieren, wiederherstellen). Status: Entwurf, In Prüfung, Geprüft,
-  Freigegeben, Archiviert. Rollen pro Dokument: Verantwortliche:r, Prüfer:in, Freigeber:in (leer = jede
-  berechtigte Person, Alta-Admins dürfen immer). **Vier-Augen-Prinzip** pro Kunde (`tenant.vierAugen`,
-  im Kundendialog): wer die aktuelle Version hochgeladen hat, darf sie nicht prüfen/freigeben.
-  Ablehnen verlangt eine Begründung. Mail an die Zuständigen über `sendMail` (wirkt erst mit
-  `RESEND_API_KEY`).
-- **Dokumentnummern** automatisch (`ENG-001`, `QM-003`, Präfix pro Kategorie, Zähler im Tenant),
-  Beschreibung, Schlagworte, Verantwortliche, **Wiedervorlage** (`reviewIntervalMonths`, `nextReview`,
-  "Überprüft"-Aktion), **gültige Version** (`releasedVersion`) bleibt abrufbar, während eine neue
-  Version Entwurf ist, **Änderungsgrund** Pflicht ab v2, **Verlauf/Audit-Trail** inkl. Kommentare
-  (`doc.history`), **Lesebestätigung** (`/api/dms/read`, pro freigegebener Version), **Check-out**
-  (`/api/dms/lock`), verknüpfte Dokumente, Archiv, Ansehen im Browser (`download?inline=1`),
-  **CSV-Export** `GET /api/dms/export` (Excel, Semikolon).
-- **UI:** Statistikkarten (klickbar), Ansichten (Alle, Meine Aufgaben, In Prüfung, Überprüfung fällig,
-  Archiv), Suche über Nummer/Titel/Schlagwort/Beschreibung/Verantwortliche, Filter, Gruppierung,
-  Detail-Panel rechts mit Reitern (Übersicht, Versionen, Verlauf, Verknüpft, Gelesen).
-- **Migration:** Dokumente im alten Format (`schema` fehlt) werden beim ersten Lesen automatisch
-  hochgestuft (Nummer, Verlauf aus den Versionen, gültige Version, Wiedervorlage 12 Monate nach
-  letzter Änderung). Der alte Endpunkt `POST /api/dms/status` antwortet 410.
-- **Lokal testen:** `npx wrangler dev --local --port 8788` plus kleiner Proxy, der den
-  `Cf-Access-Authenticated-User-Email`-Header setzt (lokal gibt es Access nicht). Datei-Upload geht
-  lokal nicht (kein B2), Versionen lassen sich per `upload-done` mit Fake-Key anlegen.
-- **Noch nicht gebaut** (Ideen aus Wivio/M-Files): Dokumentvorlagen, Volltextsuche im Dateiinhalt,
-  Gruppen für Benachrichtigungen, Rollenverwaltung pro Kunde statt freier E-Mail-Felder, Dashboard
-  mit Diagrammen, Wiedervorlage-Erinnerungsmail per Cron.
-
+- **Code:** `src/dms-core.js` (Rollen, Rechte, Kunden, Zugriff), `src/dms.js` (Endpunkte `/api/dms/*`),
+  `src/handbook.js` (Handbuch inkl. HTML-Bereinigung), `src/handbook-view.js` (Seite für Freigabe-Links).
+  Oberfläche: `public/dms.html` (Gerüst), `public/dms.css`, `public/dms.js`, `public/blueprint.js`.
+- **Kunden und Rollen:** Zugriff nur über Mitgliedschaft (`tenant.members`: E-Mail, Name, Rolle), nicht mehr
+  über E-Mail-Domain. Rollen: Administrator, Freigeber, Prüfer, Ersteller, Leser (Rechte in `CAN`,
+  `dms-core.js`). Alta-Admins (`ADMIN_EMAILS`) sehen und verwalten alle Kunden. Serverseitig erzwungen.
+- **Benutzerverwaltung (Reiter "Benutzer"):** Kunden-Administratoren laden Personen per E-Mail ein (mehrere
+  auf einmal), ändern Rollen, entfernen Personen. Eingeladene Mitglieder werden per Cloudflare-API in die
+  Access-Policy eingetragen (`addEmailToAccessPolicy`, braucht `CF_API_TOKEN`), Login mit E-Mail-Code.
+  Klappt der Eintrag nicht, steht das im Ergebnisdialog. Hinweis: Damit können Kunden-Admins E-Mail-Adressen
+  zur gemeinsamen Access-Policy hinzufügen (sie erhalten nur Zugriff auf Portal-Ordner ihrer eigenen
+  Adresse und auf ihre Dokumentenlenkung). Mindestens ein Administrator bleibt immer.
+- **Einstellungen (Reiter, nur Administratoren):** Kategorien mit Kürzel (Nummernkreis, z.B. QM-001),
+  Umbenennen zieht die Dokumente mit, Entfernen nur ohne Dokumente. Vier-Augen-Prinzip, Standard-
+  Überprüfungsintervall.
+- **Kunden (Reiter, nur Alta-Admins):** Kunde anlegen mit erstem Administrator (Einladung per Mail, Access-
+  Eintrag), Kategorien-Vorlage, Handbuch-Vorlage (ISO 9001/leer), Löschen nur mit Namensbestätigung.
+- **QM-Handbuch pro Kunde, online editierbar:** Kapitel mit Editor (Format, Liste, Link, Tabelle, Einfügen aus
+  Word wird bereinigt). Arbeitskopie (`hb:<tenant>`) und veröffentlichte Fassung (`hbpub:`), Veröffentlichen
+  verlangt eine Änderungsnotiz (Änderungsjournal), jede Version bleibt als `hbrev:<tenant>:<n>` ansehbar,
+  Konfliktschutz pro Kapitel, Vier-Augen auch beim Veröffentlichen, Drucken/PDF. Das bisherige statische
+  Alta-Handbuch (`_qm-handbuch-inner.html`) wurde als Version 4 übernommen (Journal 2018 bis 2021 als
+  "früher"). `/qm-handbuch` leitet Admins ins neue Handbuch, die Freigabe-Links `/handbook/<id>` zeigen
+  jetzt die veröffentlichte Online-Fassung (Rückfall auf die alte Datei, falls keine existiert).
+- **Dokumente:** Freigabe-Workflow, Dokumentnummern, Wiedervorlage, Verlauf, Lesebestätigung, Check-out,
+  Verknüpfungen, Archiv, CSV-Export, Mails an Zuständige (wirkt erst mit `RESEND_API_KEY`). Prüfer und
+  Freigeber werden aus den Mitgliedern gewählt.
+- **Optik:** wie das Zeiterfassungstool (dunkle Kopfleiste, Karten, Kacheln, Hell/Dunkel). Das Gitter ist
+  weg, stattdessen eine Blueprint-Zeichnung (`blueprint.js`: Zahnrad, Flansch, Wellenschnitt, Winkel,
+  Bemassung, Schriftfeld, Zeichnungsrahmen). Auch `portal.html` und `index.html` (Auswahlseite) nutzen sie
+  statt Gitter und PCB-Leiterbahnen.
+- **Lokal testen:** `npx wrangler dev --local --port 8788` (Ausgabe in eine Datei umleiten, nicht in
+  `head` pipen, sonst beendet sich der Worker) plus Proxy, der `Cf-Access-Authenticated-User-Email` setzt.
+  Datei-Upload geht lokal nicht (kein B2), Mail-Versand und Access-Eintrag auch nicht.
+- **Noch nicht gebaut:** Dokumentvorlagen, Volltextsuche im Dateiinhalt, Erinnerungsmails per Zeitplan,
+  Gruppen/Verteiler, Dashboard mit Diagrammen, Versionsvergleich.
 
 ### 2.7 Lokale Entwicklung
 

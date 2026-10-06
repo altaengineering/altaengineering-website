@@ -1,7 +1,8 @@
 import { AwsClient } from "aws4fetch";
 import { XMLParser } from "fast-xml-parser";
 import { zipSync } from "fflate";
-import { handleDms, listTenants, resolveTenantForEmail } from "./dms.js";
+import { handleDms, tenantsFor, listTenants } from "./dms.js";
+import { renderHandbookPage } from "./handbook-view.js";
 
 // Alta Engineering Kundenportal — Cloudflare Worker
 //
@@ -266,10 +267,8 @@ export default {
           headers: { "Content-Type": "text/plain; charset=utf-8" },
         });
       }
-      // Ohne .html anfordern (wie beim /share-Muster oben): Cloudflares Asset-Routing leitet
-      // Anfragen auf die "saubere" URL sonst mit 307 um, auch bei diesem internen Fetch, und wir
-      // bekaemen die Weiterleitung statt des Seiteninhalts zurueck.
-      return env.ASSETS.fetch(new Request(new URL("/_qm-handbuch-inner", request.url), request));
+      // Das Handbuch ist jetzt online editierbar und liegt pro Kunde in der Dokumentenlenkung.
+      return Response.redirect(new URL("/dms#/handbuch", request.url).toString(), 302);
     }
 
     // Oeffentliche Freigabe-Seite fuers Handbuch (/handbook/<id>): kein Access-Login noetig,
@@ -292,6 +291,18 @@ export default {
       hshare.viewCount = (hshare.viewCount || 0) + 1;
       hshare.lastViewedAt = new Date().toISOString();
       await env.SHARES.put("hshare:" + id, JSON.stringify(hshare));
+      // Aktuelle, veroeffentlichte Fassung des Alta-Handbuchs aus der Dokumentenlenkung. Nur wenn es
+      // dort (noch) keine gibt, die alte statische Datei als Rueckfall.
+      const tenants = await listTenants(env);
+      const altaTenant = tenants.find((t) => /alta engineering/i.test(t.name)) || tenants[0];
+      const pubRaw = altaTenant && (await env.DMS.get("hbpub:" + altaTenant.id));
+      if (pubRaw) {
+        const hbRaw = await env.DMS.get("hb:" + altaTenant.id);
+        const revisions = hbRaw ? JSON.parse(hbRaw).revisions || [] : [];
+        return new Response(renderHandbookPage(JSON.parse(pubRaw), revisions), {
+          headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "X-Robots-Tag": "noindex" },
+        });
+      }
       return env.ASSETS.fetch(new Request(new URL("/_qm-handbuch-inner", request.url), request));
     }
 
@@ -428,19 +439,16 @@ export default {
     const ownFolder = folderFor(email);
 
     if (url.pathname === "/api/me" && request.method === "GET") {
-      // DMS-Tenant-Zuordnung mitliefern (siehe "Dokumentenlenkung / DMS" weiter unten): Admins
-      // bekommen die volle Kundenliste fuers Umschalten, Kunden-Nutzer:innen nur ihren eigenen,
-      // per E-Mail-Domain aufgeloesten Tenant (oder null, falls ihre Domain noch keinem Kunden
-      // zugeordnet ist).
-      const dmsTenants = admin ? await listTenants(env) : [];
-      const dmsOwnTenant = admin ? null : await resolveTenantForEmail(env, email);
+      // DMS-Zugang mitliefern (siehe src/dms.js): Alta-Admins sehen alle Kunden, alle anderen nur die
+      // Kunden, bei denen sie als Mitglied eingetragen sind, jeweils mit ihrer Rolle.
+      const dmsAccess = await tenantsFor(env, admin, email);
+      const dmsTenants = dmsAccess.map((x) => ({ id: x.tenant.id, name: x.tenant.name, role: x.role }));
       return json({
         email,
         isAdmin: admin,
         isMitarbeiter: isMitarbeiterEmail(email),
         folder: ownFolder,
-        dmsTenants: dmsTenants.map((t) => ({ id: t.id, name: t.name })),
-        dmsOwnTenant: dmsOwnTenant ? { id: dmsOwnTenant.id, name: dmsOwnTenant.name } : null,
+        dmsTenants,
       });
     }
 
@@ -789,7 +797,10 @@ export default {
     }
 
     // --- Dokumentenlenkung / DMS (/dms): komplett in src/dms.js ---
-    const dmsResponse = await handleDms({ request, url, env, admin, email, json, b2Client, bucketUrl, logActivity, sendMail });
+    const dmsResponse = await handleDms({
+      request, url, env, admin, email, json, b2Client, bucketUrl, logActivity, sendMail,
+      isAdminEmail, addAccess: addEmailToAccessPolicy,
+    });
     if (dmsResponse) return dmsResponse;
 
     return json({ error: "Unbekannter Endpunkt." }, 404);
