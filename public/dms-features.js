@@ -221,7 +221,7 @@
     var c3 = chartCard('dur', 'Durchlaufzeit bis zur Freigabe', 'Ø Tage vom Einreichen bis zur Freigabe, pro Abteilung', rowsD.length ? hbars(rows3, { label: 'Durchlaufzeit' }) : '<div class="empty">Sobald Dokumente eingereicht und freigegeben wurden, erscheint hier die Durchlaufzeit.</div>', tbl(['Abteilung', 'Ø Tage', 'Freigaben'], rowsD.map(function (r) { return [r.label, r.avg.toFixed(1), r.n]; })));
 
     // 4) Aktualitaet der Ueberpruefungen
-    var seg = [{ n: okc, name: 'Aktuell', icon: '✔', color: '#2e8b6a' }, { n: due.length, name: 'In 30 Tagen fällig', icon: '', color: '#c79a2e' }, { n: overdue.length, name: 'Überfällig', icon: '✖', color: '#b94a48' }];
+    var seg = [{ n: okc, name: 'Aktuell', icon: '✔', color: '#46a07f' }, { n: due.length, name: 'In 30 Tagen fällig', icon: '', color: '#e0a93f' }, { n: overdue.length, name: 'Überfällig', icon: '✖', color: '#d4766d' }];
     var tot = Math.max(valid.length, 1), tips4 = [];
     var bar = '<svg viewBox="0 0 640 30" class="vsvg" role="img" aria-label="Aktualität der Überprüfungen">';
     var bx = 0;
