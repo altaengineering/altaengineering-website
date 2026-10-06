@@ -175,7 +175,7 @@
       done += req.filter(function (m) { return x.reads && x.reads[m] && x.reads[m].version === x.releasedVersion; }).length;
     });
 
-    var h = '<div class="page-head"><div><h1>Übersicht</h1><p>Der Stand der Dokumentenlenkung von ' + esc(S.tenant.name) + ' auf einen Blick.</p></div><div class="row"><a class="btn" href="/api/dms/audit-report?tenantId=' + encodeURIComponent(S.tenantId) + '">📄 Auditbericht (PDF)</a>' + (can('write') ? '<button class="btn primary" id="dbNew">＋ Neues Dokument</button>' : '') + '</div></div>';
+    var h = '<div class="page-head"><div><h1>Übersicht</h1><p>Der Stand der Dokumentenlenkung von ' + esc(S.tenant.name) + ' auf einen Blick.</p></div><div class="row"><a class="btn" href="/api/dms/audit-report?tenantId=' + encodeURIComponent(S.tenantId) + '">Auditbericht (PDF)</a>' + (can('write') ? '<button class="btn primary" id="dbNew">+ Neues Dokument</button>' : '') + '</div></div>';
     h += '<div class="kpis">' +
       kpi('Gültige Dokumente', valid.length, '', 'dokumente') +
       kpi('Überprüfung überfällig', overdue.length, overdue.length ? 'neg' : 'pos', 'faellig') +
@@ -204,7 +204,7 @@
     var tips2 = [];
     var rows2 = rowsC.map(function (r) {
       var mk = function (name, value, color, ink) { tips2.push({ title: r.label, rows: [{ value: String(value), label: name, color: color }] }); return { value: value, color: color, ink: ink, name: name, text: String(value), tip: tips2.length - 1 }; };
-      return { label: r.label, total: r.n, segs: [mk('Freigegeben', r.f, 'var(--v1)', '#ffffff'), mk('In Prüfung', r.p, 'var(--v2)', '#241100'), mk('Entwurf', r.e, 'var(--v3)', '#06231a')] };
+      return { label: r.label, total: r.n, segs: [mk('Freigegeben', r.f, 'var(--v1)', 'var(--v1i)'), mk('In Prüfung', r.p, 'var(--v2)', 'var(--v2i)'), mk('Entwurf', r.e, 'var(--v3)', 'var(--v3i)')] };
     });
     var c2 = chartCard('abt', 'Dokumente pro Abteilung', 'Nach Status, ohne archivierte', rowsC.length ? hbars(rows2, { label: 'Dokumente pro Abteilung' }) : '<div class="empty">Noch keine Dokumente.</div>', tbl(['Abteilung', 'Freigegeben', 'In Prüfung', 'Entwurf'], rowsC.map(function (r) { return [r.label, r.f, r.p, r.e]; })), legend([{ name: 'Freigegeben', color: 'var(--v1)' }, { name: 'In Prüfung', color: 'var(--v2)' }, { name: 'Entwurf', color: 'var(--v3)' }]));
 
@@ -221,7 +221,7 @@
     var c3 = chartCard('dur', 'Durchlaufzeit bis zur Freigabe', 'Ø Tage vom Einreichen bis zur Freigabe, pro Abteilung', rowsD.length ? hbars(rows3, { label: 'Durchlaufzeit' }) : '<div class="empty">Sobald Dokumente eingereicht und freigegeben wurden, erscheint hier die Durchlaufzeit.</div>', tbl(['Abteilung', 'Ø Tage', 'Freigaben'], rowsD.map(function (r) { return [r.label, r.avg.toFixed(1), r.n]; })));
 
     // 4) Aktualitaet der Ueberpruefungen
-    var seg = [{ n: okc, name: 'Aktuell', icon: '✔', color: '#0ca30c' }, { n: due.length, name: 'In 30 Tagen fällig', icon: '⚠', color: '#fab219' }, { n: overdue.length, name: 'Überfällig', icon: '✖', color: '#d03b3b' }];
+    var seg = [{ n: okc, name: 'Aktuell', icon: '✔', color: '#2e8b6a' }, { n: due.length, name: 'In 30 Tagen fällig', icon: '', color: '#c79a2e' }, { n: overdue.length, name: 'Überfällig', icon: '✖', color: '#b94a48' }];
     var tot = Math.max(valid.length, 1), tips4 = [];
     var bar = '<svg viewBox="0 0 640 30" class="vsvg" role="img" aria-label="Aktualität der Überprüfungen">';
     var bx = 0;
@@ -263,9 +263,9 @@
     var d = D(), S = d.S;
     d.api('/api/dms/templates?tenantId=' + encodeURIComponent(S.tenantId)).then(function (res) {
       var bg = el('div', 'modal-bg');
-      var cards = [{ id: '', icon: '📄', name: 'Leeres Dokument', description: 'Ohne Vorlage starten und die Datei später hochladen.', sections: 0 }].concat(res.templates);
+      var cards = [{ id: '', name: 'Leeres Dokument', description: 'Ohne Vorlage starten und die Datei später hochladen.', sections: 0 }].concat(res.templates);
       bg.innerHTML = '<div class="modal wide"><h3>Neues Dokument</h3><div class="m-sub">Wähle eine Vorlage. Du bekommst eine Word-Startdatei mit Kopf und Gliederung, die du nur noch ausfüllst.</div><div class="m-body"><div class="tpl-grid">' +
-        cards.map(function (t, i) { return '<button class="tpl-card" data-i="' + i + '"><span class="tpl-ic">' + esc(t.icon) + '</span><span class="tpl-nm">' + esc(t.name) + (t.builtin === false ? ' <span class="chip">eigene</span>' : '') + '</span><span class="tpl-ds">' + esc(t.description) + '</span>' + (t.sections ? '<span class="tpl-meta">' + t.sections + ' Abschnitte</span>' : '') + '</button>'; }).join('') +
+        cards.map(function (t, i) { return '<button class="tpl-card" data-i="' + i + '"><span class="tpl-ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></span><span class="tpl-nm">' + esc(t.name) + (t.builtin === false ? ' <span class="chip">eigene</span>' : '') + '</span><span class="tpl-ds">' + esc(t.description) + '</span>' + (t.sections ? '<span class="tpl-meta">' + t.sections + ' Abschnitte</span>' : '') + '</button>'; }).join('') +
         '</div></div><div class="m-foot"><button class="btn" data-m="cancel">Abbrechen</button></div></div>';
       document.body.appendChild(bg);
       function close() { bg.remove(); }
@@ -295,7 +295,7 @@
         '<div class="tpl-list">' + built.map(function (t) { return '<span class="chip" title="' + esc(t.description) + '">' + esc(t.icon + ' ' + t.name) + '</span>'; }).join('') + '</div>' +
         '<h4 style="margin:1.1rem 0 .5rem">Eigene Vorlagen</h4>' +
         (custom.length ? custom.map(function (t) { return '<div class="row" style="margin-bottom:.5rem;justify-content:space-between"><div><b>' + esc(t.name) + '</b> <span class="muted">· ' + t.sections + ' Abschnitte' + (t.category ? ' · ' + esc(t.category) : '') + '</span><div class="t-sub">' + esc(t.description) + '</div></div><div class="row"><button class="btn sm" data-tedit="' + esc(t.id) + '">Bearbeiten</button><button class="btn sm danger" data-tdel="' + esc(t.id) + '">Löschen</button></div></div>'; }).join('') : '<div class="muted" style="margin-bottom:.6rem">Noch keine eigene Vorlage.</div>') +
-        '<div class="row" style="margin-top:.8rem"><button class="btn" id="tplNew">＋ Eigene Vorlage</button></div>');
+        '<div class="row" style="margin-top:.8rem"><button class="btn" id="tplNew">+ Eigene Vorlage</button></div>');
       c.querySelector('#tplNew').addEventListener('click', function () { editTemplate(null, custom); });
       c.querySelectorAll('[data-tedit]').forEach(function (b) { b.addEventListener('click', function () { editTemplate(custom.filter(function (t) { return t.id === b.getAttribute('data-tedit'); })[0], custom); }); });
       c.querySelectorAll('[data-tdel]').forEach(function (b) { b.addEventListener('click', function () { if (confirm('Vorlage löschen? Bereits angelegte Dokumente bleiben erhalten.')) d.api('/api/dms/templates?tenantId=' + encodeURIComponent(S.tenantId) + '&id=' + encodeURIComponent(b.getAttribute('data-tdel')), { method: 'DELETE' }).then(function () { d.renderSettings(); }).catch(d.fail); }); });
@@ -335,7 +335,7 @@
         var names = g.members.map(function (m) { var x = members.filter(function (y) { return y.email === m; })[0]; return x ? x.name : m; });
         return '<div class="grp"><div style="flex:1;min-width:0"><b>' + esc(g.name) + '</b> <span class="muted">· ' + g.members.length + ' Person' + (g.members.length === 1 ? '' : 'en') + '</span><div class="t-sub">' + (names.length ? esc(names.slice(0, 8).join(', ') + (names.length > 8 ? ' …' : '')) : 'noch niemand') + '</div></div><div class="row"><button class="btn sm" data-gedit="' + esc(g.id) + '">Bearbeiten</button><button class="btn sm danger" data-gdel="' + esc(g.id) + '">Löschen</button></div></div>';
       }).join('') : '<div class="muted" style="margin-bottom:.6rem">Noch keine Gruppe.</div>') +
-      '<div class="row" style="margin-top:.8rem"><button class="btn" id="grpNew">＋ Gruppe</button></div>');
+      '<div class="row" style="margin-top:.8rem"><button class="btn" id="grpNew">+ Gruppe</button></div>');
     c.querySelector('#grpNew').addEventListener('click', function () { editGroup(null, members); });
     c.querySelectorAll('[data-gedit]').forEach(function (b) { b.addEventListener('click', function () { editGroup(groups.filter(function (g) { return g.id === b.getAttribute('data-gedit'); })[0], members); }); });
     c.querySelectorAll('[data-gdel]').forEach(function (b) { b.addEventListener('click', function () { if (confirm('Gruppe löschen? Dokumente mit Lesepflicht für diese Gruppe gelten danach für alle Benutzer, sofern keine andere Gruppe gewählt ist.')) d.send('POST', '/api/dms/groups', { tenantId: S.tenantId, action: 'delete', id: b.getAttribute('data-gdel') }).then(function () { return d.loadDocs().then(d.renderUsers); }).catch(d.fail); }); });
@@ -474,7 +474,7 @@
     if (!host || !d.can('write')) return;
     var c = searchableCounts();
     if (!c.total || c.done >= c.total) return;
-    host.innerHTML = '<div class="notice">🔎 <b>Suche im Dateiinhalt:</b> ' + c.done + ' von ' + c.total + ' Dateien sind durchsuchbar. <button class="btn sm" id="idxRun" style="margin-left:.5rem">Jetzt aktualisieren</button></div>';
+    host.innerHTML = '<div class="notice"><b>Suche im Dateiinhalt:</b> ' + c.done + ' von ' + c.total + ' Dateien sind durchsuchbar. <button class="btn sm" id="idxRun" style="margin-left:.5rem">Jetzt aktualisieren</button></div>';
     $('idxRun').addEventListener('click', function () { X.indexAll(); });
   };
 
