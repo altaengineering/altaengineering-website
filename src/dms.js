@@ -1,15 +1,21 @@
-// Dokumentenlenkung / DMS (/dms, /api/dms/*), Version 2 (2026-10-06).
+// Dokumentenlenkung / DMS (/dms, /api/dms/*), Produktversion (2026-10-06).
 //
-// Vorbild: Wivio (WBI) und M-Files. Gegenueber der ersten Version (nur Titel, Kategorie, Status und
-// Dateiversionen) neu: Freigabe-Workflow mit Rollen (Ersteller, Pruefer, Freigeber) und optionalem
-// Vier-Augen-Prinzip, Ablehnung nur mit Kommentar, Dokumentnummern, Verantwortliche, Wiedervorlage
-// (naechste Ueberpruefung), lueckenloser Verlauf (Audit-Trail) mit Kommentaren, Lesebestaetigung,
-// Check-out/Bearbeitungssperre, verknuepfte Dokumente, Schlagworte, Archiv, gueltige Version bleibt
-// abrufbar waehrend eine neue Version bearbeitet wird, Aenderungsgrund pro Version, CSV-Export.
+// Vorbild: Wivio (WBI) und M-Files. Pro Kunde ("Tenant"): Mitglieder mit Rollen (Administrator,
+// Freigeber, Pruefer, Ersteller, Leser), Kategorien mit Dokumentnummern, Freigabe-Workflow mit
+// optionalem Vier-Augen-Prinzip, Wiedervorlage, Verlauf, Lesebestaetigung, Check-out, verknuepfte
+// Dokumente, Archiv, CSV-Export und ein online editierbares QM-Handbuch (siehe handbook.js).
 //
-// Mandantenfaehig wie bisher: jeder Kunde ("Tenant") hat eigene Kategorien und Dokumente. Metadaten
-// liegen in der KV-Namespace DMS ("tenant:<id>", "doc:<id>"), die Dateien in B2 unter
-// "_dms/<tenantId>/<docId>/vN__<name>" (Upload direkt vom Browser per presigned URL).
+// Metadaten liegen in der KV-Namespace DMS ("tenant:<id>", "doc:<id>", Handbuch "hb*:"), die Dateien
+// in B2 unter "_dms/<tenantId>/<docId>/vN__<name>" (Upload direkt vom Browser per presigned URL).
+// Login ueber Cloudflare Access: eingeladene Mitglieder werden in die Access-Policy eingetragen.
+
+import {
+  ROLES, ROLE_ORDER, can, normEmail, cleanName, loadTenant, saveTenant, listTenants, tenantsFor,
+  resolveAccess, publicTenant, memberRole, fallbackPrefix,
+} from "./dms-core.js";
+import { handleHandbook } from "./handbook.js";
+
+export { listTenants, tenantsFor };
 
 export const DMS_STATUSES = ["entwurf", "in_pruefung", "geprueft", "freigegeben", "archiviert"];
 export const DMS_STATUS_LABEL = {
@@ -20,24 +26,18 @@ export const DMS_STATUS_LABEL = {
   archiviert: "Archiviert",
 };
 export const DMS_DEFAULT_CATEGORIES = [
-  "Engineering",
-  "Qualitätsmanagement",
-  "Administration",
-  "Finanzen",
-  "Vertrieb",
-  "Allgemein",
+  { name: "Qualitätsmanagement", prefix: "QM" },
+  { name: "Engineering", prefix: "ENG" },
+  { name: "Administration", prefix: "ADM" },
+  { name: "Finanzen", prefix: "FIN" },
+  { name: "Vertrieb", prefix: "VER" },
+  { name: "Personal", prefix: "HR" },
+  { name: "Allgemein", prefix: "ALL" },
 ];
-const DEFAULT_PREFIXES = {
-  Engineering: "ENG",
-  "Qualitätsmanagement": "QM",
-  Administration: "ADM",
-  Finanzen: "FIN",
-  Vertrieb: "VER",
-  Allgemein: "ALL",
-};
 const DEFAULT_REVIEW_MONTHS = 12;
 const HISTORY_LIMIT = 400;
 const SCHEMA = 2;
+const MAX_MEMBERS = 300;
 
 // ---------- kleine Helfer ----------
 
@@ -53,11 +53,6 @@ function addMonthsIso(dateStr, months) {
   const last = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
   d.setUTCDate(Math.min(day, last));
   return d.toISOString().slice(0, 10);
-}
-
-function normEmail(v) {
-  const s = String(v || "").trim().toLowerCase();
-  return s.includes("@") ? s.slice(0, 200) : "";
 }
 
 function normTags(v) {
@@ -77,17 +72,13 @@ function normMonths(v, fallback) {
   return Math.round(n);
 }
 
-function fallbackPrefix(category) {
-  const letters = String(category || "")
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^A-Za-z]/g, "")
-    .toUpperCase();
-  return (letters.slice(0, 3) || "DOK").padEnd(3, "X");
+function cleanPrefix(v, category) {
+  const p = String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 5);
+  return p || fallbackPrefix(category);
 }
 
 function prefixFor(tenant, category) {
-  return (tenant.categoryPrefixes && tenant.categoryPrefixes[category]) || DEFAULT_PREFIXES[category] || fallbackPrefix(category);
+  return (tenant.categoryPrefixes && tenant.categoryPrefixes[category]) || fallbackPrefix(category);
 }
 
 function nextDocNumber(tenant, category) {
@@ -110,43 +101,15 @@ function pushHistory(doc, entry) {
 
 function contentTypeFor(filename) {
   const ext = String(filename).split(".").pop().toLowerCase();
-  const map = {
-    pdf: "application/pdf",
-    png: "image/png",
-    jpg: "image/jpeg",
-    jpeg: "image/jpeg",
-    gif: "image/gif",
-    svg: "image/svg+xml",
-    txt: "text/plain; charset=utf-8",
-  };
+  const map = { pdf: "application/pdf", png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", txt: "text/plain; charset=utf-8" };
   return map[ext] || null;
 }
 
-// ---------- Speicher ----------
-
-export async function loadTenant(env, id) {
-  const raw = id && (await env.DMS.get("tenant:" + id));
-  return raw ? JSON.parse(raw) : null;
+function parseList(v) {
+  return (Array.isArray(v) ? v : String(v || "").split(/[\s,;]+/)).map((x) => String(x).trim()).filter(Boolean);
 }
 
-export async function listTenants(env) {
-  const list = await env.DMS.list({ prefix: "tenant:" });
-  const items = [];
-  for (const k of list.keys) {
-    const raw = await env.DMS.get(k.name);
-    if (raw) items.push(JSON.parse(raw));
-  }
-  items.sort((a, b) => a.name.localeCompare(b.name, "de"));
-  return items;
-}
-
-// Ordnet eine eingeloggte, nicht-admin E-Mail ihrem Tenant zu, ueber die Domain nach dem "@".
-export async function resolveTenantForEmail(env, mail) {
-  const domain = mail.split("@")[1]?.toLowerCase();
-  if (!domain) return null;
-  const tenants = await listTenants(env);
-  return tenants.find((t) => (t.domains || []).some((d) => d.toLowerCase() === domain)) || null;
-}
+// ---------- Dokumente: Speicher ----------
 
 async function loadDoc(env, id) {
   const raw = id && (await env.DMS.get("doc:" + id));
@@ -157,13 +120,7 @@ async function saveDoc(env, doc) {
   await env.DMS.put("doc:" + doc.id, JSON.stringify(doc));
 }
 
-async function saveTenant(env, tenant) {
-  await env.DMS.put("tenant:" + tenant.id, JSON.stringify(tenant));
-}
-
-// Hebt aeltere Dokumente (Version 1: nur Titel/Kategorie/Status/Versionen) auf den neuen Stand:
-// Dokumentnummer, Verlauf aus den vorhandenen Versionen, gueltige Version, Wiedervorlage.
-// Gibt true zurueck, wenn das Dokument veraendert wurde (dann speichern).
+// Hebt aeltere Dokumente (Version 1) auf den aktuellen Stand: Nummer, Verlauf, gueltige Version.
 function upgradeDoc(doc, tenant) {
   if (doc.schema === SCHEMA) return false;
   doc.tags = doc.tags || [];
@@ -180,21 +137,14 @@ function upgradeDoc(doc, tenant) {
   if (!doc.history || !doc.history.length) {
     doc.history = [{ at: doc.createdAt, by: doc.createdBy, type: "angelegt", text: "Dokument angelegt" }];
     for (const v of doc.versions || []) {
-      doc.history.push({
-        at: v.uploadedAt,
-        by: v.uploadedBy,
-        type: "version",
-        version: v.version,
-        text: `Version ${v.version} hochgeladen (${v.filename})`,
-      });
+      doc.history.push({ at: v.uploadedAt, by: v.uploadedBy, type: "version", version: v.version, text: `Version ${v.version} hochgeladen (${v.filename})` });
     }
   }
   if (doc.status === "freigegeben") {
     doc.releasedVersion = doc.currentVersion;
     const since = (doc.updatedAt || doc.createdAt || new Date().toISOString()).slice(0, 10);
     doc.validFrom = doc.validFrom || since;
-    doc.nextReview =
-      doc.nextReview || (doc.reviewIntervalMonths > 0 ? addMonthsIso(since, doc.reviewIntervalMonths) : null);
+    doc.nextReview = doc.nextReview || (doc.reviewIntervalMonths > 0 ? addMonthsIso(since, doc.reviewIntervalMonths) : null);
   } else {
     doc.releasedVersion = doc.releasedVersion || null;
     doc.validFrom = doc.validFrom || null;
@@ -207,45 +157,32 @@ function upgradeDoc(doc, tenant) {
 async function loadTenantDocs(env, tenant) {
   const list = await env.DMS.list({ prefix: "doc:" });
   const items = [];
-  let tenantDirty = false;
+  let dirty = false;
   for (const k of list.keys) {
     const raw = await env.DMS.get(k.name);
     if (!raw) continue;
     const d = JSON.parse(raw);
     if (d.tenantId !== tenant.id) continue;
     if (upgradeDoc(d, tenant)) {
-      tenantDirty = true;
+      dirty = true;
       await saveDoc(env, d);
     }
     items.push(d);
   }
-  if (tenantDirty) await saveTenant(env, tenant);
+  if (dirty) await saveTenant(env, tenant);
   return items;
-}
-
-// ---------- Zugriff ----------
-
-// Admins duerfen jeden Tenant ansteuern, Kunden-Nutzer:innen sind auf den per E-Mail-Domain
-// aufgeloesten Tenant beschraenkt, ein fremder tenantId-Parameter von ihnen wird nie vertraut.
-async function resolveAccessibleTenant(env, admin, email, requestedTenantId) {
-  if (admin) {
-    if (requestedTenantId) return loadTenant(env, requestedTenantId);
-    const all = await listTenants(env);
-    return all[0] || null;
-  }
-  return resolveTenantForEmail(env, email);
 }
 
 async function docWithAccess(env, admin, email, docId) {
   const doc = await loadDoc(env, docId);
   if (!doc) return { error: ["Dokument nicht gefunden.", 404] };
-  const tenant = await resolveAccessibleTenant(env, admin, email, doc.tenantId);
-  if (!tenant || tenant.id !== doc.tenantId) return { error: ["Keine Berechtigung.", 403] };
-  if (upgradeDoc(doc, tenant)) {
+  const access = await resolveAccess(env, admin, email, doc.tenantId);
+  if (!access || access.tenant.id !== doc.tenantId) return { error: ["Keine Berechtigung.", 403] };
+  if (upgradeDoc(doc, access.tenant)) {
     await saveDoc(env, doc);
-    await saveTenant(env, tenant);
+    await saveTenant(env, access.tenant);
   }
-  return { doc, tenant };
+  return { doc, tenant: access.tenant, role: access.role };
 }
 
 function objectUrlFor(bucketUrl, env, key) {
@@ -254,19 +191,30 @@ function objectUrlFor(bucketUrl, env, key) {
 
 // ---------- Mail ----------
 
+function portalLink(env, path) {
+  return "https://" + (env.PORTAL_HOSTNAME || "alta-kundenportal.alta-engineering.workers.dev") + (path || "/dms");
+}
+
 async function notify(ctx, tenant, doc, to, subject, line) {
   const empfaenger = (Array.isArray(to) ? to : [to]).map(normEmail).filter(Boolean).filter((m) => m !== ctx.email.toLowerCase());
   if (!empfaenger.length) return;
-  const link = "https://" + (ctx.env.PORTAL_HOSTNAME || "alta-kundenportal.alta-engineering.workers.dev") + "/dms";
   try {
     await ctx.sendMail(ctx.env, {
       to: empfaenger,
       subject: `${subject}: ${doc.docNumber} ${doc.title}`,
-      text: `${line}\n\nKunde: ${tenant.name}\nDokument: ${doc.docNumber} ${doc.title}\n\nZur Dokumentenlenkung: ${link}\n`,
+      text: `${line}\n\nKunde: ${tenant.name}\nDokument: ${doc.docNumber} ${doc.title}\n\nZur Dokumentenlenkung: ${portalLink(ctx.env)}\n`,
     });
   } catch (e) {
     console.error("DMS-Mail fehlgeschlagen:", e);
   }
+}
+
+// Darf diese Person als Pruefer/Freigeber/Verantwortliche eingetragen werden?
+function validAssignee(ctx, tenant, email, cap) {
+  if (!email) return true;
+  if (ctx.isAdminEmail(email)) return true;
+  const role = memberRole(tenant, email);
+  return !!role && (cap ? can(role, cap) : true);
 }
 
 // ---------- Endpunkte ----------
@@ -278,7 +226,10 @@ export async function handleDms(ctx) {
   const method = request.method;
   const me = email.toLowerCase();
 
-  // ----- Kunden (Tenants), nur Admins -----
+  const hbResponse = await handleHandbook(ctx);
+  if (hbResponse) return hbResponse;
+
+  // ===== Kunden (nur Alta-Admins) =====
 
   if (path === "/api/dms/tenants" && method === "GET") {
     if (!admin) return json({ error: "Keine Berechtigung." }, 403);
@@ -291,46 +242,59 @@ export async function handleDms(ctx) {
       const d = JSON.parse(raw);
       counts[d.tenantId] = (counts[d.tenantId] || 0) + 1;
     }
-    return json({ tenants: tenants.map((t) => ({ ...t, documentCount: counts[t.id] || 0 })) });
+    return json({
+      tenants: tenants.map((t) => ({ ...publicTenant(t), documentCount: counts[t.id] || 0, memberCount: t.members.length, createdAt: t.createdAt })),
+    });
   }
 
   if (path === "/api/dms/tenants" && method === "POST") {
     if (!admin) return json({ error: "Keine Berechtigung." }, 403);
     const body = await request.json().catch(() => ({}));
-    const name = (body.name || "").trim().slice(0, 200);
-    if (!name) return json({ error: "Kein Name angegeben." }, 400);
-    const domains = Array.isArray(body.domains)
-      ? body.domains.map((d) => String(d).trim().toLowerCase()).filter(Boolean)
-      : String(body.domains || "").split(",").map((d) => d.trim().toLowerCase()).filter(Boolean);
+    const name = String(body.name || "").trim().slice(0, 200);
+    if (!name) return json({ error: "Bitte den Namen der Firma angeben." }, 400);
+    const adminEmail = normEmail(body.adminEmail);
+    if (body.adminEmail && !adminEmail) return json({ error: "Die E-Mail-Adresse des Administrators ist ungültig." }, 400);
 
-    let categories = Array.isArray(body.categories) ? body.categories.map((c) => String(c).trim()).filter(Boolean) : [];
-    let categoryPrefixes = {};
+    let cats = DMS_DEFAULT_CATEGORIES.map((c) => ({ ...c }));
     let vierAugen = !!body.vierAugen;
-    if (categories.length === 0 && body.copyFromTenantId) {
+    if (body.copyFromTenantId) {
       const vorlage = await loadTenant(env, body.copyFromTenantId);
       if (vorlage) {
-        categories = [...vorlage.categories];
-        categoryPrefixes = { ...(vorlage.categoryPrefixes || {}) };
+        cats = vorlage.categories.map((n) => ({ name: n, prefix: (vorlage.categoryPrefixes || {})[n] || fallbackPrefix(n) }));
         if (body.vierAugen === undefined) vierAugen = !!vorlage.vierAugen;
       }
     }
-    if (categories.length === 0) categories = [...DMS_DEFAULT_CATEGORIES];
-
-    const id = crypto.randomUUID();
     const tenant = {
-      id,
+      id: crypto.randomUUID(),
       name,
-      domains,
-      categories,
-      categoryPrefixes,
+      domains: [],
+      categories: cats.map((c) => c.name),
+      categoryPrefixes: Object.fromEntries(cats.map((c) => [c.name, c.prefix])),
       counters: {},
       vierAugen,
+      defaultReviewMonths: DEFAULT_REVIEW_MONTHS,
+      members: [],
       createdAt: new Date().toISOString(),
       createdBy: email,
     };
-    await saveTenant(env, tenant);
+    let accessWarning = "";
+    if (adminEmail) {
+      tenant.members.push({ email: adminEmail, name: cleanName(body.adminName, adminEmail), role: "admin", addedAt: tenant.createdAt, addedBy: email });
+      try {
+        await ctx.addAccess(env, adminEmail);
+      } catch (e) {
+        accessWarning = "Der Kunde ist angelegt, aber die Login-Freigabe für " + adminEmail + " hat nicht geklappt. Bitte im Cloudflare-Access-Dashboard nachtragen.";
+        console.error("Access-Eintrag fehlgeschlagen:", e);
+      }
+      await ctx.sendMail(env, {
+        to: [adminEmail],
+        subject: "Ihre Dokumentenlenkung ist bereit",
+        text: `Guten Tag\n\nFür ${name} wurde die Dokumentenlenkung eingerichtet. Sie sind als Administrator eingetragen und können Dokumente, Handbuch und Benutzer verwalten.\n\nAnmelden: ${portalLink(env)}\n(Sie erhalten beim Anmelden einen Code per E-Mail.)\n\nFreundliche Grüsse\nAlta Engineering AG\n`,
+      }).catch(() => {});
+    }
+    await env.DMS.put("tenant:" + tenant.id, JSON.stringify(tenant));
     await logActivity(env, { email, action: "DMS-Kunde angelegt", detail: name });
-    return json({ ok: true, tenant });
+    return json({ ok: true, tenant: publicTenant(tenant), warning: accessWarning || undefined });
   }
 
   if (path === "/api/dms/tenants" && method === "PUT") {
@@ -338,38 +302,17 @@ export async function handleDms(ctx) {
     const body = await request.json().catch(() => ({}));
     const tenant = await loadTenant(env, body.id);
     if (!tenant) return json({ error: "Kunde nicht gefunden." }, 404);
-    if (body.name != null) tenant.name = String(body.name).trim().slice(0, 200) || tenant.name;
-    if (body.domains != null) {
-      tenant.domains = Array.isArray(body.domains)
-        ? body.domains.map((d) => String(d).trim().toLowerCase()).filter(Boolean)
-        : String(body.domains).split(",").map((d) => d.trim().toLowerCase()).filter(Boolean);
-    }
-    if (body.categories != null) {
-      tenant.categories = Array.isArray(body.categories)
-        ? body.categories.map((c) => String(c).trim()).filter(Boolean)
-        : String(body.categories).split(",").map((c) => c.trim()).filter(Boolean);
-    }
-    if (body.vierAugen != null) tenant.vierAugen = !!body.vierAugen;
-    if (body.categoryPrefixes && typeof body.categoryPrefixes === "object") {
-      tenant.categoryPrefixes = {};
-      for (const [k, v] of Object.entries(body.categoryPrefixes)) {
-        const p = String(v).trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 5);
-        if (p) tenant.categoryPrefixes[k] = p;
-      }
-    }
+    const name = String(body.name || "").trim().slice(0, 200);
+    if (name) tenant.name = name;
     await saveTenant(env, tenant);
     await logActivity(env, { email, action: "DMS-Kunde bearbeitet", detail: tenant.name });
-    return json({ ok: true, tenant });
+    return json({ ok: true, tenant: publicTenant(tenant) });
   }
 
   if (path === "/api/dms/tenants" && method === "DELETE") {
     if (!admin) return json({ error: "Keine Berechtigung." }, 403);
     const tenant = await loadTenant(env, url.searchParams.get("id"));
     if (!tenant) return json({ error: "Kunde nicht gefunden." }, 404);
-
-    // Cascade: alle Dokumente dieses Tenants inkl. B2-Dateien mitloeschen. b2Client() erst bauen,
-    // wenn tatsaechlich eine Version zu loeschen ist (sonst scheitert das Loeschen eines leeren
-    // Kunden lokal ohne B2-Secrets unnoetig).
     const docList = await env.DMS.list({ prefix: "doc:" });
     let client = null;
     for (const k of docList.keys) {
@@ -379,34 +322,181 @@ export async function handleDms(ctx) {
       if (d.tenantId !== tenant.id) continue;
       if (d.versions.length > 0) {
         if (!client) client = b2Client(env);
-        for (const v of d.versions) {
-          await client.fetch(objectUrlFor(bucketUrl, env, v.key), { method: "DELETE" }).catch(() => {});
-        }
+        for (const v of d.versions) await client.fetch(objectUrlFor(bucketUrl, env, v.key), { method: "DELETE" }).catch(() => {});
       }
       await env.DMS.delete(k.name);
     }
+    for (const prefix of ["hbrev:" + tenant.id + ":"]) {
+      const l = await env.DMS.list({ prefix });
+      for (const k of l.keys) await env.DMS.delete(k.name);
+    }
+    await env.DMS.delete("hb:" + tenant.id);
+    await env.DMS.delete("hbpub:" + tenant.id);
     await env.DMS.delete("tenant:" + tenant.id);
     await logActivity(env, { email, action: "DMS-Kunde geloescht", detail: tenant.name });
     return json({ ok: true });
   }
 
-  // ----- Dokumente -----
+  // ===== Ab hier: Zugriff ueber Mitgliedschaft =====
+
+  const requestedTenant = method === "GET" || method === "DELETE" ? url.searchParams.get("tenantId") : null;
+
+  // ----- Benutzer -----
+
+  if (path === "/api/dms/members" && method === "GET") {
+    const access = await resolveAccess(env, admin, email, requestedTenant);
+    if (!access) return json({ error: "Kein Zugriff." }, 403);
+    const t = access.tenant;
+    return json({
+      role: access.role,
+      canManage: can(access.role, "manage"),
+      members: t.members.map((m) => ({ email: m.email, name: m.name, role: m.role, addedAt: m.addedAt })),
+      roles: ROLE_ORDER.map((r) => ({ id: r, ...ROLES[r] })),
+    });
+  }
+
+  if (path === "/api/dms/members" && (method === "POST" || method === "PUT" || method === "DELETE")) {
+    const body = method === "DELETE" ? {} : await request.json().catch(() => ({}));
+    const access = await resolveAccess(env, admin, email, method === "DELETE" ? requestedTenant : body.tenantId);
+    if (!access) return json({ error: "Kein Zugriff." }, 403);
+    if (!can(access.role, "manage")) return json({ error: "Nur Administratoren verwalten Benutzer." }, 403);
+    const t = access.tenant;
+
+    const adminCount = () => t.members.filter((m) => m.role === "admin").length;
+
+    if (method === "POST") {
+      const role = ROLE_ORDER.includes(body.role) ? body.role : "ersteller";
+      const emails = parseList(body.emails || body.email);
+      if (!emails.length) return json({ error: "Bitte mindestens eine E-Mail-Adresse angeben." }, 400);
+      const added = [];
+      const skipped = [];
+      const accessErrors = [];
+      for (const raw of emails) {
+        const mail = normEmail(raw);
+        if (!mail) { skipped.push({ email: raw, why: "keine gültige E-Mail-Adresse" }); continue; }
+        if (memberRole(t, mail)) { skipped.push({ email: mail, why: "ist schon dabei" }); continue; }
+        if (t.members.length >= MAX_MEMBERS) { skipped.push({ email: mail, why: "Benutzerlimit erreicht" }); continue; }
+        t.members.push({ email: mail, name: cleanName(emails.length === 1 ? body.name : "", mail), role, addedAt: new Date().toISOString(), addedBy: email });
+        added.push(mail);
+        try {
+          await ctx.addAccess(env, mail);
+        } catch (e) {
+          accessErrors.push(mail);
+          console.error("Access-Eintrag fehlgeschlagen:", e);
+        }
+      }
+      if (added.length) {
+        await saveTenant(env, t);
+        await logActivity(env, { email, action: "DMS-Benutzer eingeladen", detail: `${t.name}: ${added.join(", ")} (${ROLES[role].label})` });
+        if (body.invite !== false) {
+          await ctx.sendMail(env, {
+            to: added,
+            subject: `Einladung zur Dokumentenlenkung von ${t.name}`,
+            text: `Guten Tag\n\n${cleanName("", email)} hat Sie zur Dokumentenlenkung von ${t.name} eingeladen (Rolle: ${ROLES[role].label}).\n\nAnmelden: ${portalLink(env)}\nSie erhalten beim Anmelden einen Code per E-Mail, ein Passwort brauchen Sie nicht.\n`,
+          }).catch(() => {});
+        }
+      }
+      return json({ ok: true, added, skipped, accessErrors, link: portalLink(env) });
+    }
+
+    const mail = normEmail(method === "DELETE" ? url.searchParams.get("email") : body.email);
+    const m = t.members.find((x) => x.email === mail);
+    if (!m) return json({ error: "Person nicht gefunden." }, 404);
+
+    if (method === "PUT") {
+      if (body.role != null) {
+        if (!ROLE_ORDER.includes(body.role)) return json({ error: "Ungültige Rolle." }, 400);
+        if (m.role === "admin" && body.role !== "admin" && adminCount() <= 1) return json({ error: "Es muss mindestens eine Administrator-Person bleiben." }, 400);
+        m.role = body.role;
+      }
+      if (body.name != null) m.name = cleanName(body.name, m.email);
+      await saveTenant(env, t);
+      await logActivity(env, { email, action: "DMS-Benutzer geaendert", detail: `${t.name}: ${m.email} (${ROLES[m.role].label})` });
+      return json({ ok: true });
+    }
+
+    if (m.role === "admin" && adminCount() <= 1) return json({ error: "Die letzte Administrator-Person lässt sich nicht entfernen." }, 400);
+    t.members = t.members.filter((x) => x.email !== mail);
+    await saveTenant(env, t);
+    await logActivity(env, { email, action: "DMS-Benutzer entfernt", detail: `${t.name}: ${mail}` });
+    return json({ ok: true });
+  }
+
+  // ----- Einstellungen des Kunden (Kategorien, Vier-Augen, Intervall) -----
+
+  if (path === "/api/dms/settings" && method === "POST") {
+    const body = await request.json().catch(() => ({}));
+    const access = await resolveAccess(env, admin, email, body.tenantId);
+    if (!access) return json({ error: "Kein Zugriff." }, 403);
+    if (!can(access.role, "manage")) return json({ error: "Nur Administratoren ändern die Einstellungen." }, 403);
+    const t = access.tenant;
+    const docs = await loadTenantDocs(env, t);
+
+    if (Array.isArray(body.categories)) {
+      const seen = new Set();
+      const cats = [];
+      for (const c of body.categories) {
+        const nm = String(c && c.name != null ? c.name : c).trim().slice(0, 60);
+        if (!nm || seen.has(nm.toLowerCase())) continue;
+        seen.add(nm.toLowerCase());
+        cats.push({ name: nm, prefix: cleanPrefix(c && c.prefix, nm), was: c && c.was ? String(c.was) : nm });
+      }
+      if (!cats.length) return json({ error: "Mindestens eine Kategorie ist nötig." }, 400);
+      // Umbenennen: Dokumente der alten Kategorie folgen. Entfernen nur ohne Dokumente.
+      const keepOld = new Set(cats.map((c) => c.was));
+      for (const old of t.categories) {
+        if (!keepOld.has(old)) {
+          const n = docs.filter((d) => d.category === old).length;
+          if (n) return json({ error: `Die Kategorie «${old}» enthält noch ${n} Dokument${n === 1 ? "" : "e"}. Verschiebe sie zuerst in eine andere Kategorie.` }, 400);
+        }
+      }
+      for (const c of cats) {
+        if (c.was !== c.name) {
+          for (const d of docs) {
+            if (d.category === c.was) {
+              d.category = c.name;
+              await saveDoc(env, d);
+            }
+          }
+        }
+      }
+      const oldPrefixes = t.categoryPrefixes || {};
+      t.categories = cats.map((c) => c.name);
+      t.categoryPrefixes = Object.fromEntries(cats.map((c) => [c.name, c.prefix || oldPrefixes[c.was] || fallbackPrefix(c.name)]));
+    }
+    if (body.vierAugen != null) t.vierAugen = !!body.vierAugen;
+    if (body.defaultReviewMonths != null) t.defaultReviewMonths = normMonths(body.defaultReviewMonths, t.defaultReviewMonths);
+    await saveTenant(env, t);
+    await logActivity(env, { email, action: "DMS-Einstellungen geaendert", detail: t.name });
+    return json({ ok: true, tenant: publicTenant(t) });
+  }
+
+  // ===== Dokumente =====
 
   if (path === "/api/dms/documents" && method === "GET") {
-    const tenant = await resolveAccessibleTenant(env, admin, email, url.searchParams.get("tenantId"));
-    if (!tenant) return json({ error: "Kein Kunde zugeordnet." }, 403);
-    const items = await loadTenantDocs(env, tenant);
+    const access = await resolveAccess(env, admin, email, requestedTenant);
+    if (!access) return json({ error: "Kein Kunde zugeordnet." }, 403);
+    const items = await loadTenantDocs(env, access.tenant);
     items.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-    return json({ documents: items, tenant, me });
+    return json({ documents: items, tenant: publicTenant(access.tenant), role: access.role, me });
   }
 
   if (path === "/api/dms/documents" && method === "POST") {
     const body = await request.json().catch(() => ({}));
-    const tenant = await resolveAccessibleTenant(env, admin, email, body.tenantId);
-    if (!tenant) return json({ error: "Kein Kunde zugeordnet." }, 403);
-    const title = (body.title || "").trim().slice(0, 200);
-    if (!title) return json({ error: "Kein Titel angegeben." }, 400);
-    const category = (body.category || "").trim().slice(0, 80) || tenant.categories[0] || "Allgemein";
+    const access = await resolveAccess(env, admin, email, body.tenantId);
+    if (!access) return json({ error: "Kein Kunde zugeordnet." }, 403);
+    if (!can(access.role, "write")) return json({ error: "Dafür fehlt dir die Berechtigung (Rolle Ersteller oder höher)." }, 403);
+    const tenant = access.tenant;
+    const title = String(body.title || "").trim().slice(0, 200);
+    if (!title) return json({ error: "Bitte einen Titel angeben." }, 400);
+    const category = String(body.category || "").trim().slice(0, 80);
+    if (!category || !tenant.categories.includes(category)) return json({ error: "Bitte eine Kategorie wählen." }, 400);
+    const reviewer = normEmail(body.reviewer);
+    const approver = normEmail(body.approver);
+    const owner = normEmail(body.owner) || me;
+    if (!validAssignee(ctx, tenant, reviewer, "review")) return json({ error: "Die Prüfperson muss ein Mitglied mit Prüfrecht sein." }, 400);
+    if (!validAssignee(ctx, tenant, approver, "approve")) return json({ error: "Die Freigabeperson muss ein Mitglied mit Freigaberecht sein." }, 400);
+    if (!validAssignee(ctx, tenant, owner, null)) return json({ error: "Die verantwortliche Person muss ein Mitglied sein." }, 400);
     const now = new Date().toISOString();
     const id = crypto.randomUUID();
     const doc = {
@@ -421,10 +511,10 @@ export async function handleDms(ctx) {
       currentVersion: 0,
       releasedVersion: null,
       versions: [],
-      owner: normEmail(body.owner) || me,
-      reviewer: normEmail(body.reviewer),
-      approver: normEmail(body.approver),
-      reviewIntervalMonths: normMonths(body.reviewIntervalMonths, DEFAULT_REVIEW_MONTHS),
+      owner,
+      reviewer,
+      approver,
+      reviewIntervalMonths: normMonths(body.reviewIntervalMonths, tenant.defaultReviewMonths),
       validFrom: null,
       nextReview: null,
       readRequired: !!body.readRequired,
@@ -440,7 +530,7 @@ export async function handleDms(ctx) {
     };
     pushHistory(doc, histEntry(email, "angelegt", { text: "Dokument angelegt" }));
     await saveDoc(env, doc);
-    await saveTenant(env, tenant); // Zaehler der Dokumentnummern
+    await saveTenant(env, tenant);
     await logActivity(env, { email, action: "DMS-Dokument angelegt", detail: `${doc.docNumber} ${title} (${tenant.name})` });
     return json({ ok: true, document: doc });
   }
@@ -449,18 +539,20 @@ export async function handleDms(ctx) {
     const body = await request.json().catch(() => ({}));
     const found = await docWithAccess(env, admin, email, body.id);
     if (found.error) return json({ error: found.error[0] }, found.error[1]);
-    const { doc, tenant } = found;
+    const { doc, tenant, role } = found;
+    if (!can(role, "write")) return json({ error: "Dafür fehlt dir die Berechtigung." }, 403);
     if (doc.status === "archiviert") return json({ error: "Archivierte Dokumente lassen sich nicht bearbeiten." }, 400);
     const changes = [];
     if (body.title != null) {
       const t = String(body.title).trim().slice(0, 200);
-      if (!t) return json({ error: "Titel darf nicht leer sein." }, 400);
+      if (!t) return json({ error: "Der Titel darf nicht leer sein." }, 400);
       if (t !== doc.title) changes.push("Titel");
       doc.title = t;
     }
     if (body.category != null) {
       const c = String(body.category).trim().slice(0, 80);
       if (c && c !== doc.category) {
+        if (!tenant.categories.includes(c)) return json({ error: "Unbekannte Kategorie." }, 400);
         doc.category = c;
         changes.push("Kategorie");
       }
@@ -474,10 +566,13 @@ export async function handleDms(ctx) {
       doc.tags = normTags(body.tags);
       changes.push("Schlagworte");
     }
-    for (const [field, label] of [["owner", "Verantwortliche:r"], ["reviewer", "Prüfer:in"], ["approver", "Freigeber:in"]]) {
+    for (const [field, label, cap] of [["owner", "Verantwortliche:r", null], ["reviewer", "Prüfer:in", "review"], ["approver", "Freigeber:in", "approve"]]) {
       if (body[field] != null) {
         const v = normEmail(body[field]);
-        if (v !== doc[field]) changes.push(label);
+        if (v !== doc[field]) {
+          if (!validAssignee(ctx, tenant, v, cap)) return json({ error: `${label}: diese Person hat dafür keine Berechtigung.` }, 400);
+          changes.push(label);
+        }
         doc[field] = v;
       }
     }
@@ -486,9 +581,7 @@ export async function handleDms(ctx) {
       if (m !== doc.reviewIntervalMonths) {
         doc.reviewIntervalMonths = m;
         changes.push("Überprüfungsintervall");
-        if (doc.status === "freigegeben" && doc.validFrom) {
-          doc.nextReview = m > 0 ? addMonthsIso(doc.validFrom, m) : null;
-        }
+        if (doc.releasedVersion && doc.validFrom) doc.nextReview = m > 0 ? addMonthsIso(doc.validFrom, m) : null;
       }
     }
     if (body.readRequired != null) {
@@ -496,10 +589,9 @@ export async function handleDms(ctx) {
       if (v !== doc.readRequired) changes.push("Lesepflicht");
       doc.readRequired = v;
     }
-    if (body.related != null && Array.isArray(body.related)) {
-      const ids = body.related.map(String).filter((x) => x !== doc.id);
+    if (Array.isArray(body.related)) {
       const valid = [];
-      for (const rid of ids) {
+      for (const rid of body.related.map(String).filter((x) => x !== doc.id)) {
         const r = await loadDoc(env, rid);
         if (r && r.tenantId === doc.tenantId) valid.push(rid);
       }
@@ -512,21 +604,17 @@ export async function handleDms(ctx) {
       pushHistory(doc, histEntry(email, "metadaten", { text: "Geändert: " + changes.join(", ") }));
       await saveDoc(env, doc);
     }
-    return json({ ok: true, document: doc, tenant: undefined });
+    return json({ ok: true, document: doc });
   }
 
   if (path === "/api/dms/documents" && method === "DELETE") {
     const found = await docWithAccess(env, admin, email, url.searchParams.get("id"));
     if (found.error) return json({ error: found.error[0] }, found.error[1]);
-    const { doc } = found;
-    if (!admin && doc.createdBy.toLowerCase() !== me) {
-      return json({ error: "Nur Ersteller:in oder Admin dürfen löschen. Alternative: archivieren." }, 403);
-    }
+    const { doc, role } = found;
+    if (!can(role, "manage")) return json({ error: "Nur Administratoren löschen Dokumente. Alternative: archivieren." }, 403);
     if (doc.versions.length > 0) {
       const client = b2Client(env);
-      for (const v of doc.versions) {
-        await client.fetch(objectUrlFor(bucketUrl, env, v.key), { method: "DELETE" }).catch(() => {});
-      }
+      for (const v of doc.versions) await client.fetch(objectUrlFor(bucketUrl, env, v.key), { method: "DELETE" }).catch(() => {});
     }
     await env.DMS.delete("doc:" + doc.id);
     await logActivity(env, { email, action: "DMS-Dokument geloescht", detail: `${doc.docNumber} ${doc.title}` });
@@ -539,17 +627,18 @@ export async function handleDms(ctx) {
     const body = await request.json().catch(() => ({}));
     const found = await docWithAccess(env, admin, email, body.docId);
     if (found.error) return json({ error: found.error[0] }, found.error[1]);
-    const { doc } = found;
+    const { doc, role } = found;
+    if (!can(role, "write")) return json({ error: "Dafür fehlt dir die Berechtigung." }, 403);
     if (doc.status === "archiviert") return json({ error: "Archivierte Dokumente nehmen keine neuen Versionen an." }, 400);
     if (doc.status === "in_pruefung" || doc.status === "geprueft") {
-      return json({ error: "Das Dokument ist in Prüfung/Freigabe. Erst ablehnen oder freigeben, dann neue Version." }, 409);
+      return json({ error: "Das Dokument ist in Prüfung oder Freigabe. Erst ablehnen oder freigeben, dann neue Version." }, 409);
     }
-    if (doc.lock && doc.lock.by.toLowerCase() !== me && !admin) {
-      return json({ error: `Dokument ist von ${doc.lock.by} ausgecheckt.` }, 409);
+    if (doc.lock && doc.lock.by.toLowerCase() !== me && !can(role, "manage")) {
+      return json({ error: `Das Dokument ist von ${doc.lock.by} ausgecheckt.` }, 409);
     }
-    const filename = (body.filename || "").trim();
-    if (!filename) return json({ error: "Kein Dateiname uebergeben." }, 400);
-    if (filename.includes("/")) return json({ error: "Dateiname darf kein '/' enthalten." }, 400);
+    const filename = String(body.filename || "").trim();
+    if (!filename) return json({ error: "Kein Dateiname übergeben." }, 400);
+    if (filename.includes("/")) return json({ error: "Der Dateiname darf kein «/» enthalten." }, 400);
     const nextVersion = doc.currentVersion + 1;
     const key = `_dms/${doc.tenantId}/${doc.id}/v${nextVersion}__${filename}`;
     const client = b2Client(env);
@@ -563,23 +652,16 @@ export async function handleDms(ctx) {
     const body = await request.json().catch(() => ({}));
     const found = await docWithAccess(env, admin, email, body.docId);
     if (found.error) return json({ error: found.error[0] }, found.error[1]);
-    const { doc } = found;
+    const { doc, role } = found;
+    if (!can(role, "write")) return json({ error: "Dafür fehlt dir die Berechtigung." }, 403);
     const version = Number(body.version) || doc.currentVersion + 1;
-    const filename = (body.filename || "").trim();
-    const key = (body.key || "").trim();
-    if (!filename || !key) return json({ error: "Unvollstaendige Angaben." }, 400);
+    const filename = String(body.filename || "").trim();
+    const key = String(body.key || "").trim();
+    if (!filename || !key) return json({ error: "Unvollständige Angaben." }, 400);
+    if (!key.startsWith(`_dms/${doc.tenantId}/${doc.id}/`)) return json({ error: "Ungültiger Ablageort." }, 400);
     const note = String(body.note || "").trim().slice(0, 500);
     if (doc.currentVersion > 0 && !note) return json({ error: "Bitte den Änderungsgrund angeben." }, 400);
-
-    doc.versions.push({
-      version,
-      key,
-      filename,
-      size: Number(body.size) || 0,
-      uploadedAt: new Date().toISOString(),
-      uploadedBy: email,
-      note,
-    });
+    doc.versions.push({ version, key, filename, size: Number(body.size) || 0, uploadedAt: new Date().toISOString(), uploadedBy: email, note });
     doc.currentVersion = version;
     // Eine neue Version ist noch nicht geprueft. Die bisher freigegebene Version bleibt als
     // "gueltige Version" abrufbar (releasedVersion), bis die neue freigegeben ist.
@@ -587,14 +669,7 @@ export async function handleDms(ctx) {
     doc.lock = null;
     doc.updatedAt = new Date().toISOString();
     doc.updatedBy = email;
-    pushHistory(
-      doc,
-      histEntry(email, "version", {
-        version,
-        text: `Version ${version} hochgeladen (${filename})`,
-        comment: note || undefined,
-      }),
-    );
+    pushHistory(doc, histEntry(email, "version", { version, text: `Version ${version} hochgeladen (${filename})`, comment: note || undefined }));
     await saveDoc(env, doc);
     await logActivity(env, { email, action: "DMS-Version hochgeladen", detail: `${doc.docNumber} ${doc.title} (v${version})` });
     return json({ ok: true, document: doc });
@@ -606,41 +681,45 @@ export async function handleDms(ctx) {
     const body = await request.json().catch(() => ({}));
     const found = await docWithAccess(env, admin, email, body.docId);
     if (found.error) return json({ error: found.error[0] }, found.error[1]);
-    const { doc, tenant } = found;
+    const { doc, tenant, role } = found;
     const action = String(body.action || "");
     const comment = String(body.comment || "").trim().slice(0, 1000);
     const uploader = (doc.versions[doc.versions.length - 1]?.uploadedBy || doc.createdBy || "").toLowerCase();
     const vier = !!tenant.vierAugen;
     const from = doc.status;
     const fail = (msg, code = 400) => json({ error: msg }, code);
+    const isAdminRole = can(role, "manage");
 
-    const mayReview = () => admin || !doc.reviewer || doc.reviewer === me;
-    const mayApprove = () => admin || !doc.approver || doc.approver === me;
+    const mayReview = () => can(role, "review") && (isAdminRole || !doc.reviewer || doc.reviewer === me);
+    const mayApprove = () => can(role, "approve") && (isAdminRole || !doc.approver || doc.approver === me);
 
     if (action === "einreichen") {
+      if (!can(role, "write")) return fail("Dafür fehlt dir die Berechtigung.", 403);
       if (from !== "entwurf") return fail("Nur Entwürfe lassen sich zur Prüfung einreichen.");
       if (doc.currentVersion === 0) return fail("Zuerst eine Datei hochladen.");
       doc.status = "in_pruefung";
       doc.submittedBy = me;
       pushHistory(doc, histEntry(email, "status", { from, to: doc.status, version: doc.currentVersion, text: "Zur Prüfung eingereicht", comment: comment || undefined }));
-      await notify(ctx, tenant, doc, doc.reviewer || doc.approver || [], "Prüfung angefragt", `${email} hat Version ${doc.currentVersion} zur Prüfung eingereicht.`);
+      const pruefer = doc.reviewer ? [doc.reviewer] : tenant.members.filter((m) => can(m.role, "review")).map((m) => m.email);
+      await notify(ctx, tenant, doc, pruefer, "Prüfung angefragt", `${email} hat Version ${doc.currentVersion} zur Prüfung eingereicht.`);
     } else if (action === "pruefen") {
       if (from !== "in_pruefung") return fail("Das Dokument ist nicht in Prüfung.");
-      if (!mayReview()) return fail(`Nur ${doc.reviewer} darf dieses Dokument prüfen.`, 403);
+      if (!mayReview()) return fail(doc.reviewer && can(role, "review") ? `Nur ${doc.reviewer} darf dieses Dokument prüfen.` : "Dafür fehlt dir die Berechtigung (Rolle Prüfer oder höher).", 403);
       if (vier && me === uploader) return fail("Vier-Augen-Prinzip: Wer die Version hochgeladen hat, darf sie nicht selbst prüfen.", 403);
       doc.status = "geprueft";
       doc.reviewedBy = me;
       pushHistory(doc, histEntry(email, "status", { from, to: doc.status, version: doc.currentVersion, text: "Geprüft", comment: comment || undefined }));
-      await notify(ctx, tenant, doc, doc.approver || [], "Freigabe angefragt", `${email} hat Version ${doc.currentVersion} geprüft. Sie wartet auf Freigabe.`);
+      const freigeber = doc.approver ? [doc.approver] : tenant.members.filter((m) => can(m.role, "approve")).map((m) => m.email);
+      await notify(ctx, tenant, doc, freigeber, "Freigabe angefragt", `${email} hat Version ${doc.currentVersion} geprüft. Sie wartet auf Freigabe.`);
     } else if (action === "freigeben") {
       if (from !== "geprueft") return fail("Freigeben geht erst nach der Prüfung.");
-      if (!mayApprove()) return fail(`Nur ${doc.approver} darf dieses Dokument freigeben.`, 403);
+      if (!mayApprove()) return fail(doc.approver && can(role, "approve") ? `Nur ${doc.approver} darf dieses Dokument freigeben.` : "Dafür fehlt dir die Berechtigung (Rolle Freigeber oder höher).", 403);
       if (vier && me === uploader) return fail("Vier-Augen-Prinzip: Wer die Version hochgeladen hat, darf sie nicht selbst freigeben.", 403);
       doc.status = "freigegeben";
       doc.releasedVersion = doc.currentVersion;
       doc.validFrom = todayIso();
       doc.nextReview = doc.reviewIntervalMonths > 0 ? addMonthsIso(doc.validFrom, doc.reviewIntervalMonths) : null;
-      doc.reads = {}; // Lesebestaetigungen gelten pro Version
+      doc.reads = {};
       pushHistory(doc, histEntry(email, "status", { from, to: doc.status, version: doc.currentVersion, text: `Version ${doc.currentVersion} freigegeben`, comment: comment || undefined }));
       await notify(ctx, tenant, doc, [doc.owner, uploader], "Dokument freigegeben", `${email} hat Version ${doc.currentVersion} freigegeben.`);
     } else if (action === "ablehnen") {
@@ -651,21 +730,23 @@ export async function handleDms(ctx) {
       pushHistory(doc, histEntry(email, "status", { from, to: doc.status, version: doc.currentVersion, text: "Abgelehnt, zurück in Entwurf", comment }));
       await notify(ctx, tenant, doc, [uploader, doc.owner], "Dokument abgelehnt", `${email} hat Version ${doc.currentVersion} abgelehnt: ${comment}`);
     } else if (action === "zurueckziehen") {
+      if (!can(role, "write")) return fail("Dafür fehlt dir die Berechtigung.", 403);
       if (from !== "in_pruefung" && from !== "geprueft") return fail("Nichts zurückzuziehen.");
       doc.status = "entwurf";
       pushHistory(doc, histEntry(email, "status", { from, to: doc.status, version: doc.currentVersion, text: "Zurückgezogen, wieder Entwurf", comment: comment || undefined }));
     } else if (action === "ueberprueft") {
-      if (doc.status !== "freigegeben" && !doc.releasedVersion) return fail("Nur freigegebene Dokumente werden überprüft.");
-      if (!(admin || doc.owner === me)) return fail("Nur die verantwortliche Person oder ein Admin bestätigt die Überprüfung.", 403);
+      if (!doc.releasedVersion) return fail("Nur freigegebene Dokumente werden überprüft.");
+      if (!(isAdminRole || (can(role, "write") && doc.owner === me))) return fail("Nur die verantwortliche Person oder ein Administrator bestätigt die Überprüfung.", 403);
       doc.nextReview = doc.reviewIntervalMonths > 0 ? addMonthsIso(todayIso(), doc.reviewIntervalMonths) : null;
       pushHistory(doc, histEntry(email, "pruefung", { text: "Überprüft, unverändert gültig", comment: comment || undefined }));
     } else if (action === "archivieren") {
       if (from === "archiviert") return fail("Bereits archiviert.");
-      if (!(admin || doc.owner === me || doc.createdBy.toLowerCase() === me)) return fail("Nur Verantwortliche, Ersteller:in oder Admin dürfen archivieren.", 403);
+      if (!(isAdminRole || (can(role, "write") && (doc.owner === me || (doc.createdBy || "").toLowerCase() === me)))) return fail("Nur Verantwortliche, Ersteller:in oder Administratoren dürfen archivieren.", 403);
       doc.status = "archiviert";
       doc.lock = null;
       pushHistory(doc, histEntry(email, "status", { from, to: doc.status, text: "Archiviert", comment: comment || undefined }));
     } else if (action === "wiederherstellen") {
+      if (!can(role, "write")) return fail("Dafür fehlt dir die Berechtigung.", 403);
       if (from !== "archiviert") return fail("Das Dokument ist nicht archiviert.");
       doc.status = doc.releasedVersion && doc.releasedVersion === doc.currentVersion ? "freigegeben" : "entwurf";
       pushHistory(doc, histEntry(email, "status", { from, to: doc.status, text: "Aus dem Archiv wiederhergestellt" }));
@@ -680,11 +761,6 @@ export async function handleDms(ctx) {
     return json({ ok: true, document: doc });
   }
 
-  // Kompatibilitaet: alter Endpunkt (direkter Statuswechsel) ist ersetzt durch /api/dms/workflow.
-  if (path === "/api/dms/status" && method === "POST") {
-    return json({ error: "Dieser Endpunkt wurde durch /api/dms/workflow ersetzt." }, 410);
-  }
-
   // ----- Kommentar, Lesebestaetigung, Check-out -----
 
   if (path === "/api/dms/comment" && method === "POST") {
@@ -693,7 +769,7 @@ export async function handleDms(ctx) {
     if (found.error) return json({ error: found.error[0] }, found.error[1]);
     const { doc } = found;
     const text = String(body.text || "").trim().slice(0, 1000);
-    if (!text) return json({ error: "Leerer Kommentar." }, 400);
+    if (!text) return json({ error: "Der Kommentar ist leer." }, 400);
     pushHistory(doc, histEntry(email, "kommentar", { text }));
     await saveDoc(env, doc);
     return json({ ok: true, document: doc });
@@ -716,7 +792,8 @@ export async function handleDms(ctx) {
     const body = await request.json().catch(() => ({}));
     const found = await docWithAccess(env, admin, email, body.docId);
     if (found.error) return json({ error: found.error[0] }, found.error[1]);
-    const { doc } = found;
+    const { doc, role } = found;
+    if (!can(role, "write")) return json({ error: "Dafür fehlt dir die Berechtigung." }, 403);
     if (body.lock) {
       if (doc.lock && doc.lock.by.toLowerCase() !== me) return json({ error: `Bereits ausgecheckt von ${doc.lock.by}.` }, 409);
       if (doc.status !== "entwurf") return json({ error: "Auschecken geht nur bei Entwürfen." }, 400);
@@ -724,7 +801,7 @@ export async function handleDms(ctx) {
       pushHistory(doc, histEntry(email, "auscheck", { text: "Zum Bearbeiten ausgecheckt" }));
     } else {
       if (!doc.lock) return json({ ok: true, document: doc });
-      if (doc.lock.by.toLowerCase() !== me && !admin) return json({ error: "Nur die auscheckende Person oder ein Admin kann einchecken." }, 403);
+      if (doc.lock.by.toLowerCase() !== me && !can(role, "manage")) return json({ error: "Nur die auscheckende Person oder ein Administrator kann einchecken." }, 403);
       doc.lock = null;
       pushHistory(doc, histEntry(email, "auscheck", { text: "Wieder eingecheckt" }));
     }
@@ -744,7 +821,7 @@ export async function handleDms(ctx) {
     if (!entry) return json({ error: "Version nicht gefunden." }, 404);
     const client = b2Client(env);
     const upstream = await client.fetch(objectUrlFor(bucketUrl, env, entry.key));
-    if (!upstream.ok) return json({ error: "Datei nicht gefunden." }, 404);
+    if (!upstream.ok) return json({ error: "Die Datei wurde nicht gefunden." }, 404);
     const headers = new Headers(upstream.headers);
     const inline = url.searchParams.get("inline") === "1";
     const ct = contentTypeFor(entry.filename);
@@ -762,8 +839,9 @@ export async function handleDms(ctx) {
   // ----- Export: Dokumentenliste als CSV (Excel, Semikolon) -----
 
   if (path === "/api/dms/export" && method === "GET") {
-    const tenant = await resolveAccessibleTenant(env, admin, email, url.searchParams.get("tenantId"));
-    if (!tenant) return json({ error: "Kein Kunde zugeordnet." }, 403);
+    const access = await resolveAccess(env, admin, email, requestedTenant);
+    if (!access) return json({ error: "Kein Kunde zugeordnet." }, 403);
+    const tenant = access.tenant;
     const docs = (await loadTenantDocs(env, tenant)).sort((a, b) => a.docNumber.localeCompare(b.docNumber, "de"));
     const esc = (v) => {
       const s = v == null ? "" : String(v);
@@ -772,19 +850,9 @@ export async function handleDms(ctx) {
     const rows = [
       ["Nr", "Titel", "Kategorie", "Status", "Gültige Version", "Aktuelle Version", "Verantwortlich", "Prüfer", "Freigeber", "Gültig ab", "Nächste Überprüfung", "Schlagworte", "Zuletzt geändert"],
       ...docs.map((d) => [
-        d.docNumber,
-        d.title,
-        d.category,
-        DMS_STATUS_LABEL[d.status] || d.status,
-        d.releasedVersion ? "v" + d.releasedVersion : "",
-        d.currentVersion ? "v" + d.currentVersion : "",
-        d.owner,
-        d.reviewer,
-        d.approver,
-        d.validFrom || "",
-        d.nextReview || "",
-        (d.tags || []).join(", "),
-        (d.updatedAt || "").slice(0, 10),
+        d.docNumber, d.title, d.category, DMS_STATUS_LABEL[d.status] || d.status,
+        d.releasedVersion ? "v" + d.releasedVersion : "", d.currentVersion ? "v" + d.currentVersion : "",
+        d.owner, d.reviewer, d.approver, d.validFrom || "", d.nextReview || "", (d.tags || []).join(", "), (d.updatedAt || "").slice(0, 10),
       ]),
     ];
     const csv = "﻿" + rows.map((r) => r.map(esc).join(";")).join("\r\n");
