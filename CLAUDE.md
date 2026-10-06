@@ -681,6 +681,41 @@ Personenebene:
   keinen echten Inhalt zu riskieren. Das neue DMS deckt "QM-Handbuch" nur noch als Kategorie pro
   Tenant ab, eine echte Zusammenfuehrung beider Systeme ist ein spaeterer Schritt, kein Blocker hier.
 
+### 2.6.9 DMS 2.0 nach dem Vorbild von Wivio (WBI) und M-Files (2026-10-06)
+
+Michael fand das DMS "viel zu simpel", Orientierung an Wivio (WBI, siehe Softwaretest-Bericht) und
+"onefiles" (vermutlich M-Files gemeint, bitte bei Gelegenheit bestätigen). Neu und komplett in
+`src/dms.js` (statt inline in `src/index.js`, dort nur noch `handleDms(...)` plus Import von
+`listTenants`/`resolveTenantForEmail`), Oberfläche neu in `public/dms.html`:
+
+- **Freigabe-Workflow** `POST /api/dms/workflow` (Aktionen einreichen, pruefen, freigeben, ablehnen,
+  zurueckziehen, ueberprueft, archivieren, wiederherstellen). Status: Entwurf, In Prüfung, Geprüft,
+  Freigegeben, Archiviert. Rollen pro Dokument: Verantwortliche:r, Prüfer:in, Freigeber:in (leer = jede
+  berechtigte Person, Alta-Admins dürfen immer). **Vier-Augen-Prinzip** pro Kunde (`tenant.vierAugen`,
+  im Kundendialog): wer die aktuelle Version hochgeladen hat, darf sie nicht prüfen/freigeben.
+  Ablehnen verlangt eine Begründung. Mail an die Zuständigen über `sendMail` (wirkt erst mit
+  `RESEND_API_KEY`).
+- **Dokumentnummern** automatisch (`ENG-001`, `QM-003`, Präfix pro Kategorie, Zähler im Tenant),
+  Beschreibung, Schlagworte, Verantwortliche, **Wiedervorlage** (`reviewIntervalMonths`, `nextReview`,
+  "Überprüft"-Aktion), **gültige Version** (`releasedVersion`) bleibt abrufbar, während eine neue
+  Version Entwurf ist, **Änderungsgrund** Pflicht ab v2, **Verlauf/Audit-Trail** inkl. Kommentare
+  (`doc.history`), **Lesebestätigung** (`/api/dms/read`, pro freigegebener Version), **Check-out**
+  (`/api/dms/lock`), verknüpfte Dokumente, Archiv, Ansehen im Browser (`download?inline=1`),
+  **CSV-Export** `GET /api/dms/export` (Excel, Semikolon).
+- **UI:** Statistikkarten (klickbar), Ansichten (Alle, Meine Aufgaben, In Prüfung, Überprüfung fällig,
+  Archiv), Suche über Nummer/Titel/Schlagwort/Beschreibung/Verantwortliche, Filter, Gruppierung,
+  Detail-Panel rechts mit Reitern (Übersicht, Versionen, Verlauf, Verknüpft, Gelesen).
+- **Migration:** Dokumente im alten Format (`schema` fehlt) werden beim ersten Lesen automatisch
+  hochgestuft (Nummer, Verlauf aus den Versionen, gültige Version, Wiedervorlage 12 Monate nach
+  letzter Änderung). Der alte Endpunkt `POST /api/dms/status` antwortet 410.
+- **Lokal testen:** `npx wrangler dev --local --port 8788` plus kleiner Proxy, der den
+  `Cf-Access-Authenticated-User-Email`-Header setzt (lokal gibt es Access nicht). Datei-Upload geht
+  lokal nicht (kein B2), Versionen lassen sich per `upload-done` mit Fake-Key anlegen.
+- **Noch nicht gebaut** (Ideen aus Wivio/M-Files): Dokumentvorlagen, Volltextsuche im Dateiinhalt,
+  Gruppen für Benachrichtigungen, Rollenverwaltung pro Kunde statt freier E-Mail-Felder, Dashboard
+  mit Diagrammen, Wiedervorlage-Erinnerungsmail per Cron.
+
+
 ### 2.7 Lokale Entwicklung
 
 ```
