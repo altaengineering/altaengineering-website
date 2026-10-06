@@ -944,7 +944,7 @@
       return;
     }
     var canEdit = hb.canEdit, showingDraft = hb.showingDraft;
-    var h = '<div class="page-head"><div><h1>' + esc(hb.title) + (canEdit && showingDraft ? ' <button class="btn sm ghost" id="hbRename" title="Titel ändern"></button>' : '') + '</h1><p>' +
+    var h = '<div class="page-head"><div><h1>' + esc(hb.title) + (canEdit && showingDraft ? ' <button class="btn sm ghost" id="hbRename" title="Titel des Handbuchs ändern">Titel ändern</button>' : '') + '</h1><p>' +
       (hb.published ? 'Version <b>' + hb.version + '</b>, veröffentlicht am ' + fmtDay(hb.publishedAt) + ' von ' + esc(nameFromMail(hb.publishedBy)) + '.' : 'Noch nicht veröffentlicht. Nur Bearbeitende sehen diesen Entwurf.') + '</p></div>' +
       '<div class="row">' + (canEdit && hb.published ? '<div class="views" style="margin:0"><button class="view-tab' + (!showingDraft ? ' on' : '') + '" id="hbPub">Veröffentlicht</button><button class="view-tab' + (showingDraft ? ' on' : '') + '" id="hbDraftV">Entwurf' + (hb.dirty ? ' •' : '') + '</button></div>' : '') +
       '<button class="btn" id="hbJournal">Änderungsjournal</button><button class="btn" id="hbPrint">Drucken / PDF</button>' + (canEdit && showingDraft ? '<button class="btn primary" id="hbAddEnd">+ Kapitel</button>' : '') + '</div></div>';
@@ -968,7 +968,7 @@
         '</div><div class="editor-area prose" id="edArea" contenteditable="true">' + c.html + '</div></div>' +
         '<div class="row" style="margin-top:.7rem"><button class="btn primary" id="edSave">Speichern</button><button class="btn" id="edCancel">Abbrechen</button><span class="muted">Änderungen werden erst nach dem Veröffentlichen für alle sichtbar.</span></div></section>';
     }
-    var tools = (hb.canEdit && hb.showingDraft) ? '<div class="hb-ch-tools no-print"><button class="btn sm" data-ed="' + c.id + '">Bearbeiten</button><button class="btn sm" data-up="' + c.id + '" title="Nach oben"' + (i === 0 ? ' disabled' : '') + '>↑</button><button class="btn sm" data-down="' + c.id + '" title="Nach unten"' + (i === hb.chapters.length - 1 ? ' disabled' : '') + '>↓</button><button class="btn sm" data-after="' + c.id + '" title="Kapitel danach einfügen">+</button><button class="btn sm danger" data-del="' + c.id + '" title="Kapitel löschen"></button></div>' : '';
+    var tools = (hb.canEdit && hb.showingDraft) ? '<div class="hb-ch-tools no-print"><button class="btn sm" data-ed="' + c.id + '">Bearbeiten</button><button class="btn sm" data-up="' + c.id + '" title="Nach oben"' + (i === 0 ? ' disabled' : '') + '>↑</button><button class="btn sm" data-down="' + c.id + '" title="Nach unten"' + (i === hb.chapters.length - 1 ? ' disabled' : '') + '>↓</button><button class="btn sm" data-after="' + c.id + '" title="Kapitel danach einfügen">+</button><button class="btn sm danger" data-del="' + c.id + '" title="Kapitel löschen">Löschen</button></div>' : '';
     return '<section class="hb-ch" id="kap-' + c.id + '"><div class="hb-ch-head"><h2>' + (i + 1) + '. ' + esc(c.title) + '</h2>' + tools + '</div><div class="prose">' + c.html + '</div></section>';
   }
 
