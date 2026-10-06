@@ -717,6 +717,10 @@ M-Files; "onefiles" vermutlich M-Files gemeint). Kein Demo mehr, ein Produkt. Au
   Breite links daneben, darunter als Reiter "Vorschau"). PDF, Bilder (PNG/JPG/GIF) und TXT werden im Browser
   angezeigt (`download?inline=1`), Version wählbar; Word/Excel/CAD zeigen einen Download-Hinweis. Serverseitig
   keine CSP-Sandbox für PDF (sonst zeigt Chrome nichts), nur `nosniff`, kein HTML/SVG inline.
+- **Beispieldateien:** `public/demo-files/<dokument-id>-v<version>.<endung>` (echte, gefüllte PDFs und Excel-Dateien für
+  alle Beispieldokumente). Liegt zu einer Version keine Datei im Speicher, liefert `/api/dms/download` diese
+  Datei als Rückfall aus. Echte Uploads haben immer Vorrang. Wenn die Demo ausgedient hat, kann der Ordner samt
+  Rückfall entfernt werden.
 - **Optik:** wie das Zeiterfassungstool (dunkle Kopfleiste, Karten, Kacheln, Hell/Dunkel). Das Gitter ist
   weg, stattdessen eine Blueprint-Zeichnung (`blueprint.js`: Zahnrad, Flansch, Wellenschnitt, Winkel,
   Bemassung, Schriftfeld, Zeichnungsrahmen). Auch `portal.html` und `index.html` (Auswahlseite) nutzen sie
