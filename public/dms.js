@@ -22,6 +22,8 @@
     { id: 'alle', label: 'Alle' },
     { id: 'aufgaben', label: 'Meine Aufgaben' },
     { id: 'pruefung', label: 'In Prüfung' },
+    { id: 'freigegeben', label: 'Freigegeben' },
+    { id: 'entwurf', label: 'Entwürfe' },
     { id: 'faellig', label: 'Überprüfung fällig' },
     { id: 'archiv', label: 'Archiv' }
   ];
@@ -300,6 +302,8 @@
     if (view === 'archiv') return d.status === 'archiviert';
     if (d.status === 'archiviert') return false;
     if (view === 'aufgaben') return !!taskFor(d);
+    if (view === 'freigegeben') return d.status === 'freigegeben';
+    if (view === 'entwurf') return d.status === 'entwurf';
     if (view === 'pruefung') return d.status === 'in_pruefung' || d.status === 'geprueft';
     if (view === 'faellig') { var s = reviewState(d); return s === 'due' || s === 'overdue'; }
     return true;
@@ -324,15 +328,15 @@
     var active = S.docs.filter(function (d) { return d.status !== 'archiviert'; });
     var kpis = [
       { id: 'alle', n: active.length, l: 'Dokumente', cls: '' },
-      { id: 'x1', n: active.filter(function (d) { return d.status === 'freigegeben'; }).length, l: 'Freigegeben', cls: 'pos', plain: true },
+      { id: 'freigegeben', n: active.filter(function (d) { return d.status === 'freigegeben'; }).length, l: 'Freigegeben', cls: '' },
       { id: 'pruefung', n: S.docs.filter(function (d) { return inView(d, 'pruefung'); }).length, l: 'In Prüfung / Freigabe', cls: '' },
-      { id: 'x2', n: active.filter(function (d) { return d.status === 'entwurf'; }).length, l: 'Entwürfe', cls: '', plain: true },
-      { id: 'faellig', n: S.docs.filter(function (d) { return inView(d, 'faellig'); }).length, l: 'Überprüfung fällig', cls: 'warn' },
-      { id: 'aufgaben', n: countTasks(), l: 'Meine Aufgaben', cls: countTasks() ? 'neg' : '' }
+      { id: 'entwurf', n: active.filter(function (d) { return d.status === 'entwurf'; }).length, l: 'Entwürfe', cls: '' },
+      { id: 'faellig', n: S.docs.filter(function (d) { return inView(d, 'faellig'); }).length, l: 'Überprüfung fällig', cls: S.docs.some(function (d) { return inView(d, 'faellig'); }) ? 'warn' : '' },
+      { id: 'aufgaben', n: countTasks(), l: 'Meine Aufgaben', cls: countTasks() ? 'task' : '' }
     ];
     var h = '<div class="page-head"><div><h1>Dokumente</h1><p>Alle gelenkten Dokumente von ' + esc(S.tenant.name) + ': Prüfung, Freigabe, Versionen und Wiedervorlage an einem Ort.</p></div>' +
-      '<div class="row"><a class="btn" href="/api/dms/audit-report?tenantId=' + encodeURIComponent(S.tenantId) + '" title="PDF für Auditorinnen und Auditoren">📄 Auditbericht</a><a class="btn" href="/api/dms/export?tenantId=' + encodeURIComponent(S.tenantId) + '">⬇ Liste (CSV)</a>' +
-      (can('write') ? '<button class="btn primary" id="newDocBtn">＋ Neues Dokument</button>' : '') + '</div></div>';
+      '<div class="row"><a class="btn" href="/api/dms/audit-report?tenantId=' + encodeURIComponent(S.tenantId) + '" title="PDF für Auditorinnen und Auditoren">Auditbericht</a><a class="btn" href="/api/dms/export?tenantId=' + encodeURIComponent(S.tenantId) + '">Liste (CSV)</a>' +
+      (can('write') ? '<button class="btn primary" id="newDocBtn">+ Neues Dokument</button>' : '') + '</div></div>';
     h += '<div id="idxBanner"></div>';
     h += '<div class="kpis" id="kpis">' + kpis.map(function (k) {
       return '<button class="kpi ' + (k.cls || '') + (k.plain ? '' : ' click') + (S.view === k.id ? ' on' : '') + '"' + (k.plain ? '' : ' data-view="' + k.id + '"') + '><div class="l">' + k.l + '</div><div class="v">' + k.n + '</div></button>';
@@ -401,8 +405,8 @@
       var tr = document.createElement('tr');
       tr.className = 'click' + (doc.status === 'archiviert' ? ' dim' : '');
       tr.innerHTML = '<td class="docnr">' + esc(doc.docNumber) + '</td>' +
-        '<td><div class="t-main">' + esc(doc.title) + '</div><div class="t-sub">' + esc(doc.category) + (doc.lock ? ' · 🔒 ' + esc(nameFromMail(doc.lock.by)) : '') + '</div>' +
-        (hits[doc.id] ? '<div class="snip">📄 Treffer im Dateiinhalt (v' + hits[doc.id].version + '): ' + window.DMSX.snippetHtml(hits[doc.id].snippet, q) + '</div>' : '') +
+        '<td><div class="t-main">' + esc(doc.title) + '</div><div class="t-sub">' + esc(doc.category) + (doc.lock ? ' · ' + esc(nameFromMail(doc.lock.by)) : '') + '</div>' +
+        (hits[doc.id] ? '<div class="snip">Treffer im Dateiinhalt (v' + hits[doc.id].version + '): ' + window.DMSX.snippetHtml(hits[doc.id].snippet, q) + '</div>' : '') +
         ((doc.tags && doc.tags.length) ? '<div class="tags">' + doc.tags.map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') + '</div>' : '') +
         (task ? '<div class="tags"><span class="chip task">' + esc(task) + '</span></div>' : '') + '</td>' +
         '<td>' + statusChip(doc) + '</td><td class="mono muted">' + (doc.currentVersion ? 'v' + doc.currentVersion : '–') + '</td><td>' + who(doc.owner) + '</td><td>' + reviewCell(doc) + '</td>';
@@ -437,10 +441,10 @@
     var lockedByOther = doc.lock && doc.lock.by.toLowerCase() !== me && !can('manage');
     var w = can('write');
     if (s === 'entwurf' && w) {
-      h += aBtn('📤 ' + (doc.currentVersion ? 'Neue Version hochladen' : 'Datei hochladen'), 'upload', doc.currentVersion ? '' : 'primary', { disabled: lockedByOther, title: lockedByOther ? 'Ausgecheckt von ' + doc.lock.by : '' });
-      if (doc.currentVersion) h += aBtn('➡ Zur Prüfung einreichen', 'einreichen', 'primary');
-      if (doc.lock && (doc.lock.by.toLowerCase() === me || can('manage'))) h += aBtn('🔓 Einchecken', 'unlock');
-      else if (!doc.lock) h += aBtn('🔒 Auschecken', 'lock', '', { title: 'Sperrt das Dokument für andere, solange du daran arbeitest.' });
+      h += aBtn('' + (doc.currentVersion ? 'Neue Version hochladen' : 'Datei hochladen'), 'upload', doc.currentVersion ? '' : 'primary', { disabled: lockedByOther, title: lockedByOther ? 'Ausgecheckt von ' + doc.lock.by : '' });
+      if (doc.currentVersion) h += aBtn('Zur Prüfung einreichen', 'einreichen', 'primary');
+      if (doc.lock && (doc.lock.by.toLowerCase() === me || can('manage'))) h += aBtn('Einchecken', 'unlock');
+      else if (!doc.lock) h += aBtn('Auschecken', 'lock', '', { title: 'Sperrt das Dokument für andere, solange du daran arbeitest.' });
     }
     if (s === 'in_pruefung') {
       h += aBtn('✔ Prüfung bestätigen', 'pruefen', 'ok', { disabled: !mayReview || selfBlock, title: selfBlock ? 'Vier-Augen-Prinzip: du hast diese Version hochgeladen.' : (!mayReview ? (can('review') ? 'Zuständig: ' + nameFromMail(doc.reviewer) : 'Dafür brauchst du die Rolle Prüfer oder höher.') : '') });
@@ -453,22 +457,22 @@
       if (w) h += aBtn('↩ Zurückziehen', 'zurueckziehen');
     }
     if (s === 'freigegeben') {
-      if (w) h += aBtn('📤 Neue Version hochladen', 'upload');
+      if (w) h += aBtn('Neue Version hochladen', 'upload');
       if (can('manage') || (w && doc.owner === me)) h += aBtn('✔ Überprüft, unverändert gültig', 'ueberprueft');
       if (doc.readRequired) {
         var r = doc.reads && doc.reads[me];
-        if (!r || r.version !== doc.releasedVersion) h += aBtn('📖 Gelesen und verstanden', 'read', 'primary');
+        if (!r || r.version !== doc.releasedVersion) h += aBtn('Gelesen und verstanden', 'read', 'primary');
       }
     }
-    if (s === 'archiviert' && w) h += aBtn('♻ Wiederherstellen', 'wiederherstellen');
-    if (!doc.versions.length && doc.templateId) h += '<a class="btn sm primary" href="/api/dms/template-file?docId=' + doc.id + '">📄 Word-Startdatei herunterladen</a>';
+    if (s === 'archiviert' && w) h += aBtn('Wiederherstellen', 'wiederherstellen');
+    if (!doc.versions.length && doc.templateId) h += '<a class="btn sm primary" href="/api/dms/template-file?docId=' + doc.id + '">Word-Startdatei herunterladen</a>';
     var v = doc.releasedVersion || doc.currentVersion;
     if (v) {
-      h += '<a class="btn sm" href="/api/dms/download?docId=' + doc.id + '&version=' + v + '&inline=1" target="_blank" rel="noopener">👁 ' + (doc.releasedVersion ? 'Gültige Version ansehen' : 'Ansehen') + '</a>';
-      h += '<a class="btn sm" href="/api/dms/download?docId=' + doc.id + '&version=' + v + '">⬇ Download</a>';
+      h += '<a class="btn sm" href="/api/dms/download?docId=' + doc.id + '&version=' + v + '&inline=1" target="_blank" rel="noopener">' + (doc.releasedVersion ? 'Gültige Version ansehen' : 'Ansehen') + '</a>';
+      h += '<a class="btn sm" href="/api/dms/download?docId=' + doc.id + '&version=' + v + '">Download</a>';
     }
-    if (s !== 'archiviert' && (can('manage') || (w && (doc.owner === me || (doc.createdBy || '').toLowerCase() === me)))) h += aBtn('🗄 Archivieren', 'archivieren');
-    if (can('manage')) h += aBtn('🗑 Löschen', 'delete', 'danger');
+    if (s !== 'archiviert' && (can('manage') || (w && (doc.owner === me || (doc.createdBy || '').toLowerCase() === me)))) h += aBtn('Archivieren', 'archivieren');
+    if (can('manage')) h += aBtn('Löschen', 'delete', 'danger');
     return h;
   }
   function renderDrawer(doc) {
@@ -519,14 +523,14 @@
       container.innerHTML = kind === 'img' ? '<img src="' + u + '" alt="' + esc(entry.filename) + '">' : '<iframe src="' + u + '" title="Vorschau ' + esc(entry.filename) + '"></iframe>';
     }).catch(function (e) {
       if (my !== pvToken) return;
-      container.innerHTML = '<div class="preview-none"><div class="big">⚠️</div><b>Die Vorschau konnte nicht geladen werden</b>' + esc(e.message) + '<div style="margin-top:1rem"><a class="btn" href="/api/dms/download?docId=' + doc.id + '&version=' + entry.version + '">⬇ Herunterladen versuchen</a></div></div>';
+      container.innerHTML = '<div class="preview-none"><b>Die Vorschau konnte nicht geladen werden</b>' + esc(e.message) + '<div style="margin-top:1rem"><a class="btn" href="/api/dms/download?docId=' + doc.id + '&version=' + entry.version + '">Herunterladen versuchen</a></div></div>';
     });
   }
   function previewBodyHtml(doc, entry) {
     var url = '/api/dms/download?docId=' + doc.id + '&version=' + entry.version;
     var kind = previewKind(entry.filename);
     if (kind !== 'none') return '<div class="preview-load">Lade Vorschau …</div>';
-    return '<div class="preview-none"><div class="big">📄</div><b>Keine Vorschau für diesen Dateityp</b>Dateien wie Word, Excel oder CAD lassen sich nicht im Browser anzeigen. Lade die Datei herunter, um sie zu öffnen.<div style="margin-top:1rem"><a class="btn primary" href="' + url + '">⬇ Herunterladen</a></div></div>';
+    return '<div class="preview-none"><b>Keine Vorschau für diesen Dateityp</b>Dateien wie Word, Excel oder CAD lassen sich nicht im Browser anzeigen. Lade die Datei herunter, um sie zu öffnen.<div style="margin-top:1rem"><a class="btn primary" href="' + url + '">Herunterladen</a></div></div>';
   }
   function renderPreview(doc) {
     var pv = $('preview');
@@ -536,7 +540,7 @@
     var url = '/api/dms/download?docId=' + doc.id + '&version=' + entry.version;
     var vsel = doc.versions.length > 1 ? '<select id="pvVer" aria-label="Version">' + doc.versions.slice().reverse().map(function (v) { return '<option value="' + v.version + '"' + (v.version === entry.version ? ' selected' : '') + '>v' + v.version + (v.version === doc.releasedVersion ? ' (gültig)' : v.version === doc.currentVersion ? ' (aktuell)' : '') + '</option>'; }).join('') + '</select>' : '<span class="chip">v' + entry.version + '</span>';
     pv.innerHTML = '<div class="preview-head"><span class="fn" title="' + esc(entry.filename) + '">' + esc(entry.filename) + '</span>' + vsel +
-      (previewKind(entry.filename) !== 'none' ? '<a class="btn sm" href="' + url + '&inline=1" target="_blank" rel="noopener">↗ Neuer Tab</a>' : '') + '<a class="btn sm" href="' + url + '">⬇ Download</a><button class="x-btn" id="pvClose" aria-label="Schliessen" title="Schliessen" style="width:32px;height:32px">✕</button></div>' +
+      (previewKind(entry.filename) !== 'none' ? '<a class="btn sm" href="' + url + '&inline=1" target="_blank" rel="noopener">↗ Neuer Tab</a>' : '') + '<a class="btn sm" href="' + url + '">Download</a><button class="x-btn" id="pvClose" aria-label="Schliessen" title="Schliessen" style="width:32px;height:32px">✕</button></div>' +
       '<div class="preview-body">' + previewBodyHtml(doc, entry) + '</div>';
     pv.classList.add('show');
     $('pvClose').addEventListener('click', closeDrawer);
@@ -554,8 +558,8 @@
   function mi(k, v, wide) { return '<div class="meta-item' + (wide ? ' wide' : '') + '"><div class="k">' + k + '</div><div class="v">' + v + '</div></div>'; }
   function tabUebersicht(doc) {
     var h = '';
-    if (!doc.versions.length && doc.templateId) h += '<div class="notice">📄 Dieses Dokument wurde aus einer Vorlage angelegt. Lade oben die <b>Word-Startdatei</b> herunter, fülle sie aus und lade sie danach als erste Version hoch.</div>';
-    if (doc.lock) h += '<div class="notice warn">🔒 Ausgecheckt von <b>' + esc(nameFromMail(doc.lock.by)) + '</b> seit ' + fmtDateTime(doc.lock.at) + '. Andere können keine neue Version hochladen.</div>';
+    if (!doc.versions.length && doc.templateId) h += '<div class="notice">Dieses Dokument wurde aus einer Vorlage angelegt. Lade oben die <b>Word-Startdatei</b> herunter, fülle sie aus und lade sie danach als erste Version hoch.</div>';
+    if (doc.lock) h += '<div class="notice warn">Ausgecheckt von <b>' + esc(nameFromMail(doc.lock.by)) + '</b> seit ' + fmtDateTime(doc.lock.at) + '. Andere können keine neue Version hochladen.</div>';
     if (doc.status === 'in_pruefung') h += '<div class="notice">Wartet auf Prüfung' + (doc.reviewer ? ' durch <b>' + esc(nameFromMail(doc.reviewer)) + '</b>' : '') + '.</div>';
     if (doc.status === 'geprueft') h += '<div class="notice">Geprüft. Wartet auf Freigabe' + (doc.approver ? ' durch <b>' + esc(nameFromMail(doc.approver)) + '</b>' : '') + '.</div>';
     var rs = reviewState(doc);
@@ -569,7 +573,7 @@
       mi('Lesepflicht', doc.readRequired ? 'Ja, für ' + esc(readersLabel(doc)) : 'Nein') + mi('Angelegt', fmtDateTime(doc.createdAt) + '<br>' + esc(nameFromMail(doc.createdBy))) +
       mi('Beschreibung', doc.description ? esc(doc.description).replace(/\n/g, '<br>') : '–', true) +
       mi('Schlagworte', (doc.tags && doc.tags.length) ? '<div class="tags">' + doc.tags.map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') + '</div>' : '–', true) + '</div>';
-    if (doc.status !== 'archiviert' && can('write')) h += '<button class="btn sm" id="editMetaBtn">✎ Angaben bearbeiten</button>';
+    if (doc.status !== 'archiviert' && can('write')) h += '<button class="btn sm" id="editMetaBtn">Angaben bearbeiten</button>';
     return h;
   }
   function tabVersionen(doc) {
@@ -578,7 +582,7 @@
       var valid = doc.releasedVersion === v.version, cur = doc.currentVersion === v.version;
       return '<div class="ver-item' + (valid ? ' valid' : '') + '"><div><div class="mono"><b>v' + v.version + '</b> · ' + esc(v.filename) + ' · ' + formatSize(v.size) + (valid ? ' <span class="chip freigegeben">gültig</span>' : '') + (cur && !valid ? ' <span class="chip">aktuell</span>' : '') + '</div>' +
         '<div class="t-sub">' + fmtDateTime(v.uploadedAt) + ' · ' + esc(nameFromMail(v.uploadedBy)) + (v.note ? ' · Änderung: ' + esc(v.note) : '') + '</div></div>' +
-        '<div class="row"><a class="btn sm" href="/api/dms/download?docId=' + doc.id + '&version=' + v.version + '&inline=1" target="_blank" rel="noopener">👁</a><a class="btn sm" href="/api/dms/download?docId=' + doc.id + '&version=' + v.version + '">⬇</a></div></div>';
+        '<div class="row"><a class="btn sm" href="/api/dms/download?docId=' + doc.id + '&version=' + v.version + '&inline=1" target="_blank" rel="noopener">Ansehen</a><a class="btn sm" href="/api/dms/download?docId=' + doc.id + '&version=' + v.version + '">Download</a></div></div>';
     }).join('');
   }
   function tabVerlauf(doc) {
@@ -714,7 +718,7 @@
     api('/api/dms/members?tenantId=' + encodeURIComponent(S.tenantId)).then(function (res) {
       var members = res.members;
       var h = '<div class="page-head"><div><h1>Benutzer</h1><p>Wer bei ' + esc(S.tenant.name) + ' arbeiten darf und was die Person tun kann. Neue Personen bekommen per E-Mail eine Einladung und melden sich ohne Passwort mit einem Code an.</p></div>' +
-        '<div class="row"><button class="btn primary" id="inviteBtn">＋ Personen einladen</button></div></div>';
+        '<div class="row"><button class="btn primary" id="inviteBtn">+ Personen einladen</button></div></div>';
       h += '<div class="roles-grid">' + ['admin', 'freigeber', 'pruefer', 'ersteller', 'leser'].map(function (r) {
         return '<div class="role-card"><b>' + roleChip(r) + '</b><p>' + esc(ROLE_TEXT[r]) + '</p><p class="mono" style="margin-top:.4rem">' + members.filter(function (m) { return m.role === r; }).length + ' Person(en)</p></div>';
       }).join('') + '</div>';
@@ -738,7 +742,7 @@
             '<td class="mono">' + esc(m.email) + '</td>' +
             '<td><select data-role="' + esc(m.email) + '" style="width:auto;min-width:150px">' + ['admin', 'freigeber', 'pruefer', 'ersteller', 'leser'].map(function (r) { return '<option value="' + r + '"' + (m.role === r ? ' selected' : '') + '>' + esc(ROLE_LABEL[r]) + '</option>'; }).join('') + '</select></td>' +
             '<td class="muted">' + (m.addedAt ? fmtDay(m.addedAt) : '–') + '</td>' +
-            '<td><div class="row" style="justify-content:flex-end"><button class="btn sm" data-rename="' + esc(m.email) + '">✎ Name</button><button class="btn sm danger" data-remove="' + esc(m.email) + '">Entfernen</button></div></td>';
+            '<td><div class="row" style="justify-content:flex-end"><button class="btn sm" data-rename="' + esc(m.email) + '">Name</button><button class="btn sm danger" data-remove="' + esc(m.email) + '">Entfernen</button></div></td>';
           rows.appendChild(tr);
         });
         rows.querySelectorAll('[data-role]').forEach(function (sel) {
@@ -806,7 +810,7 @@
     var cats = t.categories.map(function (c) { return { was: c, name: c, prefix: (t.categoryPrefixes || {})[c] || '' }; });
     var h = '<div class="page-head"><div><h1>Einstellungen</h1><p>Kategorien, Nummernkreise und Regeln von ' + esc(t.name) + '.</p></div></div>';
     h += '<div class="card"><h2>Kategorien und Nummernkreise</h2><div class="sub">Jede Kategorie ist eine Abteilung oder ein Dokumenttyp. Das Kürzel bestimmt die Dokumentnummer, zum Beispiel <b>QM-001</b>.</div><div id="catRows"></div>' +
-      '<div class="row" style="margin-top:.8rem"><button class="btn" id="catAdd">＋ Kategorie</button><button class="btn primary" id="catSave">Kategorien speichern</button></div></div>';
+      '<div class="row" style="margin-top:.8rem"><button class="btn" id="catAdd">+ Kategorie</button><button class="btn primary" id="catSave">Kategorien speichern</button></div></div>';
     h += '<div class="card"><h2>Regeln</h2><div class="sub">Wie streng soll die Freigabe sein?</div>' +
       '<label class="switch"><input type="checkbox" id="setVier"' + (t.vierAugen ? ' checked' : '') + '><span class="tr"></span><span><b>Vier-Augen-Prinzip</b><span class="d">Wer ein Dokument hochgeladen hat, darf es nicht selbst prüfen oder freigeben. Auch das Handbuch lässt sich nicht von der Person veröffentlichen, die alles allein geändert hat. Empfohlen für ISO 9001.</span></span></label>' +
       '<div class="field" style="margin-top:1.1rem;max-width:320px"><label class="lbl" for="setMonths">Standard-Überprüfung alle … Monate</label><input type="number" min="0" max="120" id="setMonths" value="' + esc(t.defaultReviewMonths == null ? 12 : t.defaultReviewMonths) + '"><div class="hint">Gilt für neue Dokumente. 0 = keine Wiedervorlage.</div></div>' +
@@ -841,7 +845,7 @@
   function renderCustomers() {
     $('page').innerHTML = '<div class="empty">Lade …</div>';
     api('/api/dms/tenants').then(function (res) {
-      var h = '<div class="page-head"><div><h1>Kunden</h1><p>Jeder Kunde hat seine eigene Dokumentenlenkung mit eigenen Benutzern, Kategorien und Handbuch, komplett getrennt von den anderen.</p></div><div class="row"><button class="btn primary" id="newCust">＋ Neuen Kunden anlegen</button></div></div>';
+      var h = '<div class="page-head"><div><h1>Kunden</h1><p>Jeder Kunde hat seine eigene Dokumentenlenkung mit eigenen Benutzern, Kategorien und Handbuch, komplett getrennt von den anderen.</p></div><div class="row"><button class="btn primary" id="newCust">+ Neuen Kunden anlegen</button></div></div>';
       h += '<div class="card flush"><div class="tbl-wrap"><table><thead><tr><th>Firma</th><th>Benutzer</th><th>Dokumente</th><th>Freigabe</th><th>Angelegt</th><th></th></tr></thead><tbody>' +
         (res.tenants.length ? res.tenants.map(function (t) {
           return '<tr><td><div class="t-main">' + esc(t.name) + '</div></td><td class="mono">' + t.memberCount + '</td><td class="mono">' + t.documentCount + '</td><td>' + (t.vierAugen ? '<span class="chip freigegeben">Vier-Augen</span>' : '<span class="muted">Standard</span>') + '</td><td class="muted">' + (t.createdAt ? fmtDay(t.createdAt) : '–') + '</td>' +
@@ -940,10 +944,10 @@
       return;
     }
     var canEdit = hb.canEdit, showingDraft = hb.showingDraft;
-    var h = '<div class="page-head"><div><h1>' + esc(hb.title) + (canEdit && showingDraft ? ' <button class="btn sm ghost" id="hbRename" title="Titel ändern">✎</button>' : '') + '</h1><p>' +
+    var h = '<div class="page-head"><div><h1>' + esc(hb.title) + (canEdit && showingDraft ? ' <button class="btn sm ghost" id="hbRename" title="Titel ändern"></button>' : '') + '</h1><p>' +
       (hb.published ? 'Version <b>' + hb.version + '</b>, veröffentlicht am ' + fmtDay(hb.publishedAt) + ' von ' + esc(nameFromMail(hb.publishedBy)) + '.' : 'Noch nicht veröffentlicht. Nur Bearbeitende sehen diesen Entwurf.') + '</p></div>' +
       '<div class="row">' + (canEdit && hb.published ? '<div class="views" style="margin:0"><button class="view-tab' + (!showingDraft ? ' on' : '') + '" id="hbPub">Veröffentlicht</button><button class="view-tab' + (showingDraft ? ' on' : '') + '" id="hbDraftV">Entwurf' + (hb.dirty ? ' •' : '') + '</button></div>' : '') +
-      '<button class="btn" id="hbJournal">📜 Änderungsjournal</button><button class="btn" id="hbPrint">🖨 Drucken / PDF</button>' + (canEdit && showingDraft ? '<button class="btn primary" id="hbAddEnd">＋ Kapitel</button>' : '') + '</div></div>';
+      '<button class="btn" id="hbJournal">Änderungsjournal</button><button class="btn" id="hbPrint">Drucken / PDF</button>' + (canEdit && showingDraft ? '<button class="btn primary" id="hbAddEnd">+ Kapitel</button>' : '') + '</div></div>';
     if (showingDraft && hb.dirty) {
       h += '<div class="notice warn hb-banner"><b>Entwurf mit Änderungen, die noch nicht veröffentlicht sind.</b> Zuletzt bearbeitet von ' + esc(nameFromMail(hb.updatedBy)) + ' am ' + fmtDateTime(hb.updatedAt) + '. Mitarbeitende sehen weiterhin die veröffentlichte Version.' +
         '<div class="row">' + (hb.canPublish ? '<button class="btn sm ok" id="hbPublish">Veröffentlichen …</button>' : '<span class="muted">Zum Veröffentlichen braucht es eine Person mit der Rolle Freigeber oder Administrator.</span>') + (hb.canPublish && hb.published ? '<button class="btn sm danger" id="hbDiscard">Änderungen verwerfen</button>' : '') + '</div></div>';
@@ -960,11 +964,11 @@
         '<select id="edFmt" title="Format"><option value="p">Absatz</option><option value="h3">Überschrift</option><option value="h4">Unterüberschrift</option><option value="blockquote">Zitat</option></select><span class="sep"></span>' +
         '<button data-cmd="bold" title="Fett"><b>B</b></button><button data-cmd="italic" title="Kursiv"><i>I</i></button><button data-cmd="underline" title="Unterstrichen"><u>U</u></button><span class="sep"></span>' +
         '<button data-cmd="insertUnorderedList" title="Aufzählung">• Liste</button><button data-cmd="insertOrderedList" title="Nummerierung">1. Liste</button><span class="sep"></span>' +
-        '<button data-cmd="link" title="Link">🔗</button><button data-cmd="table" title="Tabelle einfügen">▦ Tabelle</button><span class="sep"></span><button data-cmd="undo" title="Rückgängig">↶</button><button data-cmd="redo" title="Wiederholen">↷</button><button data-cmd="removeFormat" title="Formatierung entfernen">Tx</button>' +
+        '<button data-cmd="link" title="Link">Link</button><button data-cmd="table" title="Tabelle einfügen">▦ Tabelle</button><span class="sep"></span><button data-cmd="undo" title="Rückgängig">↶</button><button data-cmd="redo" title="Wiederholen">↷</button><button data-cmd="removeFormat" title="Formatierung entfernen">Tx</button>' +
         '</div><div class="editor-area prose" id="edArea" contenteditable="true">' + c.html + '</div></div>' +
         '<div class="row" style="margin-top:.7rem"><button class="btn primary" id="edSave">Speichern</button><button class="btn" id="edCancel">Abbrechen</button><span class="muted">Änderungen werden erst nach dem Veröffentlichen für alle sichtbar.</span></div></section>';
     }
-    var tools = (hb.canEdit && hb.showingDraft) ? '<div class="hb-ch-tools no-print"><button class="btn sm" data-ed="' + c.id + '">✎ Bearbeiten</button><button class="btn sm" data-up="' + c.id + '" title="Nach oben"' + (i === 0 ? ' disabled' : '') + '>↑</button><button class="btn sm" data-down="' + c.id + '" title="Nach unten"' + (i === hb.chapters.length - 1 ? ' disabled' : '') + '>↓</button><button class="btn sm" data-after="' + c.id + '" title="Kapitel danach einfügen">＋</button><button class="btn sm danger" data-del="' + c.id + '" title="Kapitel löschen">🗑</button></div>' : '';
+    var tools = (hb.canEdit && hb.showingDraft) ? '<div class="hb-ch-tools no-print"><button class="btn sm" data-ed="' + c.id + '">Bearbeiten</button><button class="btn sm" data-up="' + c.id + '" title="Nach oben"' + (i === 0 ? ' disabled' : '') + '>↑</button><button class="btn sm" data-down="' + c.id + '" title="Nach unten"' + (i === hb.chapters.length - 1 ? ' disabled' : '') + '>↓</button><button class="btn sm" data-after="' + c.id + '" title="Kapitel danach einfügen">+</button><button class="btn sm danger" data-del="' + c.id + '" title="Kapitel löschen"></button></div>' : '';
     return '<section class="hb-ch" id="kap-' + c.id + '"><div class="hb-ch-head"><h2>' + (i + 1) + '. ' + esc(c.title) + '</h2>' + tools + '</div><div class="prose">' + c.html + '</div></section>';
   }
 
@@ -1083,18 +1087,18 @@
   // =====================================================================
 
   var STEPS = [
-    ['🗂️', 'Dokumentenlenkung', 'Hier liegen alle gelenkten Dokumente deiner Firma: Prüfung, Freigabe, Versionen und Überprüfungstermine an einem Ort.'],
-    ['📋', 'Meine Aufgaben', 'Oben siehst du, was auf dich wartet: Prüfungen, Freigaben, fällige Überprüfungen und Lesebestätigungen. Ein Klick auf eine Kachel filtert die Liste.'],
-    ['✅', 'Freigabe-Ablauf', 'Entwurf, Prüfung, Freigabe. Ersteller, Prüfer und Freigeber sind getrennte Rollen. Mit Vier-Augen-Prinzip darf niemand sein eigenes Dokument freigeben. Eine Ablehnung braucht immer eine Begründung.'],
-    ['📘', 'QM-Handbuch', 'Das Handbuch deiner Firma lässt sich direkt hier bearbeiten, Kapitel für Kapitel. Änderungen sind zuerst ein Entwurf. Erst «Veröffentlichen» macht sie für alle sichtbar und trägt sie ins Änderungsjournal ein.'],
-    ['👥', 'Benutzer', 'Administratoren laden Personen per E-Mail ein und vergeben Rollen: Leser, Ersteller, Prüfer, Freigeber oder Administrator. Ein Passwort braucht niemand, die Anmeldung läuft mit einem Code per E-Mail.'],
-    ['⚙️', 'Einstellungen', 'Kategorien mit Kürzeln (daraus entstehen Nummern wie QM-001), das Vier-Augen-Prinzip und das Standard-Überprüfungsintervall stellst du hier ein.']
-    ['📊', 'Übersicht', 'Das Dashboard zeigt auf einen Blick: Freigaben pro Monat, wie lange eine Freigabe dauert, Dokumente pro Abteilung und welche Überprüfungen fällig sind. Jedes Diagramm gibt es auch als Tabelle.'],
-    ['📄', 'Dokumentvorlagen', 'Ein neues Dokument startest du aus einer Vorlage, zum Beispiel Verfahrensanweisung oder Prüfprotokoll. Du bekommst eine Word-Startdatei mit Kopf und Gliederung. Eigene Vorlagen legt ein Administrator in den Einstellungen an.'],
-    ['🔎', 'Suche im Dateiinhalt', 'Die Suche findet nicht nur Titel und Schlagworte, sondern auch Wörter im PDF. Neue Dateien werden beim Hochladen automatisch durchsuchbar gemacht.'],
+    ['', 'Dokumentenlenkung', 'Hier liegen alle gelenkten Dokumente deiner Firma: Prüfung, Freigabe, Versionen und Überprüfungstermine an einem Ort.'],
+    ['', 'Meine Aufgaben', 'Oben siehst du, was auf dich wartet: Prüfungen, Freigaben, fällige Überprüfungen und Lesebestätigungen. Ein Klick auf eine Kachel filtert die Liste.'],
+    ['', 'Freigabe-Ablauf', 'Entwurf, Prüfung, Freigabe. Ersteller, Prüfer und Freigeber sind getrennte Rollen. Mit Vier-Augen-Prinzip darf niemand sein eigenes Dokument freigeben. Eine Ablehnung braucht immer eine Begründung.'],
+    ['', 'QM-Handbuch', 'Das Handbuch deiner Firma lässt sich direkt hier bearbeiten, Kapitel für Kapitel. Änderungen sind zuerst ein Entwurf. Erst «Veröffentlichen» macht sie für alle sichtbar und trägt sie ins Änderungsjournal ein.'],
+    ['', 'Benutzer', 'Administratoren laden Personen per E-Mail ein und vergeben Rollen: Leser, Ersteller, Prüfer, Freigeber oder Administrator. Ein Passwort braucht niemand, die Anmeldung läuft mit einem Code per E-Mail.'],
+    ['', 'Einstellungen', 'Kategorien mit Kürzeln (daraus entstehen Nummern wie QM-001), das Vier-Augen-Prinzip und das Standard-Überprüfungsintervall stellst du hier ein.']
+    ['', 'Übersicht', 'Das Dashboard zeigt auf einen Blick: Freigaben pro Monat, wie lange eine Freigabe dauert, Dokumente pro Abteilung und welche Überprüfungen fällig sind. Jedes Diagramm gibt es auch als Tabelle.'],
+    ['', 'Dokumentvorlagen', 'Ein neues Dokument startest du aus einer Vorlage, zum Beispiel Verfahrensanweisung oder Prüfprotokoll. Du bekommst eine Word-Startdatei mit Kopf und Gliederung. Eigene Vorlagen legt ein Administrator in den Einstellungen an.'],
+    ['', 'Suche im Dateiinhalt', 'Die Suche findet nicht nur Titel und Schlagworte, sondern auch Wörter im PDF. Neue Dateien werden beim Hochladen automatisch durchsuchbar gemacht.'],
     ['⇄', 'Versionen vergleichen', 'Im Reiter «Versionen» siehst du zwei Versionen nebeneinander und alle Änderungen im Text hervorgehoben. Auch beim Handbuch gibt es im Änderungsjournal die Ansicht «Änderungen».'],
-    ['👥', 'Gruppen und Verteiler', 'Unter «Benutzer» legst du Gruppen an, zum Beispiel «Produktion». Bei einem Dokument mit Lesepflicht wählst du die Gruppen, die es lesen müssen. Nur sie bekommen die Aufgabe.'],
-    ['🧾', 'Auditbericht', 'Mit einem Klick erzeugst du ein PDF für Auditoren: alle gültigen Dokumente mit Version, Freigabe und Überprüfungsdatum, offene Punkte, Lesebestätigungen und das Handbuch.'],
+    ['', 'Gruppen und Verteiler', 'Unter «Benutzer» legst du Gruppen an, zum Beispiel «Produktion». Bei einem Dokument mit Lesepflicht wählst du die Gruppen, die es lesen müssen. Nur sie bekommen die Aufgabe.'],
+    ['', 'Auditbericht', 'Mit einem Klick erzeugst du ein PDF für Auditoren: alle gültigen Dokumente mit Version, Freigabe und Überprüfungsdatum, offene Punkte, Lesebestätigungen und das Handbuch.'],
   ];
   function tour() {
     var i = 0;
@@ -1103,7 +1107,7 @@
     document.body.appendChild(bg);
     function draw() {
       var s = STEPS[i];
-      bg.innerHTML = '<div class="modal" style="text-align:center"><div style="font-size:2.4rem;padding-top:1.3rem">' + s[0] + '</div><h3>' + esc(s[1]) + '</h3><div class="m-sub" style="font-size:.95rem">' + esc(s[2]) + '</div><div class="m-foot" style="justify-content:space-between;margin-top:.6rem"><button class="btn" data-m="back"' + (i === 0 ? ' style="visibility:hidden"' : '') + '>Zurück</button><span class="muted" style="align-self:center">' + (i + 1) + ' / ' + STEPS.length + '</span><span><button class="btn ghost" data-m="skip">Überspringen</button> <button class="btn primary" data-m="next">' + (i === STEPS.length - 1 ? 'Fertig' : 'Weiter') + '</button></span></div></div>';
+      bg.innerHTML = '<div class="modal" style="text-align:center"><div class="tour-n">' + (i + 1) + '</div><h3>' + esc(s[1]) + '</h3><div class="m-sub" style="font-size:.95rem">' + esc(s[2]) + '</div><div class="m-foot" style="justify-content:space-between;margin-top:.6rem"><button class="btn" data-m="back"' + (i === 0 ? ' style="visibility:hidden"' : '') + '>Zurück</button><span class="muted" style="align-self:center">' + (i + 1) + ' / ' + STEPS.length + '</span><span><button class="btn ghost" data-m="skip">Überspringen</button> <button class="btn primary" data-m="next">' + (i === STEPS.length - 1 ? 'Fertig' : 'Weiter') + '</button></span></div></div>';
       bg.querySelector('[data-m=back]').addEventListener('click', function () { i--; draw(); });
       bg.querySelector('[data-m=skip]').addEventListener('click', function () { bg.remove(); });
       bg.querySelector('[data-m=next]').addEventListener('click', function () { if (i < STEPS.length - 1) { i++; draw(); } else bg.remove(); });
