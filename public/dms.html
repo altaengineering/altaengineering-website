@@ -191,6 +191,109 @@ tbody tr.doc-row{cursor:pointer}
   .back-link{padding:.5rem .6rem}
   .back-link .lbl{display:none}
 }
+
+/* ===== DMS 2.0: Ansichten, Detail-Panel, Dialoge ===== */
+.badge.status-in_pruefung{background:var(--warn-chip);color:var(--warn)}
+.badge.status-archiviert{background:var(--surface-2);color:var(--muted);text-decoration:line-through}
+.badge.due{background:var(--warn-chip);color:var(--warn)}
+.badge.overdue{background:rgba(234,111,99,.16);color:var(--err)}
+.badge.task{background:rgba(90,166,236,.18);color:var(--accent)}
+.badge.gray{background:var(--surface-2);color:var(--muted)}
+
+.stat-row{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.stat.click{cursor:pointer;transition:.15s}
+.stat.click:hover{border-color:var(--accent);transform:translateY(-1px)}
+.stat.click.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.stat .num.warn{color:var(--warn)}
+.stat .num.err{color:var(--err)}
+
+.views{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1rem;border-bottom:1px solid var(--line);padding-bottom:.6rem}
+.view-tab{font-family:var(--font);font-size:.86rem;font-weight:600;padding:.45rem .85rem;border-radius:99px;border:1px solid var(--line-2);background:var(--surface);color:var(--muted);cursor:pointer;transition:.15s}
+.view-tab:hover{color:var(--text);border-color:var(--accent)}
+.view-tab.on{background:var(--btn);border-color:var(--btn);color:#fff}
+.view-tab .cnt{opacity:.75;margin-left:.3rem;font-family:var(--mono);font-size:.76rem}
+
+.toolbar{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem}
+.toolbar .grow{flex:1;min-width:200px}
+.toolbar input[type=text]{width:100%}
+.toolbar .spacer{flex:1}
+
+tbody tr.group-row td{background:var(--surface-2);font-family:var(--mono);font-size:.76rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:.45rem .6rem}
+.docnr{font-family:var(--mono);font-size:.8rem;color:var(--accent);white-space:nowrap}
+.tags{display:flex;gap:.3rem;flex-wrap:wrap;margin-top:.3rem}
+.tag{font-size:.7rem;padding:.08rem .5rem;border-radius:99px;background:var(--chip);color:var(--accent);font-family:var(--mono)}
+.sub-status{display:block;font-size:.72rem;color:var(--muted);margin-top:.25rem;font-family:var(--mono)}
+tbody tr.dim td{opacity:.6}
+
+/* Detail-Panel rechts */
+.drawer-bg{position:fixed;inset:0;background:rgba(10,14,20,.5);backdrop-filter:blur(2px);z-index:60;display:none}
+.drawer-bg.open{display:block}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(780px,100vw);background:var(--bg);border-left:1px solid var(--line-2);box-shadow:-20px 0 50px var(--shadow-strong);z-index:61;transform:translateX(102%);transition:transform .25s ease;display:flex;flex-direction:column}
+.drawer.open{transform:none}
+.drawer-head{padding:1.1rem 1.4rem;border-bottom:1px solid var(--line);background:var(--alt);display:flex;gap:1rem;align-items:flex-start;justify-content:space-between}
+.drawer-head h3{font-size:1.2rem;font-weight:700;letter-spacing:-.01em;margin:.2rem 0 .5rem;overflow-wrap:anywhere}
+.drawer-close{border:1px solid var(--line-2);background:var(--surface);color:var(--text);width:36px;height:36px;border-radius:8px;cursor:pointer;font-size:1rem;flex:none}
+.drawer-close:hover{border-color:var(--accent);color:var(--accent)}
+.drawer-actions{padding:.9rem 1.4rem;border-bottom:1px solid var(--line);display:flex;gap:.5rem;flex-wrap:wrap;background:var(--surface)}
+.drawer-tabs{display:flex;gap:.3rem;padding:.6rem 1.4rem 0;border-bottom:1px solid var(--line)}
+.drawer-tab{font-family:var(--font);font-size:.86rem;font-weight:600;padding:.5rem .9rem;border:0;border-bottom:2px solid transparent;background:none;color:var(--muted);cursor:pointer}
+.drawer-tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+.drawer-body{padding:1.2rem 1.4rem 2rem;overflow-y:auto;flex:1}
+.btn-sm{display:inline-flex;align-items:center;gap:.35rem;font-family:var(--font);font-size:.84rem;font-weight:700;padding:.5rem .9rem;border-radius:7px;border:1.5px solid var(--line-2);background:var(--surface);color:var(--text);cursor:pointer;transition:.15s;text-decoration:none}
+.btn-sm:hover{border-color:var(--accent);color:var(--accent)}
+.btn-sm.primary{background:var(--btn);border-color:var(--btn);color:#fff}
+.btn-sm.primary:hover{background:var(--btn-hover);color:#fff}
+.btn-sm.ok{background:var(--ok);border-color:var(--ok);color:#fff}
+.btn-sm.danger:hover{border-color:var(--err);color:var(--err)}
+.btn-sm[disabled]{opacity:.45;cursor:not-allowed}
+.btn-sm[disabled]:hover{border-color:var(--line-2);color:var(--text)}
+
+.meta-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.9rem 1.4rem;margin-bottom:1.2rem}
+.meta-item .k{font-size:.7rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-family:var(--mono)}
+.meta-item .v{font-size:.92rem;margin-top:.15rem;overflow-wrap:anywhere}
+.meta-item.wide{grid-column:1/-1}
+.notice{border:1px solid var(--line-2);border-left:3px solid var(--accent);background:var(--surface);border-radius:8px;padding:.7rem .9rem;font-size:.86rem;margin-bottom:1rem}
+.notice.warn{border-left-color:var(--warn)}
+.notice.err{border-left-color:var(--err)}
+
+.timeline{display:flex;flex-direction:column;gap:0}
+.tl-item{display:grid;grid-template-columns:14px 1fr;gap:.8rem;padding-bottom:1rem;position:relative}
+.tl-item::before{content:"";position:absolute;left:6px;top:14px;bottom:-2px;width:1px;background:var(--line-2)}
+.tl-item:last-child::before{display:none}
+.tl-dot{width:13px;height:13px;border-radius:50%;background:var(--accent);margin-top:.3rem;border:2px solid var(--bg)}
+.tl-item.kommentar .tl-dot{background:var(--warn)}
+.tl-item.status .tl-dot{background:var(--ok)}
+.tl-text{font-size:.9rem}
+.tl-meta{font-size:.76rem;color:var(--muted);font-family:var(--mono);margin-top:.1rem}
+.tl-comment{margin-top:.3rem;padding:.45rem .7rem;background:var(--surface-2);border-radius:6px;font-size:.86rem;white-space:pre-wrap;overflow-wrap:anywhere}
+.comment-box{display:flex;gap:.5rem;margin-bottom:1.2rem}
+.comment-box textarea{flex:1}
+textarea{font-family:var(--font);font-size:.88rem;color:var(--text);background:var(--surface-2);border:1px solid var(--line-2);border-radius:6px;padding:.55rem .8rem;resize:vertical;min-height:70px;width:100%}
+.ver-item{display:flex;gap:.8rem;justify-content:space-between;align-items:center;flex-wrap:wrap;padding:.7rem .9rem;border:1px solid var(--line);border-radius:8px;margin-bottom:.6rem;background:var(--surface)}
+.ver-item.valid{border-color:var(--ok)}
+.ver-item .vt{font-family:var(--mono);font-size:.84rem}
+.ver-item .vn{font-size:.82rem;color:var(--muted);margin-top:.15rem}
+.rel-item{display:flex;justify-content:space-between;align-items:center;gap:.6rem;padding:.55rem .8rem;border:1px solid var(--line);border-radius:8px;margin-bottom:.5rem;background:var(--surface);cursor:pointer}
+.rel-item:hover{border-color:var(--accent)}
+.read-row{display:flex;justify-content:space-between;gap:.6rem;padding:.4rem 0;border-bottom:1px solid var(--line);font-size:.86rem}
+
+/* Dialog */
+.modal-bg{position:fixed;inset:0;background:rgba(10,14,20,.6);backdrop-filter:blur(2px);z-index:90;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-bg.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--line-2);border-radius:12px;width:min(560px,100%);max-height:92vh;overflow-y:auto;box-shadow:0 30px 70px var(--shadow-strong)}
+.modal h3{font-size:1.1rem;padding:1.1rem 1.3rem .2rem}
+.modal .m-sub{padding:0 1.3rem;font-size:.84rem;color:var(--muted)}
+.modal .m-body{padding:1rem 1.3rem;display:flex;flex-direction:column;gap:.85rem}
+.modal .m-body .field input,.modal .m-body .field select{width:100%}
+.modal .m-foot{padding:.9rem 1.3rem 1.2rem;display:flex;justify-content:flex-end;gap:.6rem}
+.modal .check{display:flex;align-items:center;gap:.5rem;font-size:.88rem}
+.modal .hint{font-size:.76rem;color:var(--muted)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+
+@media (max-width:640px){
+  .meta-grid,.two{grid-template-columns:1fr}
+  .drawer-head,.drawer-actions,.drawer-body{padding-left:1rem;padding-right:1rem}
+}
 </style>
 </head>
 <body>
@@ -275,11 +378,7 @@ tbody tr.doc-row{cursor:pointer}
       </div>
       <button class="btn-lg ghost" id="manageTenantsBtn" style="display:none">Kunden verwalten</button>
     </div>
-    <div class="stat-row" id="statRow" style="display:none">
-      <div class="stat"><div class="num" id="statTotal">–</div><div class="lbl">Dokumente</div></div>
-      <div class="stat"><div class="num" id="statFreigegeben">–</div><div class="lbl">Freigegeben</div></div>
-      <div class="stat"><div class="num" id="statInArbeit">–</div><div class="lbl">Entwurf / in Prüfung</div></div>
-    </div>
+    <div class="stat-row" id="statRow" style="display:none"></div>
   </div>
 </div>
 
@@ -316,41 +415,40 @@ tbody tr.doc-row{cursor:pointer}
       </div>
     </div>
 
-    <div class="panel" id="newDocPanel">
-      <h2>Neues Dokument</h2>
-      <div class="sub">Titel und Kategorie anlegen, die erste Version lädst du danach direkt in der Tabelle hoch.</div>
-      <div class="row" style="margin-bottom:0">
-        <div class="field">
-          <label class="small" for="newTitle">Titel</label>
-          <input type="text" id="newTitle" placeholder="z.B. Verfahrensanweisung Wareneingang" style="min-width:280px">
-        </div>
-        <div class="field">
-          <label class="small" for="newCategory">Kategorie</label>
-          <select id="newCategory" style="min-width:200px"></select>
-        </div>
-        <button class="btn-lg primary" id="createDocBtn" style="align-self:flex-end">Anlegen</button>
-      </div>
-    </div>
-
     <div class="panel" id="documentsPanel">
-      <div class="row" style="justify-content:space-between;align-items:baseline">
+      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:.4rem">
         <h2 style="margin:0">Dokumente</h2>
+        <div class="row" style="margin:0">
+          <a class="btn-sm" id="exportBtn" href="#" title="Dokumentenliste als CSV für Excel">⬇ Liste (CSV)</a>
+          <button class="btn-sm primary" id="newDocBtn">＋ Neues Dokument</button>
+        </div>
       </div>
-      <div class="sub">Klick auf einen Titel zeigt den Versionsverlauf. Jede neue Version geht automatisch zurück auf «Entwurf».</div>
-      <div class="row">
-        <input type="text" id="searchInput" placeholder="Suche nach Titel …" style="min-width:220px">
+      <div class="sub">Freigabe nach Vier-Augen-Prinzip, Dokumentnummern, Wiedervorlage und lückenloser Verlauf. Klick auf eine Zeile öffnet das Dokument.</div>
+
+      <div class="views" id="views"></div>
+
+      <div class="toolbar">
+        <div class="grow"><input type="text" id="searchInput" placeholder="Suche nach Nummer, Titel, Schlagwort, Beschreibung, Verantwortlichen …"></div>
         <select id="categoryFilter"><option value="">Alle Kategorien</option></select>
         <select id="statusFilter">
           <option value="">Alle Status</option>
           <option value="entwurf">Entwurf</option>
+          <option value="in_pruefung">In Prüfung</option>
           <option value="geprueft">Geprüft</option>
           <option value="freigegeben">Freigegeben</option>
         </select>
+        <select id="ownerFilter"><option value="">Alle Verantwortlichen</option></select>
+        <select id="groupBy">
+          <option value="">Keine Gruppierung</option>
+          <option value="category">Nach Kategorie</option>
+          <option value="status">Nach Status</option>
+        </select>
       </div>
+
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>Titel</th><th>Status</th><th>Version</th><th>Zuletzt geändert</th><th></th></tr>
+            <tr><th>Nr.</th><th>Titel</th><th>Status</th><th>Version</th><th>Verantwortlich</th><th>Überprüfung</th></tr>
           </thead>
           <tbody id="docRows"></tbody>
         </table>
@@ -361,6 +459,7 @@ tbody tr.doc-row{cursor:pointer}
     <input type="file" id="versionFileInput" style="display:none">
 
     <p class="foot-note">alta-engineering.ch · Dokumentenlenkung läuft geschützt über Cloudflare Access</p>
+
   </div>
 
   <div class="wrap" id="deniedWrap" style="display:none">
@@ -370,6 +469,14 @@ tbody tr.doc-row{cursor:pointer}
     </div>
   </div>
 </main>
+
+<div class="drawer-bg" id="drawerBg"></div>
+<aside class="drawer" id="drawer" aria-label="Dokument">
+  <div class="drawer-head" id="drawerHead"></div>
+  <div class="drawer-actions" id="drawerActions"></div>
+  <div class="drawer-tabs" id="drawerTabs"></div>
+  <div class="drawer-body" id="drawerBody"></div>
+</aside>
 
 <script>
 (function(){
@@ -396,89 +503,216 @@ tbody tr.doc-row{cursor:pointer}
 
 <script>
 (function(){
-  var STATUS_LABEL = { entwurf: 'Entwurf', geprueft: 'Geprüft', freigegeben: 'Freigegeben' };
+  var STATUS_LABEL = { entwurf: 'Entwurf', in_pruefung: 'In Prüfung', geprueft: 'Geprüft', freigegeben: 'Freigegeben', archiviert: 'Archiviert' };
+  var VIEWS = [
+    { id: 'alle', label: 'Alle' },
+    { id: 'aufgaben', label: 'Meine Aufgaben' },
+    { id: 'pruefung', label: 'In Prüfung' },
+    { id: 'faellig', label: 'Überprüfung fällig' },
+    { id: 'archiv', label: 'Archiv' }
+  ];
   var state = {
-    email: null, isAdmin: false, documents: [], expanded: {}, pendingUploadDocId: null,
-    tenants: [], currentTenant: null, tenantsLoaded: false
+    email: null, me: '', isAdmin: false, documents: [], pendingUploadDocId: null,
+    tenants: [], currentTenant: null, view: 'alle', openDocId: null, drawerTab: 'uebersicht'
   };
 
-  function fmtDate(iso){
+  // ---------- Helfer ----------
+
+  function esc(v){
+    return String(v == null ? '' : v).replace(/[&<>"']/g, function(c){
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function $(id){ return document.getElementById(id); }
+  function todayIso(){ return new Date().toISOString().slice(0, 10); }
+  function fmtDateTime(iso){
     var d = new Date(iso);
     return d.toLocaleDateString('de-CH', {day:'2-digit',month:'2-digit',year:'numeric'}) + ' ' +
            d.toLocaleTimeString('de-CH', {hour:'2-digit',minute:'2-digit'});
   }
-
+  function fmtDay(iso){
+    if (!iso) return '–';
+    var p = String(iso).slice(0, 10).split('-');
+    return p[2] + '.' + p[1] + '.' + p[0];
+  }
+  function daysUntil(iso){
+    if (!iso) return null;
+    var a = new Date(todayIso() + 'T00:00:00Z').getTime();
+    var b = new Date(String(iso).slice(0, 10) + 'T00:00:00Z').getTime();
+    return Math.round((b - a) / 86400000);
+  }
   function formatSize(bytes){
     if (!bytes) return '0 B';
-    var units = ['B','KB','MB','GB'];
-    var i = 0;
+    var units = ['B','KB','MB','GB'], i = 0;
     while (bytes >= 1024 && i < units.length - 1){ bytes /= 1024; i++; }
     return bytes.toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
   }
-
   function api(path, opts){
     return fetch(path, opts).then(function(r){
-      if (!r.ok) return r.json().then(function(e){ throw new Error(e.error || ('Fehler ' + r.status)); });
+      if (!r.ok) return r.json().catch(function(){ return {}; }).then(function(e){ throw new Error(e.error || ('Fehler ' + r.status)); });
       return r.json();
     });
   }
+  function post(path, body){
+    return api(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  }
+  function put(path, body){
+    return api(path, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  }
+  function nameOf(mail){
+    if (!mail) return '–';
+    var local = String(mail).split('@')[0];
+    return local.split('.').map(function(p){ var u = p.charAt(0).toUpperCase() + p.slice(1); return p.length === 1 ? u + '.' : u; }).join(' ');
+  }
+  function who(mail){ return mail ? '<span title="' + esc(mail) + '">' + esc(nameOf(mail)) + '</span>' : '–'; }
+  function findDoc(id){ return state.documents.filter(function(d){ return d.id === id; })[0]; }
+  function uploaderOf(doc){
+    var v = doc.versions[doc.versions.length - 1];
+    return ((v && v.uploadedBy) || doc.createdBy || '').toLowerCase();
+  }
+  function vier(){ return !!(state.currentTenant && state.currentTenant.vierAugen); }
+
+  // Aufgaben: was wartet auf mich?
+  function taskFor(doc){
+    var me = state.me;
+    if (doc.status === 'archiviert') return null;
+    var up = uploaderOf(doc);
+    if (doc.status === 'in_pruefung' && (state.isAdmin || !doc.reviewer || doc.reviewer === me) && !(vier() && up === me)) return 'Prüfung offen';
+    if (doc.status === 'geprueft' && (state.isAdmin || !doc.approver || doc.approver === me) && !(vier() && up === me)) return 'Freigabe offen';
+    if (doc.releasedVersion && doc.owner === me){
+      var d = daysUntil(doc.nextReview);
+      if (d !== null && d <= 30) return d < 0 ? 'Überprüfung überfällig' : 'Überprüfung bald fällig';
+    }
+    if (doc.readRequired && doc.releasedVersion){
+      var r = doc.reads && doc.reads[me];
+      if (!r || r.version !== doc.releasedVersion) return 'Lesebestätigung offen';
+    }
+    if (doc.lock && doc.lock.by.toLowerCase() === me) return 'Von dir ausgecheckt';
+    return null;
+  }
+  function reviewState(doc){
+    if (!doc.releasedVersion || !doc.nextReview || doc.status === 'archiviert') return null;
+    var d = daysUntil(doc.nextReview);
+    if (d < 0) return 'overdue';
+    if (d <= 30) return 'due';
+    return 'ok';
+  }
+
+  // ---------- Dialoge ----------
+
+  function askForm(opts){
+    // opts: {title, sub, fields:[{name,label,type,value,options,placeholder,required,hint,list}], ok}
+    return new Promise(function(resolve){
+      var bg = document.createElement('div');
+      bg.className = 'modal-bg open';
+      var html = '<div class="modal" role="dialog" aria-modal="true"><h3>' + esc(opts.title) + '</h3>' +
+        (opts.sub ? '<div class="m-sub">' + opts.sub + '</div>' : '') + '<div class="m-body">';
+      opts.fields.forEach(function(f){
+        var id = 'mf_' + f.name;
+        if (f.type === 'checkbox'){
+          html += '<label class="check"><input type="checkbox" id="' + id + '"' + (f.value ? ' checked' : '') + '> ' + esc(f.label) + '</label>';
+        } else if (f.type === 'textarea'){
+          html += '<div class="field"><label class="small" for="' + id + '">' + esc(f.label) + '</label><textarea id="' + id + '" placeholder="' + esc(f.placeholder || '') + '">' + esc(f.value || '') + '</textarea></div>';
+        } else if (f.type === 'select'){
+          html += '<div class="field"><label class="small" for="' + id + '">' + esc(f.label) + '</label><select id="' + id + '">' +
+            f.options.map(function(o){ var ov = typeof o === 'string' ? o : o.value, ol = typeof o === 'string' ? o : o.label; return '<option value="' + esc(ov) + '"' + (ov === f.value ? ' selected' : '') + '>' + esc(ol) + '</option>'; }).join('') + '</select></div>';
+        } else if (f.type === 'file'){
+          html += '<div class="field"><label class="small" for="' + id + '">' + esc(f.label) + '</label><input type="file" id="' + id + '"></div>';
+        } else {
+          html += '<div class="field"><label class="small" for="' + id + '">' + esc(f.label) + '</label><input type="' + (f.type || 'text') + '" id="' + id + '" value="' + esc(f.value || '') + '" placeholder="' + esc(f.placeholder || '') + '"' + (f.list ? ' list="dl_mails"' : '') + '></div>';
+        }
+        if (f.hint) html += '<div class="hint">' + esc(f.hint) + '</div>';
+      });
+      html += '</div><div class="m-foot"><button class="btn-sm" data-m="cancel">Abbrechen</button><button class="btn-sm primary" data-m="ok">' + esc(opts.ok || 'OK') + '</button></div></div>';
+      bg.innerHTML = html;
+      document.body.appendChild(bg);
+      var first = bg.querySelector('input:not([type=checkbox]),textarea,select');
+      if (first) setTimeout(function(){ first.focus(); }, 30);
+      function close(val){ bg.remove(); resolve(val); }
+      bg.addEventListener('click', function(e){ if (e.target === bg) close(null); });
+      bg.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(null); });
+      bg.querySelector('[data-m=cancel]').addEventListener('click', function(){ close(null); });
+      bg.querySelector('[data-m=ok]').addEventListener('click', function(){
+        var out = {};
+        for (var i = 0; i < opts.fields.length; i++){
+          var f = opts.fields[i], el = bg.querySelector('#mf_' + f.name);
+          if (f.type === 'checkbox') out[f.name] = el.checked;
+          else if (f.type === 'file') out[f.name] = el.files[0] || null;
+          else out[f.name] = el.value.trim();
+          if (f.required && !out[f.name]){ alert('Bitte ausfüllen: ' + f.label); el.focus(); return; }
+        }
+        close(out);
+      });
+    });
+  }
+
+  function refreshMailList(){
+    var set = {};
+    function add(m){ if (m && m.indexOf('@') > 0) set[m.toLowerCase()] = 1; }
+    add(state.me);
+    state.documents.forEach(function(d){
+      add(d.owner); add(d.reviewer); add(d.approver); add(d.createdBy);
+      d.versions.forEach(function(v){ add(v.uploadedBy); });
+    });
+    var dl = $('dl_mails');
+    if (!dl){ dl = document.createElement('datalist'); dl.id = 'dl_mails'; document.body.appendChild(dl); }
+    dl.innerHTML = Object.keys(set).sort().map(function(m){ return '<option value="' + esc(m) + '">'; }).join('');
+  }
+
+  // ---------- Start: Nutzer und Kunden ----------
 
   function loadMe(){
     return api('/api/me').then(function(me){
       state.email = me.email;
+      state.me = String(me.email || '').toLowerCase();
       state.isAdmin = me.isAdmin;
-      var whoBox = document.getElementById('whoBox');
+      var whoBox = $('whoBox');
 
       if (me.isAdmin){
-        document.getElementById('navPortalLink').style.display = '';
-        document.getElementById('navHandbuchLink').style.display = '';
-        whoBox.innerHTML = '<span class="email-mono">' + me.email + '</span><span class="badge admin">Admin</span>';
+        $('navPortalLink').style.display = '';
+        $('navHandbuchLink').style.display = '';
+        whoBox.innerHTML = '<span class="email-mono">' + esc(me.email) + '</span><span class="badge admin">Admin</span>';
 
         state.tenants = me.dmsTenants || [];
         if (!state.tenants.length){
-          document.getElementById('appWrap').style.display = '';
-          document.getElementById('tenantRow').style.display = '';
-          document.getElementById('manageTenantsBtn').style.display = '';
-          document.getElementById('tenantsPanel').style.display = '';
-          document.getElementById('newDocPanel').style.display = 'none';
-          document.getElementById('documentsPanel').style.display = 'none';
-          document.getElementById('statRow').style.display = 'none';
+          $('appWrap').style.display = '';
+          $('tenantRow').style.display = '';
+          $('manageTenantsBtn').style.display = '';
+          $('tenantsPanel').style.display = '';
+          $('documentsPanel').style.display = 'none';
+          $('statRow').style.display = 'none';
           loadTenantsPanel();
           return;
         }
-
         var savedTenantId = null;
         try { savedTenantId = localStorage.getItem('dmsTenantId'); } catch(e){}
-        var initial = state.tenants.find(function(t){ return t.id === savedTenantId; }) || state.tenants[0];
-        state.currentTenant = initial;
+        state.currentTenant = state.tenants.find(function(t){ return t.id === savedTenantId; }) || state.tenants[0];
 
-        document.getElementById('appWrap').style.display = '';
-        document.getElementById('statRow').style.display = '';
-        document.getElementById('tenantRow').style.display = '';
-        document.getElementById('tenantSwitcherField').style.display = '';
-        document.getElementById('manageTenantsBtn').style.display = '';
+        $('appWrap').style.display = '';
+        $('statRow').style.display = '';
+        $('tenantRow').style.display = '';
+        $('tenantSwitcherField').style.display = '';
+        $('manageTenantsBtn').style.display = '';
         populateTenantSwitcher();
         loadDocuments();
         return;
       }
 
-      // Kunden-Nutzer:in: automatisch per E-Mail-Domain zugeordneter Tenant, kein Umschalter.
       if (!me.dmsOwnTenant){
-        document.getElementById('deniedWrap').style.display = '';
+        $('deniedWrap').style.display = '';
         return;
       }
       state.currentTenant = me.dmsOwnTenant;
-      document.getElementById('appWrap').style.display = '';
-      document.getElementById('statRow').style.display = '';
-      whoBox.innerHTML = '<span class="email-mono">' + me.email + '</span><span class="badge">' + me.dmsOwnTenant.name + '</span>';
+      $('appWrap').style.display = '';
+      $('statRow').style.display = '';
+      whoBox.innerHTML = '<span class="email-mono">' + esc(me.email) + '</span><span class="badge">' + esc(me.dmsOwnTenant.name) + '</span>';
       loadDocuments();
     });
   }
 
   function populateTenantSwitcher(){
-    var select = document.getElementById('tenantSwitcher');
-    select.innerHTML = state.tenants.map(function(t){
-      return '<option value="' + t.id + '"' + (t.id === state.currentTenant.id ? ' selected' : '') + '>' + t.name + '</option>';
+    $('tenantSwitcher').innerHTML = state.tenants.map(function(t){
+      return '<option value="' + esc(t.id) + '"' + (t.id === state.currentTenant.id ? ' selected' : '') + '>' + esc(t.name) + '</option>';
     }).join('');
   }
 
@@ -486,38 +720,37 @@ tbody tr.doc-row{cursor:pointer}
     var tenant = state.tenants.find(function(t){ return t.id === tenantId; });
     if (!tenant) return;
     state.currentTenant = tenant;
+    state.view = 'alle';
+    closeDrawer();
     try { localStorage.setItem('dmsTenantId', tenantId); } catch(e){}
     loadDocuments();
   }
 
-  // ---------- Kunden (Tenants) verwalten, nur Admins ----------
+  // ---------- Kunden verwalten (Admin) ----------
 
   function loadTenantsPanel(){
     return api('/api/dms/tenants').then(function(res){
       state.tenants = res.tenants.map(function(t){ return { id: t.id, name: t.name }; });
       renderTenantsTable(res.tenants);
-      var templateSelect = document.getElementById('newTenantTemplate');
-      templateSelect.innerHTML = '<option value="">Standard-Kategorien</option>' +
-        res.tenants.map(function(t){ return '<option value="' + t.id + '">Wie ' + t.name + '</option>'; }).join('');
-      if (state.currentTenant){
-        populateTenantSwitcher();
-      }
+      $('newTenantTemplate').innerHTML = '<option value="">Standard-Kategorien</option>' +
+        res.tenants.map(function(t){ return '<option value="' + esc(t.id) + '">Wie ' + esc(t.name) + '</option>'; }).join('');
+      if (state.currentTenant) populateTenantSwitcher();
     });
   }
 
   function renderTenantsTable(tenants){
-    var rows = document.getElementById('tenantRows');
+    var rows = $('tenantRows');
     rows.innerHTML = '';
     tenants.forEach(function(t){
       var tr = document.createElement('tr');
       tr.innerHTML =
-        '<td class="fname">' + t.name + '</td>' +
-        '<td class="meta">' + (t.domains && t.domains.length ? t.domains.join(', ') : '–') + '</td>' +
+        '<td class="fname">' + esc(t.name) + (t.vierAugen ? '<span class="cat">Vier-Augen-Prinzip aktiv</span>' : '') + '</td>' +
+        '<td class="meta">' + (t.domains && t.domains.length ? esc(t.domains.join(', ')) : '–') + '</td>' +
         '<td class="meta">' + (t.categories || []).length + '</td>' +
         '<td class="meta">' + (t.documentCount || 0) + '</td>' +
         '<td><div class="actions">' +
-          '<button class="iconbtn" data-edit-tenant="' + t.id + '">Bearbeiten</button>' +
-          '<button class="iconbtn danger" data-delete-tenant="' + t.id + '">Löschen</button>' +
+          '<button class="iconbtn" data-edit-tenant="' + esc(t.id) + '">Bearbeiten</button>' +
+          '<button class="iconbtn danger" data-delete-tenant="' + esc(t.id) + '">Löschen</button>' +
         '</div></td>';
       rows.appendChild(tr);
     });
@@ -532,20 +765,23 @@ tbody tr.doc-row{cursor:pointer}
   function editTenant(id, tenants){
     var t = tenants.find(function(x){ return x.id === id; });
     if (!t) return;
-    var name = prompt('Name des Kunden:', t.name);
-    if (name === null) return;
-    var domains = prompt('Domain(s), kommagetrennt (ordnet Login-E-Mails automatisch diesem Kunden zu):', (t.domains || []).join(', '));
-    if (domains === null) return;
-    var categories = prompt('Kategorien, kommagetrennt:', (t.categories || []).join(', '));
-    if (categories === null) return;
-    api('/api/dms/tenants', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: id, name: name, domains: domains, categories: categories })
-    }).then(function(){
-      loadTenantsPanel();
-      if (state.currentTenant && state.currentTenant.id === id) loadDocuments();
-    }).catch(function(e){ alert(e.message); });
+    askForm({
+      title: 'Kunde bearbeiten',
+      fields: [
+        { name: 'name', label: 'Name', value: t.name, required: true },
+        { name: 'domains', label: 'Domain(s), kommagetrennt', value: (t.domains || []).join(', '), hint: 'Ordnet Login-E-Mails automatisch diesem Kunden zu.' },
+        { name: 'categories', label: 'Kategorien (Abteilungen), kommagetrennt', value: (t.categories || []).join(', ') },
+        { name: 'vierAugen', label: 'Vier-Augen-Prinzip erzwingen (wer hochlädt, darf nicht selbst prüfen oder freigeben)', type: 'checkbox', value: !!t.vierAugen }
+      ],
+      ok: 'Speichern'
+    }).then(function(v){
+      if (!v) return;
+      put('/api/dms/tenants', { id: id, name: v.name, domains: v.domains, categories: v.categories, vierAugen: v.vierAugen })
+        .then(function(){
+          loadTenantsPanel();
+          if (state.currentTenant && state.currentTenant.id === id) loadDocuments();
+        }).catch(function(e){ alert(e.message); });
+    });
   }
 
   function deleteTenant(id, tenants){
@@ -562,35 +798,11 @@ tbody tr.doc-row{cursor:pointer}
     }).catch(function(e){ alert(e.message); });
   }
 
-  function updateStats(){
-    var total = state.documents.length;
-    var freigegeben = state.documents.filter(function(d){ return d.status === 'freigegeben'; }).length;
-    document.getElementById('statTotal').textContent = total;
-    document.getElementById('statFreigegeben').textContent = freigegeben;
-    document.getElementById('statInArbeit').textContent = total - freigegeben;
-  }
+  // ---------- Dokumente laden und zeigen ----------
 
   function tenantCategories(){
-    if (state.currentTenant && state.currentTenant.categories && state.currentTenant.categories.length){
-      return state.currentTenant.categories;
-    }
-    // Fallback, falls der Tenant (noch) keine Kategorien hat: aus den vorhandenen Dokumenten ableiten.
+    if (state.currentTenant && state.currentTenant.categories && state.currentTenant.categories.length) return state.currentTenant.categories;
     return Array.from(new Set(state.documents.map(function(d){ return d.category; }))).sort();
-  }
-
-  function updateCategoryFilter(){
-    var select = document.getElementById('categoryFilter');
-    var current = select.value;
-    var cats = tenantCategories();
-    select.innerHTML = '<option value="">Alle Kategorien</option>' +
-      cats.map(function(c){ return '<option value="' + c + '">' + c + '</option>'; }).join('');
-    select.value = cats.indexOf(current) >= 0 ? current : '';
-  }
-
-  function updateNewCategorySelect(){
-    var select = document.getElementById('newCategory');
-    var cats = tenantCategories();
-    select.innerHTML = cats.map(function(c){ return '<option value="' + c + '">' + c + '</option>'; }).join('');
   }
 
   function loadDocuments(){
@@ -598,187 +810,483 @@ tbody tr.doc-row{cursor:pointer}
     var qs = state.isAdmin ? '?tenantId=' + encodeURIComponent(state.currentTenant.id) : '';
     return api('/api/dms/documents' + qs).then(function(res){
       state.documents = res.documents;
-      if (res.tenant) state.currentTenant = res.tenant; // volle Kategorienliste nachladen
-      updateStats();
-      updateCategoryFilter();
-      updateNewCategorySelect();
-      renderDocuments();
+      if (res.tenant) state.currentTenant = res.tenant;
+      if (res.me) state.me = res.me;
+      refreshMailList();
+      updateFilters();
+      renderAll();
+      $('exportBtn').href = '/api/dms/export' + qs;
     });
   }
 
-  function renderDocuments(){
-    var search = document.getElementById('searchInput').value.trim().toLowerCase();
-    var category = document.getElementById('categoryFilter').value;
-    var status = document.getElementById('statusFilter').value;
+  function renderAll(){
+    renderStats();
+    renderViews();
+    renderDocuments();
+    if (state.openDocId){
+      var d = findDoc(state.openDocId);
+      if (d) renderDrawer(d); else closeDrawer();
+    }
+  }
 
-    var rows = document.getElementById('docRows');
-    var empty = document.getElementById('emptyState');
+  function updateFilters(){
+    var cats = tenantCategories();
+    var cur = $('categoryFilter').value;
+    $('categoryFilter').innerHTML = '<option value="">Alle Kategorien</option>' + cats.map(function(c){ return '<option value="' + esc(c) + '">' + esc(c) + '</option>'; }).join('');
+    $('categoryFilter').value = cats.indexOf(cur) >= 0 ? cur : '';
+    var owners = Array.from(new Set(state.documents.map(function(d){ return d.owner; }).filter(Boolean))).sort();
+    var curO = $('ownerFilter').value;
+    $('ownerFilter').innerHTML = '<option value="">Alle Verantwortlichen</option>' + owners.map(function(o){ return '<option value="' + esc(o) + '">' + esc(nameOf(o)) + '</option>'; }).join('');
+    $('ownerFilter').value = owners.indexOf(curO) >= 0 ? curO : '';
+  }
+
+  function countFor(view){ return state.documents.filter(function(d){ return inView(d, view); }).length; }
+
+  function inView(d, view){
+    if (view === 'archiv') return d.status === 'archiviert';
+    if (d.status === 'archiviert') return false;
+    if (view === 'aufgaben') return !!taskFor(d);
+    if (view === 'pruefung') return d.status === 'in_pruefung' || d.status === 'geprueft';
+    if (view === 'faellig'){ var s = reviewState(d); return s === 'due' || s === 'overdue'; }
+    return true;
+  }
+
+  function renderStats(){
+    var active = state.documents.filter(function(d){ return d.status !== 'archiviert'; });
+    var items = [
+      { id: 'alle', n: active.length, lbl: 'Dokumente', cls: '' },
+      { id: 'f', n: active.filter(function(d){ return d.status === 'freigegeben'; }).length, lbl: 'Freigegeben', cls: '', noclick: true },
+      { id: 'pruefung', n: countFor('pruefung'), lbl: 'In Prüfung / Freigabe', cls: '' },
+      { id: 'e', n: active.filter(function(d){ return d.status === 'entwurf'; }).length, lbl: 'Entwürfe', cls: '', noclick: true },
+      { id: 'faellig', n: countFor('faellig'), lbl: 'Überprüfung fällig', cls: countFor('faellig') ? 'warn' : '' },
+      { id: 'aufgaben', n: countFor('aufgaben'), lbl: 'Meine Aufgaben', cls: countFor('aufgaben') ? 'err' : '' }
+    ];
+    $('statRow').innerHTML = items.map(function(it){
+      return '<div class="stat' + (it.noclick ? '' : ' click') + (state.view === it.id ? ' on' : '') + '"' + (it.noclick ? '' : ' data-view="' + it.id + '"') + '><div class="num ' + it.cls + '">' + it.n + '</div><div class="lbl">' + it.lbl + '</div></div>';
+    }).join('');
+    $('statRow').querySelectorAll('[data-view]').forEach(function(el){
+      el.addEventListener('click', function(){ state.view = el.getAttribute('data-view'); renderAll(); });
+    });
+  }
+
+  function renderViews(){
+    $('views').innerHTML = VIEWS.map(function(v){
+      return '<button class="view-tab' + (state.view === v.id ? ' on' : '') + '" data-view="' + v.id + '">' + v.label + '<span class="cnt">' + countFor(v.id) + '</span></button>';
+    }).join('');
+    $('views').querySelectorAll('[data-view]').forEach(function(el){
+      el.addEventListener('click', function(){ state.view = el.getAttribute('data-view'); renderAll(); });
+    });
+  }
+
+  function statusBadge(doc){
+    var h = '<span class="badge status-' + doc.status + '">' + STATUS_LABEL[doc.status] + '</span>';
+    if (doc.releasedVersion && doc.status !== 'freigegeben' && doc.status !== 'archiviert'){
+      h += '<span class="sub-status">gültig: v' + doc.releasedVersion + '</span>';
+    }
+    return h;
+  }
+
+  function reviewCell(doc){
+    var s = reviewState(doc);
+    if (!s) return '<span class="meta">–</span>';
+    var d = daysUntil(doc.nextReview);
+    var label = s === 'overdue' ? 'überfällig seit ' + fmtDay(doc.nextReview) : (s === 'due' ? 'in ' + d + ' Tg · ' + fmtDay(doc.nextReview) : fmtDay(doc.nextReview));
+    return '<span class="' + (s === 'ok' ? 'meta' : 'badge ' + s) + '">' + label + '</span>';
+  }
+
+  function renderDocuments(){
+    var search = $('searchInput').value.trim().toLowerCase();
+    var category = $('categoryFilter').value;
+    var status = $('statusFilter').value;
+    var owner = $('ownerFilter').value;
+    var group = $('groupBy').value;
+    var rows = $('docRows'), empty = $('emptyState');
     rows.innerHTML = '';
 
     var filtered = state.documents.filter(function(d){
-      if (search && d.title.toLowerCase().indexOf(search) === -1) return false;
+      if (!inView(d, state.view)) return false;
       if (category && d.category !== category) return false;
       if (status && d.status !== status) return false;
+      if (owner && d.owner !== owner) return false;
+      if (search){
+        var hay = [d.docNumber, d.title, d.description, d.owner, d.category, (d.tags || []).join(' ')].join(' ').toLowerCase();
+        var parts = search.split(/\s+/);
+        for (var i = 0; i < parts.length; i++){ if (hay.indexOf(parts[i]) === -1) return false; }
+      }
       return true;
+    });
+
+    filtered.sort(function(a, b){
+      if (group === 'category' && a.category !== b.category) return a.category.localeCompare(b.category, 'de');
+      if (group === 'status' && a.status !== b.status) return Object.keys(STATUS_LABEL).indexOf(a.status) - Object.keys(STATUS_LABEL).indexOf(b.status);
+      return String(a.docNumber).localeCompare(String(b.docNumber), 'de');
     });
 
     if (!filtered.length){
       empty.style.display = '';
-      empty.textContent = state.documents.length ? 'Keine Dokumente passen zur Suche/zum Filter.' : 'Noch keine Dokumente angelegt.';
+      empty.textContent = state.documents.length ? 'In dieser Ansicht gibt es nichts (oder die Suche/der Filter passt auf kein Dokument).' : 'Noch keine Dokumente angelegt. Mit «Neues Dokument» geht es los.';
       return;
     }
     empty.style.display = 'none';
 
+    var lastGroup = null;
     filtered.forEach(function(doc){
+      if (group){
+        var g = group === 'category' ? doc.category : STATUS_LABEL[doc.status];
+        if (g !== lastGroup){
+          var gr = document.createElement('tr');
+          gr.className = 'group-row';
+          gr.innerHTML = '<td colspan="6">' + esc(g) + '</td>';
+          rows.appendChild(gr);
+          lastGroup = g;
+        }
+      }
+      var task = taskFor(doc);
       var tr = document.createElement('tr');
-      tr.className = 'doc-row';
+      tr.className = 'doc-row' + (doc.status === 'archiviert' ? ' dim' : '');
       tr.innerHTML =
-        '<td class="fname">' + doc.title + '<span class="cat">' + doc.category + '</span></td>' +
-        '<td><span class="badge status-' + doc.status + '">' + STATUS_LABEL[doc.status] + '</span></td>' +
+        '<td class="docnr">' + esc(doc.docNumber) + '</td>' +
+        '<td class="fname">' + esc(doc.title) + '<span class="cat">' + esc(doc.category) + (doc.lock ? ' · 🔒 ' + esc(nameOf(doc.lock.by)) : '') + '</span>' +
+          ((doc.tags && doc.tags.length) ? '<div class="tags">' + doc.tags.map(function(t){ return '<span class="tag">' + esc(t) + '</span>'; }).join('') + '</div>' : '') +
+          (task ? '<div class="tags"><span class="badge task">' + esc(task) + '</span></div>' : '') + '</td>' +
+        '<td>' + statusBadge(doc) + '</td>' +
         '<td class="meta">' + (doc.currentVersion ? 'v' + doc.currentVersion : '–') + '</td>' +
-        '<td class="meta">' + fmtDate(doc.updatedAt) + '</td>' +
-        '<td><div class="actions">' +
-          '<button class="iconbtn" data-upload-id="' + doc.id + '">Version hochladen</button>' +
-          (doc.currentVersion ? '<a class="iconbtn" href="/api/dms/download?docId=' + doc.id + '">Herunterladen</a>' : '') +
-          (doc.currentVersion ? '<select class="statusselect" data-status-id="' + doc.id + '">' +
-            ['entwurf','geprueft','freigegeben'].map(function(s){
-              return '<option value="' + s + '"' + (s === doc.status ? ' selected' : '') + '>' + STATUS_LABEL[s] + '</option>';
-            }).join('') + '</select>' : '') +
-          '<button class="iconbtn danger" data-delete-id="' + doc.id + '">Löschen</button>' +
-        '</div></td>';
+        '<td class="meta">' + who(doc.owner) + '</td>' +
+        '<td>' + reviewCell(doc) + '</td>';
+      tr.addEventListener('click', function(){ openDrawer(doc.id); });
       rows.appendChild(tr);
-
-      var vrow = document.createElement('tr');
-      vrow.className = 'version-row' + (state.expanded[doc.id] ? '' : ' collapsed');
-      var versionsHtml = doc.versions.length
-        ? doc.versions.slice().reverse().map(function(v){
-            return '<div class="version-item">' +
-              '<span class="vlabel">v' + v.version + ' · ' + v.filename + ' · ' + formatSize(v.size) + '</span>' +
-              '<span class="vwho">' + fmtDate(v.uploadedAt) + ' · ' + v.uploadedBy + '</span>' +
-              '<a class="iconbtn" href="/api/dms/download?docId=' + doc.id + '&version=' + v.version + '">Diese Version</a>' +
-            '</div>';
-          }).join('')
-        : '<div class="version-item"><span class="vlabel">Noch keine Version hochgeladen.</span></div>';
-      vrow.innerHTML = '<td colspan="5"><div class="version-list">' + versionsHtml + '</div></td>';
-      rows.appendChild(vrow);
-
-      tr.querySelector('.fname').addEventListener('click', function(){
-        state.expanded[doc.id] = !state.expanded[doc.id];
-        vrow.classList.toggle('collapsed');
-      });
-    });
-
-    rows.querySelectorAll('[data-upload-id]').forEach(function(btn){
-      btn.addEventListener('click', function(e){
-        e.stopPropagation();
-        state.pendingUploadDocId = btn.getAttribute('data-upload-id');
-        document.getElementById('versionFileInput').click();
-      });
-    });
-    rows.querySelectorAll('[data-status-id]').forEach(function(sel){
-      sel.addEventListener('click', function(e){ e.stopPropagation(); });
-      sel.addEventListener('change', function(){
-        var docId = sel.getAttribute('data-status-id');
-        api('/api/dms/status', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ docId: docId, status: sel.value })
-        }).then(loadDocuments).catch(function(e){ alert(e.message); loadDocuments(); });
-      });
-    });
-    rows.querySelectorAll('[data-delete-id]').forEach(function(btn){
-      btn.addEventListener('click', function(e){
-        e.stopPropagation();
-        if (!confirm('Dieses Dokument inkl. aller Versionen wirklich löschen?')) return;
-        api('/api/dms/documents?id=' + encodeURIComponent(btn.getAttribute('data-delete-id')), { method: 'DELETE' })
-          .then(loadDocuments).catch(function(e){ alert(e.message); });
-      });
     });
   }
 
-  document.getElementById('createDocBtn').addEventListener('click', function(){
-    var title = document.getElementById('newTitle').value.trim();
-    var category = document.getElementById('newCategory').value;
-    if (!title){ alert('Bitte einen Titel angeben.'); return; }
+  // ---------- Detail-Panel ----------
+
+  function openDrawer(id){
+    state.openDocId = id;
+    state.drawerTab = 'uebersicht';
+    var d = findDoc(id);
+    if (!d) return;
+    renderDrawer(d);
+    $('drawerBg').classList.add('open');
+    $('drawer').classList.add('open');
+  }
+  function closeDrawer(){
+    state.openDocId = null;
+    $('drawerBg').classList.remove('open');
+    $('drawer').classList.remove('open');
+  }
+
+  function actionBtn(label, action, cls, opts){
+    opts = opts || {};
+    return '<button class="btn-sm ' + (cls || '') + '" data-act="' + action + '"' + (opts.disabled ? ' disabled' : '') + (opts.title ? ' title="' + esc(opts.title) + '"' : '') + '>' + label + '</button>';
+  }
+
+  function actionsFor(doc){
+    var me = state.me, up = uploaderOf(doc), h = '';
+    var selfBlock = vier() && up === me;
+    var mayReview = state.isAdmin || !doc.reviewer || doc.reviewer === me;
+    var mayApprove = state.isAdmin || !doc.approver || doc.approver === me;
+    var lockedByOther = doc.lock && doc.lock.by.toLowerCase() !== me && !state.isAdmin;
+    var s = doc.status;
+
+    if (s === 'entwurf'){
+      h += actionBtn('📤 Neue Version hochladen', 'upload', doc.currentVersion ? '' : 'primary', { disabled: lockedByOther, title: lockedByOther ? 'Ausgecheckt von ' + doc.lock.by : '' });
+      if (doc.currentVersion) h += actionBtn('➡ Zur Prüfung einreichen', 'einreichen', 'primary');
+      if (doc.lock && (doc.lock.by.toLowerCase() === me || state.isAdmin)) h += actionBtn('🔓 Einchecken', 'unlock');
+      else if (!doc.lock) h += actionBtn('🔒 Auschecken', 'lock', '', { title: 'Sperrt das Dokument für andere, während du es bearbeitest.' });
+    }
+    if (s === 'in_pruefung'){
+      h += actionBtn('✔ Prüfung bestätigen', 'pruefen', 'ok', { disabled: !mayReview || selfBlock, title: selfBlock ? 'Vier-Augen-Prinzip: du hast diese Version hochgeladen.' : (!mayReview ? 'Zuständig: ' + doc.reviewer : '') });
+      h += actionBtn('✖ Ablehnen', 'ablehnen', 'danger', { disabled: !mayReview });
+      h += actionBtn('↩ Zurückziehen', 'zurueckziehen');
+    }
+    if (s === 'geprueft'){
+      h += actionBtn('✔ Freigeben', 'freigeben', 'ok', { disabled: !mayApprove || selfBlock, title: selfBlock ? 'Vier-Augen-Prinzip: du hast diese Version hochgeladen.' : (!mayApprove ? 'Zuständig: ' + doc.approver : '') });
+      h += actionBtn('✖ Ablehnen', 'ablehnen', 'danger', { disabled: !mayApprove });
+      h += actionBtn('↩ Zurückziehen', 'zurueckziehen');
+    }
+    if (s === 'freigegeben'){
+      h += actionBtn('📤 Neue Version hochladen', 'upload');
+      if (state.isAdmin || doc.owner === me) h += actionBtn('✔ Überprüft, unverändert gültig', 'ueberprueft');
+      if (doc.readRequired){
+        var r = doc.reads && doc.reads[me];
+        if (!r || r.version !== doc.releasedVersion) h += actionBtn('📖 Gelesen und verstanden', 'read', 'primary');
+      }
+    }
+    if (s === 'archiviert') h += actionBtn('♻ Wiederherstellen', 'wiederherstellen');
+    if (doc.releasedVersion){
+      h += '<a class="btn-sm" href="/api/dms/download?docId=' + doc.id + '&version=' + doc.releasedVersion + '&inline=1" target="_blank" rel="noopener">👁 Gültige Version ansehen</a>';
+      h += '<a class="btn-sm" href="/api/dms/download?docId=' + doc.id + '&version=' + doc.releasedVersion + '">⬇ Download</a>';
+    } else if (doc.currentVersion){
+      h += '<a class="btn-sm" href="/api/dms/download?docId=' + doc.id + '&version=' + doc.currentVersion + '&inline=1" target="_blank" rel="noopener">👁 Ansehen</a>';
+      h += '<a class="btn-sm" href="/api/dms/download?docId=' + doc.id + '&version=' + doc.currentVersion + '">⬇ Download</a>';
+    }
+    if (s !== 'archiviert' && (state.isAdmin || doc.owner === me || (doc.createdBy || '').toLowerCase() === me)) h += actionBtn('🗄 Archivieren', 'archivieren');
+    if (state.isAdmin || (doc.createdBy || '').toLowerCase() === me) h += actionBtn('🗑 Löschen', 'delete', 'danger');
+    return h;
+  }
+
+  function renderDrawer(doc){
+    var task = taskFor(doc);
+    $('drawerHead').innerHTML =
+      '<div><div class="docnr">' + esc(doc.docNumber) + ' · ' + esc(doc.category) + '</div><h3>' + esc(doc.title) + '</h3>' +
+      '<div>' + statusBadge(doc).replace('sub-status', 'sub-status') + (doc.currentVersion ? ' <span class="badge gray">v' + doc.currentVersion + '</span>' : '') + (task ? ' <span class="badge task">' + esc(task) + '</span>' : '') + '</div></div>' +
+      '<button class="drawer-close" id="drawerCloseBtn" aria-label="Schliessen">✕</button>';
+    $('drawerCloseBtn').addEventListener('click', closeDrawer);
+    $('drawerActions').innerHTML = actionsFor(doc);
+
+    var tabs = [['uebersicht', 'Übersicht'], ['versionen', 'Versionen (' + doc.versions.length + ')'], ['verlauf', 'Verlauf'], ['verknuepft', 'Verknüpft (' + (doc.related || []).length + ')']];
+    if (doc.readRequired || state.isAdmin) tabs.push(['lesen', 'Gelesen']);
+    $('drawerTabs').innerHTML = tabs.map(function(t){
+      return '<button class="drawer-tab' + (state.drawerTab === t[0] ? ' on' : '') + '" data-tab="' + t[0] + '">' + t[1] + '</button>';
+    }).join('');
+    $('drawerTabs').querySelectorAll('[data-tab]').forEach(function(b){
+      b.addEventListener('click', function(){ state.drawerTab = b.getAttribute('data-tab'); renderDrawer(doc); });
+    });
+
+    var body = '';
+    if (state.drawerTab === 'uebersicht') body = tabUebersicht(doc);
+    else if (state.drawerTab === 'versionen') body = tabVersionen(doc);
+    else if (state.drawerTab === 'verlauf') body = tabVerlauf(doc);
+    else if (state.drawerTab === 'verknuepft') body = tabVerknuepft(doc);
+    else body = tabLesen(doc);
+    $('drawerBody').innerHTML = body;
+    wireDrawer(doc);
+  }
+
+  function tabUebersicht(doc){
+    var h = '';
+    if (doc.lock) h += '<div class="notice warn">🔒 Ausgecheckt von <b>' + esc(doc.lock.by) + '</b> seit ' + fmtDateTime(doc.lock.at) + '. Andere können keine neue Version hochladen.</div>';
+    if (doc.status === 'in_pruefung') h += '<div class="notice">Wartet auf Prüfung' + (doc.reviewer ? ' durch <b>' + esc(nameOf(doc.reviewer)) + '</b>' : '') + '.</div>';
+    if (doc.status === 'geprueft') h += '<div class="notice">Geprüft. Wartet auf Freigabe' + (doc.approver ? ' durch <b>' + esc(nameOf(doc.approver)) + '</b>' : '') + '.</div>';
+    var rs = reviewState(doc);
+    if (rs === 'overdue') h += '<div class="notice err">Die Überprüfung war am <b>' + fmtDay(doc.nextReview) + '</b> fällig.</div>';
+    else if (rs === 'due') h += '<div class="notice warn">Überprüfung fällig am <b>' + fmtDay(doc.nextReview) + '</b>.</div>';
+    h += '<div class="meta-grid">' +
+      mi('Kategorie', esc(doc.category)) +
+      mi('Status', STATUS_LABEL[doc.status]) +
+      mi('Gültige Version', doc.releasedVersion ? 'v' + doc.releasedVersion : '–') +
+      mi('Aktuelle Version', doc.currentVersion ? 'v' + doc.currentVersion : '–') +
+      mi('Verantwortlich', who(doc.owner)) +
+      mi('Gültig ab', fmtDay(doc.validFrom)) +
+      mi('Prüfer:in', doc.reviewer ? who(doc.reviewer) : 'jede berechtigte Person') +
+      mi('Freigeber:in', doc.approver ? who(doc.approver) : 'jede berechtigte Person') +
+      mi('Nächste Überprüfung', doc.nextReview ? fmtDay(doc.nextReview) : '–') +
+      mi('Intervall', doc.reviewIntervalMonths ? 'alle ' + doc.reviewIntervalMonths + ' Monate' : 'keine Wiedervorlage') +
+      mi('Lesepflicht', doc.readRequired ? 'Ja, Mitarbeitende bestätigen' : 'Nein') +
+      mi('Angelegt', fmtDateTime(doc.createdAt) + '<br>' + esc(nameOf(doc.createdBy))) +
+      '<div class="meta-item wide"><div class="k">Beschreibung</div><div class="v">' + (doc.description ? esc(doc.description).replace(/\n/g, '<br>') : '–') + '</div></div>' +
+      '<div class="meta-item wide"><div class="k">Schlagworte</div><div class="v">' + ((doc.tags && doc.tags.length) ? '<div class="tags">' + doc.tags.map(function(t){ return '<span class="tag">' + esc(t) + '</span>'; }).join('') + '</div>' : '–') + '</div></div>' +
+      '</div>';
+    if (doc.status !== 'archiviert') h += '<button class="btn-sm" id="editMetaBtn">✎ Angaben bearbeiten</button>';
+    return h;
+  }
+  function mi(k, v){ return '<div class="meta-item"><div class="k">' + k + '</div><div class="v">' + v + '</div></div>'; }
+
+  function tabVersionen(doc){
+    if (!doc.versions.length) return '<div class="empty">Noch keine Version hochgeladen.</div>';
+    return doc.versions.slice().reverse().map(function(v){
+      var valid = doc.releasedVersion === v.version, current = doc.currentVersion === v.version;
+      return '<div class="ver-item' + (valid ? ' valid' : '') + '"><div>' +
+        '<div class="vt">v' + v.version + ' · ' + esc(v.filename) + ' · ' + formatSize(v.size) +
+        (valid ? ' <span class="badge status-freigegeben">gültig</span>' : '') + (current && !valid ? ' <span class="badge gray">aktuell</span>' : '') + '</div>' +
+        '<div class="vn">' + fmtDateTime(v.uploadedAt) + ' · ' + esc(nameOf(v.uploadedBy)) + (v.note ? ' · Änderung: ' + esc(v.note) : '') + '</div></div>' +
+        '<div class="actions"><a class="btn-sm" href="/api/dms/download?docId=' + doc.id + '&version=' + v.version + '&inline=1" target="_blank" rel="noopener">👁</a>' +
+        '<a class="btn-sm" href="/api/dms/download?docId=' + doc.id + '&version=' + v.version + '">⬇</a></div></div>';
+    }).join('');
+  }
+
+  function tabVerlauf(doc){
+    var h = '<div class="comment-box"><textarea id="commentText" placeholder="Kommentar zum Dokument …"></textarea><button class="btn-sm primary" id="commentBtn" style="align-self:flex-end">Senden</button></div><div class="timeline">';
+    (doc.history || []).slice().reverse().forEach(function(e){
+      h += '<div class="tl-item ' + esc(e.type) + '"><div class="tl-dot"></div><div><div class="tl-text">' + esc(e.text || e.type) + '</div>' +
+        '<div class="tl-meta">' + fmtDateTime(e.at) + ' · ' + esc(nameOf(e.by)) + '</div>' +
+        (e.comment ? '<div class="tl-comment">' + esc(e.comment) + '</div>' : '') + '</div></div>';
+    });
+    return h + '</div>';
+  }
+
+  function tabVerknuepft(doc){
+    var rel = (doc.related || []).map(findDoc).filter(Boolean);
+    var h = '<div class="sub" style="margin-bottom:.8rem">Verknüpfte Dokumente, zum Beispiel eine Arbeitsanweisung zu einer Verfahrensanweisung.</div>';
+    h += rel.length ? rel.map(function(r){
+      return '<div class="rel-item" data-open="' + r.id + '"><div><span class="docnr">' + esc(r.docNumber) + '</span> ' + esc(r.title) + '</div>' + statusBadge(r) + '</div>';
+    }).join('') : '<div class="empty" style="padding:.6rem 0">Keine Verknüpfungen.</div>';
+    var others = state.documents.filter(function(d){ return d.id !== doc.id && (doc.related || []).indexOf(d.id) === -1; });
+    h += '<div class="row" style="margin-top:1rem"><select id="relSelect" style="flex:1;min-width:200px"><option value="">Dokument verknüpfen …</option>' +
+      others.map(function(d){ return '<option value="' + d.id + '">' + esc(d.docNumber + ' ' + d.title) + '</option>'; }).join('') + '</select>' +
+      '<button class="btn-sm" id="relAdd">Verknüpfen</button></div>';
+    if (rel.length) h += '<div class="row"><button class="btn-sm" id="relClear">Alle Verknüpfungen entfernen</button></div>';
+    return h;
+  }
+
+  function tabLesen(doc){
+    if (!doc.releasedVersion) return '<div class="empty">Lesebestätigungen gibt es erst für freigegebene Dokumente.</div>';
+    var reads = doc.reads || {};
+    var keys = Object.keys(reads).filter(function(k){ return reads[k].version === doc.releasedVersion; });
+    var h = '<div class="sub" style="margin-bottom:.8rem">Bestätigungen für die gültige Version v' + doc.releasedVersion + (doc.readRequired ? '' : ' (Lesepflicht ist für dieses Dokument nicht aktiviert)') + '.</div>';
+    h += keys.length ? keys.map(function(k){ return '<div class="read-row"><span>' + who(k) + '</span><span class="meta">' + fmtDateTime(reads[k].at) + '</span></div>'; }).join('') : '<div class="empty" style="padding:.6rem 0">Noch niemand hat die gültige Version bestätigt.</div>';
+    return h;
+  }
+
+  function wireDrawer(doc){
+    $('drawerActions').querySelectorAll('[data-act]').forEach(function(b){
+      b.addEventListener('click', function(){ runAction(doc, b.getAttribute('data-act')); });
+    });
+    var em = $('editMetaBtn'); if (em) em.addEventListener('click', function(){ editMeta(doc); });
+    var cb = $('commentBtn');
+    if (cb) cb.addEventListener('click', function(){
+      var t = $('commentText').value.trim();
+      if (!t) return;
+      post('/api/dms/comment', { docId: doc.id, text: t }).then(afterChange).catch(function(e){ alert(e.message); });
+    });
+    $('drawerBody').querySelectorAll('[data-open]').forEach(function(el){
+      el.addEventListener('click', function(){ openDrawer(el.getAttribute('data-open')); });
+    });
+    var ra = $('relAdd');
+    if (ra) ra.addEventListener('click', function(){
+      var id = $('relSelect').value; if (!id) return;
+      put('/api/dms/documents', { id: doc.id, related: (doc.related || []).concat([id]) }).then(afterChange).catch(function(e){ alert(e.message); });
+    });
+    var rc = $('relClear');
+    if (rc) rc.addEventListener('click', function(){
+      put('/api/dms/documents', { id: doc.id, related: [] }).then(afterChange).catch(function(e){ alert(e.message); });
+    });
+  }
+
+  function afterChange(){ return loadDocuments(); }
+
+  function runAction(doc, act){
+    function wf(action, comment){
+      return post('/api/dms/workflow', { docId: doc.id, action: action, comment: comment || '' }).then(afterChange).catch(function(e){ alert(e.message); });
+    }
+    if (act === 'upload'){ startUpload(doc); return; }
+    if (act === 'einreichen'){
+      askForm({ title: 'Zur Prüfung einreichen', sub: 'Version v' + doc.currentVersion + ' geht an ' + (doc.reviewer ? esc(nameOf(doc.reviewer)) : 'die Prüfenden') + '.', fields: [{ name: 'c', label: 'Hinweis an die Prüfung (optional)', type: 'textarea' }], ok: 'Einreichen' })
+        .then(function(v){ if (v) wf('einreichen', v.c); });
+    } else if (act === 'pruefen'){
+      askForm({ title: 'Prüfung bestätigen', sub: 'Der Inhalt von v' + doc.currentVersion + ' ist geprüft. Danach folgt die Freigabe.', fields: [{ name: 'c', label: 'Kommentar (optional)', type: 'textarea' }], ok: 'Geprüft' })
+        .then(function(v){ if (v) wf('pruefen', v.c); });
+    } else if (act === 'freigeben'){
+      askForm({ title: 'Freigeben', sub: 'v' + doc.currentVersion + ' wird die gültige Version.' + (doc.reviewIntervalMonths ? ' Nächste Überprüfung in ' + doc.reviewIntervalMonths + ' Monaten.' : ''), fields: [{ name: 'c', label: 'Kommentar (optional)', type: 'textarea' }], ok: 'Freigeben' })
+        .then(function(v){ if (v) wf('freigeben', v.c); });
+    } else if (act === 'ablehnen'){
+      askForm({ title: 'Ablehnen', sub: 'Das Dokument geht zurück in den Entwurf. Die Begründung ist Pflicht.', fields: [{ name: 'c', label: 'Begründung', type: 'textarea', required: true }], ok: 'Ablehnen' })
+        .then(function(v){ if (v) wf('ablehnen', v.c); });
+    } else if (act === 'zurueckziehen'){ wf('zurueckziehen'); }
+    else if (act === 'ueberprueft'){
+      askForm({ title: 'Überprüft', sub: 'Du bestätigst, dass das Dokument unverändert gültig ist. Die nächste Überprüfung wird neu geplant.', fields: [{ name: 'c', label: 'Kommentar (optional)', type: 'textarea' }], ok: 'Bestätigen' })
+        .then(function(v){ if (v) wf('ueberprueft', v.c); });
+    } else if (act === 'archivieren'){
+      if (confirm('Dokument archivieren? Es bleibt mit allem Verlauf erhalten und lässt sich wiederherstellen.')) wf('archivieren');
+    } else if (act === 'wiederherstellen'){ wf('wiederherstellen'); }
+    else if (act === 'read'){ post('/api/dms/read', { docId: doc.id }).then(afterChange).catch(function(e){ alert(e.message); }); }
+    else if (act === 'lock'){ post('/api/dms/lock', { docId: doc.id, lock: true }).then(afterChange).catch(function(e){ alert(e.message); }); }
+    else if (act === 'unlock'){ post('/api/dms/lock', { docId: doc.id, lock: false }).then(afterChange).catch(function(e){ alert(e.message); }); }
+    else if (act === 'delete'){
+      if (!confirm('Dieses Dokument inkl. aller Versionen und des Verlaufs unwiderruflich löschen? Besser: archivieren.')) return;
+      api('/api/dms/documents?id=' + encodeURIComponent(doc.id), { method: 'DELETE' }).then(function(){ closeDrawer(); return loadDocuments(); }).catch(function(e){ alert(e.message); });
+    }
+  }
+
+  // ---------- Neues Dokument / Angaben bearbeiten ----------
+
+  function docFields(doc){
+    var d = doc || {};
+    return [
+      { name: 'title', label: 'Titel', value: d.title || '', required: true, placeholder: 'z.B. Verfahrensanweisung Wareneingang' },
+      { name: 'category', label: 'Kategorie / Abteilung', type: 'select', options: tenantCategories(), value: d.category || tenantCategories()[0] },
+      { name: 'description', label: 'Beschreibung (Zweck, Geltungsbereich)', type: 'textarea', value: d.description || '' },
+      { name: 'tags', label: 'Schlagworte, kommagetrennt', value: (d.tags || []).join(', '), placeholder: 'z.B. Audit, ISO 9001, Einkauf' },
+      { name: 'owner', label: 'Verantwortliche:r (E-Mail)', value: d.owner || state.me, list: true },
+      { name: 'reviewer', label: 'Prüfer:in (E-Mail, leer = jede berechtigte Person)', value: d.reviewer || '', list: true },
+      { name: 'approver', label: 'Freigeber:in (E-Mail, leer = jede berechtigte Person)', value: d.approver || '', list: true },
+      { name: 'reviewIntervalMonths', label: 'Überprüfung alle … Monate (0 = keine Wiedervorlage)', type: 'number', value: d.reviewIntervalMonths == null ? 12 : d.reviewIntervalMonths },
+      { name: 'readRequired', label: 'Lesepflicht: Mitarbeitende bestätigen «gelesen und verstanden»', type: 'checkbox', value: !!d.readRequired }
+    ];
+  }
+
+  function newDoc(){
     if (!state.currentTenant){ alert('Kein Kunde ausgewählt.'); return; }
-    api('/api/dms/documents', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: title, category: category, tenantId: state.currentTenant.id })
-    }).then(function(){
-      document.getElementById('newTitle').value = '';
-      loadDocuments();
-    }).catch(function(e){ alert(e.message); });
-  });
+    askForm({ title: 'Neues Dokument', sub: 'Die Dokumentnummer wird automatisch vergeben. Die erste Datei lädst du danach im Dokument hoch.', fields: docFields(null), ok: 'Anlegen' }).then(function(v){
+      if (!v) return;
+      v.tenantId = state.currentTenant.id;
+      post('/api/dms/documents', v).then(function(res){
+        return loadDocuments().then(function(){ openDrawer(res.document.id); });
+      }).catch(function(e){ alert(e.message); });
+    });
+  }
 
-  document.getElementById('tenantSwitcher').addEventListener('change', function(){
-    switchTenant(this.value);
-  });
+  function editMeta(doc){
+    askForm({ title: 'Angaben bearbeiten', fields: docFields(doc), ok: 'Speichern' }).then(function(v){
+      if (!v) return;
+      v.id = doc.id;
+      put('/api/dms/documents', v).then(afterChange).catch(function(e){ alert(e.message); });
+    });
+  }
 
-  document.getElementById('manageTenantsBtn').addEventListener('click', function(){
-    var panel = document.getElementById('tenantsPanel');
+  // ---------- Upload ----------
+
+  function startUpload(doc){
+    var first = !doc.currentVersion;
+    askForm({
+      title: first ? 'Erste Version hochladen' : 'Neue Version hochladen',
+      sub: first ? '' : 'Die neue Version ist zuerst ein Entwurf. Die bisher gültige Version bleibt gültig, bis die neue freigegeben ist.',
+      fields: [
+        { name: 'file', label: 'Datei', type: 'file', required: true },
+        { name: 'note', label: first ? 'Bemerkung (optional)' : 'Änderungsgrund (Pflicht)', type: 'textarea', required: !first, placeholder: 'Was wurde geändert und warum?' }
+      ],
+      ok: 'Hochladen'
+    }).then(function(v){
+      if (!v || !v.file) return;
+      var file = v.file;
+      post('/api/dms/upload-url', { docId: doc.id, filename: file.name }).then(function(res){
+        var xhr = new XMLHttpRequest();
+        xhr.open('PUT', res.uploadUrl);
+        xhr.onload = function(){
+          if (xhr.status >= 200 && xhr.status < 300){
+            post('/api/dms/upload-done', { docId: doc.id, key: res.key, filename: res.filename, version: res.version, size: file.size, note: v.note }).then(afterChange).catch(function(e){ alert(e.message); });
+          } else { alert('Upload fehlgeschlagen (' + xhr.status + ').'); }
+        };
+        xhr.onerror = function(){ alert('Netzwerkfehler beim Upload.'); };
+        xhr.send(file);
+      }).catch(function(e){ alert(e.message); });
+    });
+  }
+
+  // ---------- Verdrahtung ----------
+
+  $('drawerBg').addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && !document.querySelector('.modal-bg.open')) closeDrawer(); });
+  $('newDocBtn').addEventListener('click', newDoc);
+  $('tenantSwitcher').addEventListener('change', function(){ switchTenant(this.value); });
+
+  $('manageTenantsBtn').addEventListener('click', function(){
+    var panel = $('tenantsPanel');
     var opening = panel.style.display === 'none';
     panel.style.display = opening ? '' : 'none';
     if (opening) loadTenantsPanel();
   });
 
-  document.getElementById('createTenantBtn').addEventListener('click', function(){
-    var name = document.getElementById('newTenantName').value.trim();
-    var domains = document.getElementById('newTenantDomains').value.trim();
-    var copyFromTenantId = document.getElementById('newTenantTemplate').value;
+  $('createTenantBtn').addEventListener('click', function(){
+    var name = $('newTenantName').value.trim();
+    var domains = $('newTenantDomains').value.trim();
+    var copyFromTenantId = $('newTenantTemplate').value;
     if (!name){ alert('Bitte einen Namen angeben.'); return; }
-    api('/api/dms/tenants', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: name, domains: domains, copyFromTenantId: copyFromTenantId || undefined })
-    }).then(function(res){
-      document.getElementById('newTenantName').value = '';
-      document.getElementById('newTenantDomains').value = '';
-      document.getElementById('statRow').style.display = '';
-      document.getElementById('tenantSwitcherField').style.display = '';
-      document.getElementById('newDocPanel').style.display = '';
-      document.getElementById('documentsPanel').style.display = '';
-      return loadTenantsPanel().then(function(){
-        switchTenant(res.tenant.id);
-      });
+    post('/api/dms/tenants', { name: name, domains: domains, copyFromTenantId: copyFromTenantId || undefined }).then(function(res){
+      $('newTenantName').value = '';
+      $('newTenantDomains').value = '';
+      $('statRow').style.display = '';
+      $('tenantSwitcherField').style.display = '';
+      $('documentsPanel').style.display = '';
+      return loadTenantsPanel().then(function(){ switchTenant(res.tenant.id); });
     }).catch(function(e){ alert(e.message); });
   });
 
-  document.getElementById('versionFileInput').addEventListener('change', function(){
-    var file = this.files[0];
-    var docId = state.pendingUploadDocId;
-    this.value = '';
-    if (!file || !docId) return;
-
-    api('/api/dms/upload-url', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ docId: docId, filename: file.name })
-    }).then(function(res){
-      var xhr = new XMLHttpRequest();
-      xhr.open('PUT', res.uploadUrl);
-      xhr.onload = function(){
-        if (xhr.status >= 200 && xhr.status < 300){
-          api('/api/dms/upload-done', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ docId: docId, key: res.key, filename: res.filename, version: res.version, size: file.size })
-          }).then(loadDocuments).catch(function(e){ alert(e.message); });
-        } else {
-          alert('Upload fehlgeschlagen (' + xhr.status + ').');
-        }
-      };
-      xhr.onerror = function(){ alert('Netzwerkfehler beim Upload.'); };
-      xhr.send(file);
-    }).catch(function(e){ alert(e.message); });
-  });
-
-  document.getElementById('searchInput').addEventListener('input', renderDocuments);
-  document.getElementById('categoryFilter').addEventListener('change', renderDocuments);
-  document.getElementById('statusFilter').addEventListener('change', renderDocuments);
+  ['searchInput'].forEach(function(id){ $(id).addEventListener('input', renderDocuments); });
+  ['categoryFilter', 'statusFilter', 'ownerFilter', 'groupBy'].forEach(function(id){ $(id).addEventListener('change', renderDocuments); });
 
   loadMe().catch(function(e){
-    document.getElementById('whoBox').textContent = 'Fehler beim Laden: ' + e.message;
+    $('whoBox').textContent = 'Fehler beim Laden: ' + e.message;
   });
 })();
 </script>
@@ -786,11 +1294,13 @@ tbody tr.doc-row{cursor:pointer}
 <script>
 (function(){
   var STEPS = [
-    { icon: '🗂️', title: 'Dokumentenlenkung', text: 'Ein QM-System für mehrere Kunden gleichzeitig: jeder Kunde hat seine eigenen Dokumente, Kategorien und Status, komplett voneinander getrennt.' },
-    { icon: '🏷️', title: 'Kunden verwalten', text: 'Als Admin wechselst du oben zwischen Kunden und kannst dort neue anlegen, Domains zuordnen (für den automatischen Login ihrer Mitarbeitenden) und Kategorien bearbeiten.' },
-    { icon: '➕', title: 'Neues Dokument', text: 'Titel und Kategorie eingeben, anlegen. Die erste Version lädst du danach direkt in der Tabelle über «Version hochladen» hoch.' },
-    { icon: '🔄', title: 'Versionen & Status', text: 'Jede neue Version setzt den Status automatisch zurück auf «Entwurf», eine neue Version ist ja noch nicht geprüft. Klick auf den Titel zeigt den ganzen Verlauf.' },
-    { icon: '🔍', title: 'Suche & Filter', text: 'Nach Titel suchen oder nach Kategorie/Status filtern, praktisch sobald mehr Dokumente dazukommen.' }
+    { icon: '🗂️', title: 'Dokumentenlenkung', text: 'Ein QM-System für mehrere Kunden gleichzeitig: jeder Kunde hat eigene Dokumente, Kategorien und Regeln, komplett voneinander getrennt.' },
+    { icon: '📋', title: 'Ansichten und Aufgaben', text: 'Oben siehst du, was auf dich wartet: Prüfungen, Freigaben, fällige Überprüfungen und Lesebestätigungen. Die Karten und Reiter filtern die Liste mit einem Klick.' },
+    { icon: '🔢', title: 'Dokumentnummern', text: 'Jedes Dokument bekommt automatisch eine Nummer wie QM-001 oder ENG-014, dazu Verantwortliche, Schlagworte und eine Beschreibung. Suche und Gruppieren funktionieren über alles davon.' },
+    { icon: '✅', title: 'Freigabe-Workflow', text: 'Entwurf, Prüfung, Freigabe: Ersteller, Prüfer und Freigeber sind getrennte Rollen. Mit Vier-Augen-Prinzip darf niemand sein eigenes Dokument freigeben. Eine Ablehnung braucht immer eine Begründung.' },
+    { icon: '🔄', title: 'Versionen', text: 'Jede neue Version braucht einen Änderungsgrund. Die bisher freigegebene Version bleibt gültig und abrufbar, bis die neue freigegeben ist. Mit «Auschecken» sperrst du das Dokument, solange du daran arbeitest.' },
+    { icon: '⏰', title: 'Wiedervorlage und Lesepflicht', text: 'Jedes freigegebene Dokument hat ein Überprüfungsdatum und erinnert die verantwortliche Person. Bei Dokumenten mit Lesepflicht bestätigen Mitarbeitende «gelesen und verstanden».' },
+    { icon: '🕓', title: 'Verlauf und Export', text: 'Alles wird lückenlos im Verlauf festgehalten, auch Kommentare. Die Dokumentenliste lässt sich als CSV für Excel exportieren, praktisch fürs Audit.' }
   ];
   var idx = 0;
   var overlay = document.getElementById('tourOverlay');
