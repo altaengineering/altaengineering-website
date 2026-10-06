@@ -819,9 +819,24 @@ export async function handleDms(ctx) {
     const version = wanted === "current" ? doc.currentVersion : Number(wanted) || doc.releasedVersion || doc.currentVersion;
     const entry = doc.versions.find((v) => v.version === version);
     if (!entry) return json({ error: "Version nicht gefunden." }, 404);
-    const client = b2Client(env);
-    const upstream = await client.fetch(objectUrlFor(bucketUrl, env, entry.key));
-    if (!upstream.ok) return json({ error: "Die Datei wurde nicht gefunden." }, 404);
+
+    let upstream = null;
+    try {
+      const client = b2Client(env);
+      const r = await client.fetch(objectUrlFor(bucketUrl, env, entry.key));
+      if (r.ok) upstream = r;
+    } catch (e) {
+      console.error("Speicher nicht erreichbar:", e);
+    }
+    // Beispieldokumente haben oft keine Datei im Speicher: dann liefern wir die mitgelieferte
+    // Beispieldatei aus den Assets (public/demo-files/<dokument-id>-v<version>.<endung>).
+    const ext = String(entry.filename).split(".").pop().toLowerCase();
+    if (!upstream) {
+      const demo = await env.ASSETS.fetch(new Request(new URL(`/demo-files/${doc.id}-v${entry.version}.${ext}`, request.url)));
+      if (demo.ok) upstream = demo;
+    }
+    if (!upstream) return json({ error: "Zu dieser Version ist keine Datei hinterlegt. Lade sie über «Neue Version hochladen» hoch." }, 404);
+
     const headers = new Headers(upstream.headers);
     const inline = url.searchParams.get("inline") === "1";
     const ct = contentTypeFor(entry.filename);

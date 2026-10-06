@@ -456,6 +456,7 @@
     $('drawerBody').innerHTML = body;
     wireDrawer(doc);
     renderPreview(doc);
+    var pi = $('pvInline'); if (pi) loadPreviewInto(pi, doc, previewTarget(doc));
   }
   // ----- Vorschau -----
   function wideScreen() { return window.innerWidth >= 1300; }
@@ -472,11 +473,30 @@
     var entry = doc.versions.filter(function (x) { return x.version === v; })[0] || doc.versions[doc.versions.length - 1];
     return entry;
   }
+  // Datei als Blob laden: so lassen sich Fehler (Datei fehlt) freundlich anzeigen statt als rohe Meldung.
+  var pvToken = 0;
+  function loadPreviewInto(container, doc, entry) {
+    var kind = previewKind(entry.filename);
+    if (kind === 'none') return;
+    var my = ++pvToken;
+    var url = '/api/dms/download?docId=' + doc.id + '&version=' + entry.version + '&inline=1';
+    container.innerHTML = '<div class="preview-load">Lade Vorschau …</div>';
+    fetch(url).then(function (r) {
+      if (!r.ok) return r.json().catch(function () { return {}; }).then(function (e) { throw new Error(e.error || ('Fehler ' + r.status)); });
+      return r.blob();
+    }).then(function (blob) {
+      if (my !== pvToken) return;
+      var u = URL.createObjectURL(blob);
+      container.innerHTML = kind === 'img' ? '<img src="' + u + '" alt="' + esc(entry.filename) + '">' : '<iframe src="' + u + '" title="Vorschau ' + esc(entry.filename) + '"></iframe>';
+    }).catch(function (e) {
+      if (my !== pvToken) return;
+      container.innerHTML = '<div class="preview-none"><div class="big">⚠️</div><b>Die Vorschau konnte nicht geladen werden</b>' + esc(e.message) + '<div style="margin-top:1rem"><a class="btn" href="/api/dms/download?docId=' + doc.id + '&version=' + entry.version + '">⬇ Herunterladen versuchen</a></div></div>';
+    });
+  }
   function previewBodyHtml(doc, entry) {
     var url = '/api/dms/download?docId=' + doc.id + '&version=' + entry.version;
     var kind = previewKind(entry.filename);
-    if (kind === 'pdf' || kind === 'txt') return '<iframe src="' + url + '&inline=1" title="Vorschau ' + esc(entry.filename) + '"></iframe>';
-    if (kind === 'img') return '<img src="' + url + '&inline=1" alt="' + esc(entry.filename) + '">';
+    if (kind !== 'none') return '<div class="preview-load">Lade Vorschau …</div>';
     return '<div class="preview-none"><div class="big">📄</div><b>Keine Vorschau für diesen Dateityp</b>Dateien wie Word, Excel oder CAD lassen sich nicht im Browser anzeigen. Lade die Datei herunter, um sie zu öffnen.<div style="margin-top:1rem"><a class="btn primary" href="' + url + '">⬇ Herunterladen</a></div></div>';
   }
   function renderPreview(doc) {
@@ -487,9 +507,11 @@
     var url = '/api/dms/download?docId=' + doc.id + '&version=' + entry.version;
     var vsel = doc.versions.length > 1 ? '<select id="pvVer" aria-label="Version">' + doc.versions.slice().reverse().map(function (v) { return '<option value="' + v.version + '"' + (v.version === entry.version ? ' selected' : '') + '>v' + v.version + (v.version === doc.releasedVersion ? ' (gültig)' : v.version === doc.currentVersion ? ' (aktuell)' : '') + '</option>'; }).join('') + '</select>' : '<span class="chip">v' + entry.version + '</span>';
     pv.innerHTML = '<div class="preview-head"><span class="fn" title="' + esc(entry.filename) + '">' + esc(entry.filename) + '</span>' + vsel +
-      (previewKind(entry.filename) !== 'none' ? '<a class="btn sm" href="' + url + '&inline=1" target="_blank" rel="noopener">↗ Neuer Tab</a>' : '') + '<a class="btn sm" href="' + url + '">⬇ Download</a></div>' +
+      (previewKind(entry.filename) !== 'none' ? '<a class="btn sm" href="' + url + '&inline=1" target="_blank" rel="noopener">↗ Neuer Tab</a>' : '') + '<a class="btn sm" href="' + url + '">⬇ Download</a><button class="x-btn" id="pvClose" aria-label="Schliessen" title="Schliessen" style="width:32px;height:32px">✕</button></div>' +
       '<div class="preview-body">' + previewBodyHtml(doc, entry) + '</div>';
     pv.classList.add('show');
+    $('pvClose').addEventListener('click', closeDrawer);
+    loadPreviewInto(pv.querySelector('.preview-body'), doc, entry);
     var sel = $('pvVer');
     if (sel) sel.addEventListener('change', function () { S.previewVersion = Number(sel.value); renderPreview(doc); });
   }
@@ -497,7 +519,7 @@
     var entry = previewTarget(doc);
     if (!entry) return '<div class="empty">Noch keine Datei hochgeladen.</div>';
     return '<div class="row" style="margin-bottom:.7rem"><span class="t-main" style="flex:1;min-width:0">' + esc(entry.filename) + ' <span class="chip">v' + entry.version + '</span></span>' +
-      (previewKind(entry.filename) !== 'none' ? '<a class="btn sm" href="/api/dms/download?docId=' + doc.id + '&version=' + entry.version + '&inline=1" target="_blank" rel="noopener">↗ Neuer Tab</a>' : '') + '</div><div class="preview-inline">' + previewBodyHtml(doc, entry) + '</div>';
+      (previewKind(entry.filename) !== 'none' ? '<a class="btn sm" href="/api/dms/download?docId=' + doc.id + '&version=' + entry.version + '&inline=1" target="_blank" rel="noopener">↗ Neuer Tab</a>' : '') + '</div><div class="preview-inline" id="pvInline">' + previewBodyHtml(doc, entry) + '</div>';
   }
 
   function mi(k, v, wide) { return '<div class="meta-item' + (wide ? ' wide' : '') + '"><div class="k">' + k + '</div><div class="v">' + v + '</div></div>'; }
