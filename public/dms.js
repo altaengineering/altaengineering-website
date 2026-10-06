@@ -29,7 +29,7 @@
   var S = {
     email: '', me: '', platform: false, tenants: [], tenantId: null, tenant: null, role: null,
     docs: [], docsLoaded: false, view: 'alle', openDocId: null, drawerTab: 'uebersicht',
-    hb: null, hbDraft: true, hbEditing: null, route: 'dokumente'
+    hb: null, hbDraft: true, hbEditing: null, route: 'dokumente', previewVersion: null
   };
 
   // ---------- Helfer ----------
@@ -386,14 +386,16 @@
   // ----- Detail-Panel -----
 
   function openDrawer(id) {
-    S.openDocId = id; S.drawerTab = 'uebersicht';
+    S.openDocId = id; S.drawerTab = 'uebersicht'; S.previewVersion = null;
     var d = findDoc(id); if (!d) return;
+    if (!wideScreen() && d.versions.length) S.drawerTab = 'vorschau';
     renderDrawer(d);
     $('drawerBg').classList.add('open'); $('drawer').classList.add('open');
   }
   function closeDrawer() {
     S.openDocId = null;
     $('drawerBg').classList.remove('open'); $('drawer').classList.remove('open');
+    var pv = $('preview'); if (pv) { pv.classList.remove('show'); pv.innerHTML = ''; }
   }
   function aBtn(label, act, cls, o) {
     o = o || {};
@@ -445,14 +447,59 @@
     $('drawerHead').innerHTML = '<div><div class="docnr">' + esc(doc.docNumber) + ' · ' + esc(doc.category) + '</div><h3>' + esc(doc.title) + '</h3><div>' + statusChip(doc) + (doc.currentVersion ? ' <span class="chip">v' + doc.currentVersion + '</span>' : '') + (task ? ' <span class="chip task">' + esc(task) + '</span>' : '') + '</div></div><button class="x-btn" id="drawerX" aria-label="Schliessen">✕</button>';
     $('drawerX').addEventListener('click', closeDrawer);
     $('drawerActions').innerHTML = actionsFor(doc);
-    var tabs = [['uebersicht', 'Übersicht'], ['versionen', 'Versionen (' + doc.versions.length + ')'], ['verlauf', 'Verlauf'], ['verknuepft', 'Verknüpft (' + (doc.related || []).length + ')']];
+    var tabs = (wideScreen() || !doc.versions.length ? [] : [['vorschau', 'Vorschau']]).concat([['uebersicht', 'Übersicht'], ['versionen', 'Versionen (' + doc.versions.length + ')'], ['verlauf', 'Verlauf'], ['verknuepft', 'Verknüpft (' + (doc.related || []).length + ')']]);
     if (doc.readRequired || can('manage')) tabs.push(['lesen', 'Gelesen']);
     $('drawerTabs').innerHTML = tabs.map(function (t) { return '<button class="drawer-tab' + (S.drawerTab === t[0] ? ' on' : '') + '" data-tab="' + t[0] + '">' + t[1] + '</button>'; }).join('');
     $('drawerTabs').querySelectorAll('[data-tab]').forEach(function (b) { b.addEventListener('click', function () { S.drawerTab = b.getAttribute('data-tab'); renderDrawer(doc); }); });
-    var body = S.drawerTab === 'versionen' ? tabVersionen(doc) : S.drawerTab === 'verlauf' ? tabVerlauf(doc) : S.drawerTab === 'verknuepft' ? tabVerknuepft(doc) : S.drawerTab === 'lesen' ? tabLesen(doc) : tabUebersicht(doc);
+    if (S.drawerTab === 'vorschau' && wideScreen()) S.drawerTab = 'uebersicht';
+    var body = S.drawerTab === 'vorschau' ? tabVorschau(doc) : S.drawerTab === 'versionen' ? tabVersionen(doc) : S.drawerTab === 'verlauf' ? tabVerlauf(doc) : S.drawerTab === 'verknuepft' ? tabVerknuepft(doc) : S.drawerTab === 'lesen' ? tabLesen(doc) : tabUebersicht(doc);
     $('drawerBody').innerHTML = body;
     wireDrawer(doc);
+    renderPreview(doc);
   }
+  // ----- Vorschau -----
+  function wideScreen() { return window.innerWidth >= 1300; }
+  function previewKind(filename) {
+    var ext = String(filename || '').split('.').pop().toLowerCase();
+    if (ext === 'pdf') return 'pdf';
+    if (['png', 'jpg', 'jpeg', 'gif'].indexOf(ext) >= 0) return 'img';
+    if (ext === 'txt') return 'txt';
+    return 'none';
+  }
+  function previewTarget(doc) {
+    if (!doc.versions.length) return null;
+    var v = S.previewVersion || doc.releasedVersion || doc.currentVersion;
+    var entry = doc.versions.filter(function (x) { return x.version === v; })[0] || doc.versions[doc.versions.length - 1];
+    return entry;
+  }
+  function previewBodyHtml(doc, entry) {
+    var url = '/api/dms/download?docId=' + doc.id + '&version=' + entry.version;
+    var kind = previewKind(entry.filename);
+    if (kind === 'pdf' || kind === 'txt') return '<iframe src="' + url + '&inline=1" title="Vorschau ' + esc(entry.filename) + '"></iframe>';
+    if (kind === 'img') return '<img src="' + url + '&inline=1" alt="' + esc(entry.filename) + '">';
+    return '<div class="preview-none"><div class="big">📄</div><b>Keine Vorschau für diesen Dateityp</b>Dateien wie Word, Excel oder CAD lassen sich nicht im Browser anzeigen. Lade die Datei herunter, um sie zu öffnen.<div style="margin-top:1rem"><a class="btn primary" href="' + url + '">⬇ Herunterladen</a></div></div>';
+  }
+  function renderPreview(doc) {
+    var pv = $('preview');
+    if (!pv) return;
+    var entry = previewTarget(doc);
+    if (!entry || !wideScreen()) { pv.classList.remove('show'); pv.innerHTML = ''; return; }
+    var url = '/api/dms/download?docId=' + doc.id + '&version=' + entry.version;
+    var vsel = doc.versions.length > 1 ? '<select id="pvVer" aria-label="Version">' + doc.versions.slice().reverse().map(function (v) { return '<option value="' + v.version + '"' + (v.version === entry.version ? ' selected' : '') + '>v' + v.version + (v.version === doc.releasedVersion ? ' (gültig)' : v.version === doc.currentVersion ? ' (aktuell)' : '') + '</option>'; }).join('') + '</select>' : '<span class="chip">v' + entry.version + '</span>';
+    pv.innerHTML = '<div class="preview-head"><span class="fn" title="' + esc(entry.filename) + '">' + esc(entry.filename) + '</span>' + vsel +
+      (previewKind(entry.filename) !== 'none' ? '<a class="btn sm" href="' + url + '&inline=1" target="_blank" rel="noopener">↗ Neuer Tab</a>' : '') + '<a class="btn sm" href="' + url + '">⬇ Download</a></div>' +
+      '<div class="preview-body">' + previewBodyHtml(doc, entry) + '</div>';
+    pv.classList.add('show');
+    var sel = $('pvVer');
+    if (sel) sel.addEventListener('change', function () { S.previewVersion = Number(sel.value); renderPreview(doc); });
+  }
+  function tabVorschau(doc) {
+    var entry = previewTarget(doc);
+    if (!entry) return '<div class="empty">Noch keine Datei hochgeladen.</div>';
+    return '<div class="row" style="margin-bottom:.7rem"><span class="t-main" style="flex:1;min-width:0">' + esc(entry.filename) + ' <span class="chip">v' + entry.version + '</span></span>' +
+      (previewKind(entry.filename) !== 'none' ? '<a class="btn sm" href="/api/dms/download?docId=' + doc.id + '&version=' + entry.version + '&inline=1" target="_blank" rel="noopener">↗ Neuer Tab</a>' : '') + '</div><div class="preview-inline">' + previewBodyHtml(doc, entry) + '</div>';
+  }
+
   function mi(k, v, wide) { return '<div class="meta-item' + (wide ? ' wide' : '') + '"><div class="k">' + k + '</div><div class="v">' + v + '</div></div>'; }
   function tabUebersicht(doc) {
     var h = '';
@@ -999,6 +1046,7 @@
   // ---------- Verdrahtung ----------
 
   $('drawerBg').addEventListener('click', closeDrawer);
+  window.addEventListener('resize', function () { var d = S.openDocId && findDoc(S.openDocId); if (d) renderDrawer(d); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !document.querySelector('.modal-bg')) closeDrawer(); });
   $('tenantSwitcher').addEventListener('change', function () { switchTenant(this.value); });
   $('helpBtn').addEventListener('click', tour);

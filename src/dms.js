@@ -829,7 +829,9 @@ export async function handleDms(ctx) {
       headers.set("Content-Type", ct);
       headers.set("Content-Disposition", `inline; filename="${entry.filename}"`);
       headers.set("X-Content-Type-Options", "nosniff");
-      headers.set("Content-Security-Policy", "sandbox");
+      // Nur harmlose Typen (PDF, Bilder, Text) werden inline ausgeliefert, kein HTML/SVG. Eine CSP-Sandbox
+      // wuerde den PDF-Betrachter des Browsers blockieren, daher bewusst nicht gesetzt.
+      if (ct.startsWith("text/")) headers.set("Content-Security-Policy", "default-src 'none'");
     } else {
       headers.set("Content-Disposition", `attachment; filename="${entry.filename}"`);
     }
