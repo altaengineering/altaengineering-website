@@ -14,6 +14,9 @@ import {
   resolveAccess, publicTenant, memberRole, fallbackPrefix,
 } from "./dms-core.js";
 import { handleHandbook } from "./handbook.js";
+import { BUILTIN_TEMPLATES, findTemplate, pickCategory } from "./templates.js";
+import { buildDocx } from "./docx.js";
+import { buildAuditReport } from "./audit.js";
 
 export { listTenants, tenantsFor };
 
@@ -107,6 +110,21 @@ function contentTypeFor(filename) {
 
 function parseList(v) {
   return (Array.isArray(v) ? v : String(v || "").split(/[\s,;]+/)).map((x) => String(x).trim()).filter(Boolean);
+}
+
+// Wer muss ein Dokument mit Lesepflicht lesen? Die Mitglieder der gewaehlten Gruppen, sonst alle.
+export function requiredReaders(tenant, doc) {
+  const ids = doc.readGroups || [];
+  if (ids.length) {
+    const set = new Set();
+    for (const g of tenant.groups || []) if (ids.includes(g.id)) (g.members || []).forEach((m) => set.add(m));
+    return [...set];
+  }
+  return (tenant.members || []).map((m) => m.email);
+}
+
+function slug(str) {
+  return String(str || "dokument").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "dokument";
 }
 
 // ---------- Dokumente: Speicher ----------
@@ -417,6 +435,7 @@ export async function handleDms(ctx) {
 
     if (m.role === "admin" && adminCount() <= 1) return json({ error: "Die letzte Administrator-Person lässt sich nicht entfernen." }, 400);
     t.members = t.members.filter((x) => x.email !== mail);
+    (t.groups || []).forEach((g) => (g.members = (g.members || []).filter((m) => m !== mail)));
     await saveTenant(env, t);
     await logActivity(env, { email, action: "DMS-Benutzer entfernt", detail: `${t.name}: ${mail}` });
     return json({ ok: true });
@@ -471,6 +490,163 @@ export async function handleDms(ctx) {
     return json({ ok: true, tenant: publicTenant(t) });
   }
 
+  // ----- Dokumentvorlagen -----
+
+  if (path === "/api/dms/templates" && method === "GET") {
+    const access = await resolveAccess(env, admin, email, requestedTenant);
+    if (!access) return json({ error: "Kein Zugriff." }, 403);
+    const t = access.tenant;
+    const list = [
+      ...BUILTIN_TEMPLATES.map((x) => ({ id: x.id, icon: x.icon, name: x.name, description: x.description, builtin: true, category: pickCategory(t, x), tags: x.tags, reviewMonths: x.reviewMonths, readRequired: x.readRequired, titlePrefix: x.titlePrefix, sections: x.sections.length })),
+      ...(t.templates || []).map((x) => ({ id: x.id, icon: "⭐", name: x.name, description: x.description || "", builtin: false, category: x.category || "", tags: x.tags || [], reviewMonths: x.reviewMonths == null ? t.defaultReviewMonths : x.reviewMonths, readRequired: !!x.readRequired, titlePrefix: "", sections: (x.outline || []).length, outline: x.outline || [] })),
+    ];
+    return json({ templates: list });
+  }
+
+  if (path === "/api/dms/templates" && (method === "POST" || method === "DELETE")) {
+    const body = method === "DELETE" ? {} : await request.json().catch(() => ({}));
+    const access = await resolveAccess(env, admin, email, method === "DELETE" ? requestedTenant : body.tenantId);
+    if (!access) return json({ error: "Kein Zugriff." }, 403);
+    if (!can(access.role, "manage")) return json({ error: "Nur Administratoren verwalten Vorlagen." }, 403);
+    const t = access.tenant;
+    t.templates = t.templates || [];
+    if (method === "DELETE") {
+      t.templates = t.templates.filter((x) => x.id !== url.searchParams.get("id"));
+      await saveTenant(env, t);
+      return json({ ok: true });
+    }
+    const name = String(body.name || "").trim().slice(0, 80);
+    if (!name) return json({ error: "Bitte einen Namen für die Vorlage angeben." }, 400);
+    const outline = (Array.isArray(body.outline) ? body.outline : String(body.outline || "").split("\n").map((l) => { const [h, ...r] = l.split("|"); return { h: h.trim(), hint: r.join("|").trim() }; }))
+      .map((o) => ({ h: String(o.h || "").trim().slice(0, 120), hint: String(o.hint || "").trim().slice(0, 300) })).filter((o) => o.h).slice(0, 30);
+    if (!outline.length) return json({ error: "Bitte mindestens eine Überschrift für die Gliederung angeben." }, 400);
+    const entry = {
+      id: body.id && t.templates.some((x) => x.id === body.id) ? body.id : "c" + crypto.randomUUID().slice(0, 8),
+      name, description: String(body.description || "").trim().slice(0, 300),
+      category: t.categories.includes(body.category) ? body.category : "",
+      tags: normTags(body.tags), reviewMonths: normMonths(body.reviewMonths, t.defaultReviewMonths), readRequired: !!body.readRequired, outline,
+    };
+    const i = t.templates.findIndex((x) => x.id === entry.id);
+    if (i >= 0) t.templates[i] = entry;
+    else {
+      if (t.templates.length >= 30) return json({ error: "Zu viele Vorlagen (maximal 30)." }, 400);
+      t.templates.push(entry);
+    }
+    await saveTenant(env, t);
+    return json({ ok: true, template: entry });
+  }
+
+  // Startdatei (Word) zum Dokument: Kopf mit den Dokumentdaten und die Gliederung der Vorlage
+  if (path === "/api/dms/template-file" && method === "GET") {
+    const found = await docWithAccess(env, admin, email, url.searchParams.get("docId"));
+    if (found.error) return json({ error: found.error[0] }, found.error[1]);
+    const { doc, tenant } = found;
+    const tpl = doc.templateId ? findTemplate(tenant, doc.templateId) : null;
+    const sections = tpl ? tpl.sections : [{ h: "Zweck" }, { h: "Geltungsbereich" }, { h: "Inhalt" }, { h: "Mitgeltende Unterlagen" }];
+    const bytes = buildDocx({
+      firma: tenant.name, title: doc.title, docNumber: doc.docNumber, version: Math.max(1, doc.currentVersion + (doc.currentVersion ? 1 : 0)),
+      owner: (tenant.members.find((m) => m.email === doc.owner) || {}).name || doc.owner, category: doc.category, description: doc.description,
+      templateName: tpl ? tpl.name : "Dokument", sections,
+    });
+    return new Response(bytes, { headers: { "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "Content-Disposition": `attachment; filename="${doc.docNumber}-${slug(doc.title)}.docx"` } });
+  }
+
+  // ----- Gruppen und Verteiler -----
+
+  if (path === "/api/dms/groups" && method === "POST") {
+    const body = await request.json().catch(() => ({}));
+    const access = await resolveAccess(env, admin, email, body.tenantId);
+    if (!access) return json({ error: "Kein Zugriff." }, 403);
+    if (!can(access.role, "manage")) return json({ error: "Nur Administratoren verwalten Gruppen." }, 403);
+    const t = access.tenant;
+    t.groups = t.groups || [];
+    if (body.action === "delete") {
+      t.groups = t.groups.filter((g) => g.id !== body.id);
+      const docs = await loadTenantDocs(env, t);
+      for (const d of docs) {
+        if ((d.readGroups || []).includes(body.id)) { d.readGroups = d.readGroups.filter((x) => x !== body.id); await saveDoc(env, d); }
+      }
+      await saveTenant(env, t);
+      return json({ ok: true });
+    }
+    const name = String(body.name || "").trim().slice(0, 60);
+    if (!name) return json({ error: "Bitte einen Namen für die Gruppe angeben." }, 400);
+    if (t.groups.some((g) => g.name.toLowerCase() === name.toLowerCase() && g.id !== body.id)) return json({ error: "Eine Gruppe mit diesem Namen gibt es schon." }, 400);
+    const members = (Array.isArray(body.members) ? body.members : []).map((m) => String(m).toLowerCase()).filter((m) => memberRole(t, m));
+    const g = { id: body.id && t.groups.some((x) => x.id === body.id) ? body.id : "g" + crypto.randomUUID().slice(0, 8), name, members: [...new Set(members)] };
+    const i = t.groups.findIndex((x) => x.id === g.id);
+    if (i >= 0) t.groups[i] = g;
+    else {
+      if (t.groups.length >= 30) return json({ error: "Zu viele Gruppen (maximal 30)." }, 400);
+      t.groups.push(g);
+    }
+    await saveTenant(env, t);
+    return json({ ok: true, group: g });
+  }
+
+  // ----- Volltextsuche im Dateiinhalt -----
+  // Der Browser liest den Text aus PDF und Textdateien (beim Hochladen oder ueber "Suchindex aufbauen")
+  // und meldet ihn hierher. Gespeichert pro Dokument und Version unter "txt:<docId>:<version>".
+
+  if (path === "/api/dms/index" && method === "POST") {
+    const body = await request.json().catch(() => ({}));
+    const found = await docWithAccess(env, admin, email, body.docId);
+    if (found.error) return json({ error: found.error[0] }, found.error[1]);
+    const { doc, role } = found;
+    if (!can(role, "write")) return json({ error: "Dafür fehlt dir die Berechtigung." }, 403);
+    const version = Number(body.version);
+    if (!doc.versions.some((v) => v.version === version)) return json({ error: "Version nicht gefunden." }, 404);
+    const text = String(body.text || "").replace(/\s+/g, " ").trim().slice(0, 150000);
+    await env.DMS.put(`txt:${doc.id}:${version}`, JSON.stringify({ text, at: new Date().toISOString(), by: email }));
+    return json({ ok: true, chars: text.length });
+  }
+
+  if (path === "/api/dms/search" && method === "GET") {
+    const access = await resolveAccess(env, admin, email, requestedTenant);
+    if (!access) return json({ error: "Kein Zugriff." }, 403);
+    const q = String(url.searchParams.get("q") || "").trim().toLowerCase();
+    if (q.length < 3) return json({ hits: [] });
+    const terms = q.split(/\s+/).filter(Boolean);
+    const docs = await loadTenantDocs(env, access.tenant);
+    const hits = [];
+    for (const d of docs) {
+      const version = d.releasedVersion || d.currentVersion;
+      for (const v of version && d.releasedVersion && d.currentVersion !== d.releasedVersion ? [d.releasedVersion, d.currentVersion] : [version]) {
+        if (!v) continue;
+        const raw = await env.DMS.get(`txt:${d.id}:${v}`);
+        if (!raw) continue;
+        const text = JSON.parse(raw).text;
+        const low = text.toLowerCase();
+        if (!terms.every((t) => low.includes(t))) continue;
+        const i = low.indexOf(terms[0]);
+        const from = Math.max(0, i - 70);
+        hits.push({ docId: d.id, version: v, snippet: (from > 0 ? "…" : "") + text.slice(from, i + 150) + (i + 150 < text.length ? "…" : "") });
+        break;
+      }
+      if (hits.length >= 60) break;
+    }
+    return json({ hits });
+  }
+
+  // ----- Auditbericht (PDF) -----
+
+  if (path === "/api/dms/audit-report" && method === "GET") {
+    const access = await resolveAccess(env, admin, email, requestedTenant);
+    if (!access) return json({ error: "Kein Zugriff." }, 403);
+    const t = access.tenant;
+    const docs = await loadTenantDocs(env, t);
+    const hbRaw = await env.DMS.get("hb:" + t.id);
+    const pubRaw = await env.DMS.get("hbpub:" + t.id);
+    const hb = hbRaw ? JSON.parse(hbRaw) : null;
+    const pub = pubRaw ? JSON.parse(pubRaw) : null;
+    const bytes = buildAuditReport({
+      tenant: t, docs, by: email,
+      handbook: pub ? { published: true, title: pub.title, version: pub.version, publishedAt: pub.publishedAt, publishedBy: pub.publishedBy, chapters: pub.chapters.length, revisions: hb ? hb.revisions || [] : [] } : null,
+    });
+    await logActivity(env, { email, action: "DMS-Auditbericht erstellt", detail: t.name });
+    return new Response(bytes, { headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="Auditbericht-${slug(t.name)}-${todayIso()}.pdf"` } });
+  }
+
   // ===== Dokumente =====
 
   if (path === "/api/dms/documents" && method === "GET") {
@@ -478,6 +654,11 @@ export async function handleDms(ctx) {
     if (!access) return json({ error: "Kein Kunde zugeordnet." }, 403);
     const items = await loadTenantDocs(env, access.tenant);
     items.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+    // Welche Versionen sind im Suchindex? (nur Zahlen, ohne den Text zu laden)
+    const idx = await env.DMS.list({ prefix: "txt:" });
+    const indexed = {};
+    for (const k of idx.keys) { const [, id, v] = k.name.split(":"); (indexed[id] = indexed[id] || []).push(Number(v)); }
+    items.forEach((d) => (d.indexed = indexed[d.id] || []));
     return json({ documents: items, tenant: publicTenant(access.tenant), role: access.role, me });
   }
 
@@ -497,6 +678,8 @@ export async function handleDms(ctx) {
     if (!validAssignee(ctx, tenant, reviewer, "review")) return json({ error: "Die Prüfperson muss ein Mitglied mit Prüfrecht sein." }, 400);
     if (!validAssignee(ctx, tenant, approver, "approve")) return json({ error: "Die Freigabeperson muss ein Mitglied mit Freigaberecht sein." }, 400);
     if (!validAssignee(ctx, tenant, owner, null)) return json({ error: "Die verantwortliche Person muss ein Mitglied sein." }, 400);
+    const tpl = body.templateId ? findTemplate(tenant, String(body.templateId)) : null;
+    const readGroups = (Array.isArray(body.readGroups) ? body.readGroups : []).filter((g) => (tenant.groups || []).some((x) => x.id === g));
     const now = new Date().toISOString();
     const id = crypto.randomUUID();
     const doc = {
@@ -518,6 +701,8 @@ export async function handleDms(ctx) {
       validFrom: null,
       nextReview: null,
       readRequired: !!body.readRequired,
+      readGroups,
+      templateId: tpl ? tpl.id : null,
       reads: {},
       related: [],
       lock: null,
@@ -528,7 +713,7 @@ export async function handleDms(ctx) {
       updatedBy: email,
       schema: SCHEMA,
     };
-    pushHistory(doc, histEntry(email, "angelegt", { text: "Dokument angelegt" }));
+    pushHistory(doc, histEntry(email, "angelegt", { text: tpl ? `Dokument aus Vorlage «${tpl.name}» angelegt` : "Dokument angelegt" }));
     await saveDoc(env, doc);
     await saveTenant(env, tenant);
     await logActivity(env, { email, action: "DMS-Dokument angelegt", detail: `${doc.docNumber} ${title} (${tenant.name})` });
@@ -589,6 +774,11 @@ export async function handleDms(ctx) {
       if (v !== doc.readRequired) changes.push("Lesepflicht");
       doc.readRequired = v;
     }
+    if (Array.isArray(body.readGroups)) {
+      const g = body.readGroups.filter((x) => (tenant.groups || []).some((y) => y.id === x));
+      if (JSON.stringify(g) !== JSON.stringify(doc.readGroups || [])) changes.push("Lesepflicht für Gruppen");
+      doc.readGroups = g;
+    }
     if (Array.isArray(body.related)) {
       const valid = [];
       for (const rid of body.related.map(String).filter((x) => x !== doc.id)) {
@@ -617,6 +807,7 @@ export async function handleDms(ctx) {
       for (const v of doc.versions) await client.fetch(objectUrlFor(bucketUrl, env, v.key), { method: "DELETE" }).catch(() => {});
     }
     await env.DMS.delete("doc:" + doc.id);
+    for (const v of doc.versions) await env.DMS.delete(`txt:${doc.id}:${v.version}`);
     await logActivity(env, { email, action: "DMS-Dokument geloescht", detail: `${doc.docNumber} ${doc.title}` });
     return json({ ok: true });
   }
@@ -722,6 +913,7 @@ export async function handleDms(ctx) {
       doc.reads = {};
       pushHistory(doc, histEntry(email, "status", { from, to: doc.status, version: doc.currentVersion, text: `Version ${doc.currentVersion} freigegeben`, comment: comment || undefined }));
       await notify(ctx, tenant, doc, [doc.owner, uploader], "Dokument freigegeben", `${email} hat Version ${doc.currentVersion} freigegeben.`);
+      if (doc.readRequired) await notify(ctx, tenant, doc, requiredReaders(tenant, doc), "Neue gültige Version, bitte lesen", `Version ${doc.currentVersion} ist freigegeben. Für dieses Dokument gilt eine Lesepflicht, bitte lesen und im Tool als «gelesen und verstanden» bestätigen.`);
     } else if (action === "ablehnen") {
       if (from !== "in_pruefung" && from !== "geprueft") return fail("Es gibt nichts abzulehnen.");
       if (!comment) return fail("Bitte eine Begründung für die Ablehnung angeben.");

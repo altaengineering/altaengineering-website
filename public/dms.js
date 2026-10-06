@@ -111,6 +111,10 @@
           html += '<label class="check"><input type="checkbox" id="' + id + '"' + (f.value ? ' checked' : '') + '><span>' + esc(f.label) + (f.hint ? '<span class="hint" style="display:block">' + esc(f.hint) + '</span>' : '') + '</span></label>';
           return;
         }
+        if (f.type === 'checks') {
+          html += '<div class="field"><label class="lbl">' + esc(f.label) + '</label><div class="checks">' + f.options.map(function (o) { return '<label class="check"><input type="checkbox" data-ck="' + esc(f.name) + '" value="' + esc(o.value) + '"' + ((f.value || []).indexOf(o.value) >= 0 ? ' checked' : '') + '><span>' + esc(o.label) + '</span></label>'; }).join('') + '</div>' + (f.hint ? '<div class="hint">' + esc(f.hint) + '</div>' : '') + '</div>';
+          return;
+        }
         html += '<div class="field"><label class="lbl" for="' + id + '">' + esc(f.label) + '</label>';
         if (f.type === 'textarea') html += '<textarea id="' + id + '" placeholder="' + esc(f.placeholder || '') + '" rows="' + (f.rows || 3) + '">' + esc(f.value || '') + '</textarea>';
         else if (f.type === 'select') html += '<select id="' + id + '">' + f.options.map(function (o) { var ov = typeof o === 'string' ? o : o.value, ol = typeof o === 'string' ? o : o.label; return '<option value="' + esc(ov) + '"' + (ov === f.value ? ' selected' : '') + '>' + esc(ol) + '</option>'; }).join('') + '</select>';
@@ -132,6 +136,7 @@
         var out = {};
         for (var i = 0; i < opts.fields.length; i++) {
           var f = opts.fields[i], el = bg.querySelector('#mf_' + f.name);
+          if (f.type === 'checks') { out[f.name] = Array.prototype.slice.call(bg.querySelectorAll('[data-ck="' + f.name + '"]:checked')).map(function (e) { return e.value; }); continue; }
           if (f.type === 'checkbox') out[f.name] = el.checked;
           else if (f.type === 'file') out[f.name] = el.files[0] || null;
           else out[f.name] = el.value.trim();
@@ -214,6 +219,7 @@
   function navItems() {
     var items = [];
     if (S.tenantId) {
+      items.push(['uebersicht', 'Übersicht', 0]);
       items.push(['dokumente', 'Dokumente', countTasks()]);
       items.push(['handbuch', 'QM-Handbuch', 0]);
       if (can('manage')) { items.push(['benutzer', 'Benutzer', 0]); items.push(['einstellungen', 'Einstellungen', 0]); }
@@ -227,15 +233,16 @@
     }).join('');
   }
   function route() {
-    var r = (location.hash || '').replace(/^#\/?/, '').split('/')[0] || 'dokumente';
+    var r = (location.hash || '').replace(/^#\/?/, '').split('/')[0] || 'uebersicht';
     var allowed = navItems().map(function (i) { return i[0]; });
-    if (allowed.indexOf(r) < 0) r = allowed[0] || 'dokumente';
+    if (allowed.indexOf(r) < 0) r = allowed[0] || 'uebersicht';
     S.route = r;
     renderNav();
     closeDrawer();
     window.scrollTo(0, 0);
     if (!S.tenantId && r !== 'kunden') { renderNoAccess(); return; }
-    if (r === 'dokumente') renderDocuments();
+    if (r === 'uebersicht') window.DMSX.renderDashboard();
+    else if (r === 'dokumente') renderDocuments();
     else if (r === 'handbuch') renderHandbook();
     else if (r === 'benutzer') renderUsers();
     else if (r === 'einstellungen') renderSettings();
@@ -250,6 +257,21 @@
   //  DOKUMENTE
   // =====================================================================
 
+  // Wer muss ein Dokument mit Lesepflicht lesen? Die Mitglieder der gewaehlten Gruppen, sonst alle.
+  function requiredReaders(doc) {
+    var ids = doc.readGroups || [];
+    var out = {};
+    if (ids.length) {
+      ((S.tenant && S.tenant.groups) || []).forEach(function (g) { if (ids.indexOf(g.id) >= 0) (g.members || []).forEach(function (m) { out[m] = 1; }); });
+      return Object.keys(out);
+    }
+    return ((S.tenant && S.tenant.members) || []).map(function (m) { return m.email; });
+  }
+  function readersLabel(doc) {
+    var ids = doc.readGroups || [];
+    if (!ids.length) return 'alle Benutzer';
+    return ids.map(function (id) { var g = ((S.tenant && S.tenant.groups) || []).filter(function (x) { return x.id === id; })[0]; return g ? g.name : '?'; }).join(', ');
+  }
   function taskFor(doc) {
     var me = S.me;
     if (doc.status === 'archiviert') return null;
@@ -261,7 +283,7 @@
       var d = daysUntil(doc.nextReview);
       if (d !== null && d <= 30) return d < 0 ? 'Überprüfung überfällig' : 'Überprüfung bald fällig';
     }
-    if (doc.readRequired && doc.releasedVersion) {
+    if (doc.readRequired && doc.releasedVersion && requiredReaders(doc).indexOf(me) >= 0) {
       var r = doc.reads && doc.reads[me];
       if (!r || r.version !== doc.releasedVersion) return 'Lesebestätigung offen';
     }
@@ -309,8 +331,9 @@
       { id: 'aufgaben', n: countTasks(), l: 'Meine Aufgaben', cls: countTasks() ? 'neg' : '' }
     ];
     var h = '<div class="page-head"><div><h1>Dokumente</h1><p>Alle gelenkten Dokumente von ' + esc(S.tenant.name) + ': Prüfung, Freigabe, Versionen und Wiedervorlage an einem Ort.</p></div>' +
-      '<div class="row"><a class="btn" href="/api/dms/export?tenantId=' + encodeURIComponent(S.tenantId) + '">⬇ Liste (CSV)</a>' +
+      '<div class="row"><a class="btn" href="/api/dms/audit-report?tenantId=' + encodeURIComponent(S.tenantId) + '" title="PDF für Auditorinnen und Auditoren">📄 Auditbericht</a><a class="btn" href="/api/dms/export?tenantId=' + encodeURIComponent(S.tenantId) + '">⬇ Liste (CSV)</a>' +
       (can('write') ? '<button class="btn primary" id="newDocBtn">＋ Neues Dokument</button>' : '') + '</div></div>';
+    h += '<div id="idxBanner"></div>';
     h += '<div class="kpis" id="kpis">' + kpis.map(function (k) {
       return '<button class="kpi ' + (k.cls || '') + (k.plain ? '' : ' click') + (S.view === k.id ? ' on' : '') + '"' + (k.plain ? '' : ' data-view="' + k.id + '"') + '><div class="l">' + k.l + '</div><div class="v">' + k.n + '</div></button>';
     }).join('') + '</div>';
@@ -320,6 +343,7 @@
       '<select id="fowner"></select><select id="fgroup"><option value="">Keine Gruppierung</option><option value="category"' + (filt.group === 'category' ? ' selected' : '') + '>Nach Kategorie</option><option value="status"' + (filt.group === 'status' ? ' selected' : '') + '>Nach Status</option></select></div></div>' +
       '<div class="tbl-wrap"><table><thead><tr><th>Nr.</th><th>Titel</th><th>Status</th><th>Version</th><th>Verantwortlich</th><th>Überprüfung</th></tr></thead><tbody id="docRows"></tbody></table><div class="empty" id="docEmpty" hidden></div></div></div>';
     $('page').innerHTML = h;
+    if (window.DMSX) window.DMSX.indexBanner($('idxBanner'));
 
     var nd = $('newDocBtn'); if (nd) nd.addEventListener('click', newDoc);
     $('kpis').querySelectorAll('[data-view]').forEach(function (b) { b.addEventListener('click', function () { S.view = b.getAttribute('data-view'); renderDocuments(); }); });
@@ -330,7 +354,7 @@
     $('fcat').innerHTML = '<option value="">Alle Kategorien</option>' + S.tenant.categories.map(function (c) { return '<option value="' + esc(c) + '"' + (filt.cat === c ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('');
     var owners = Array.from(new Set(S.docs.map(function (d) { return d.owner; }).filter(Boolean))).sort();
     $('fowner').innerHTML = '<option value="">Alle Verantwortlichen</option>' + owners.map(function (o) { return '<option value="' + esc(o) + '"' + (filt.owner === o ? ' selected' : '') + '>' + esc(nameFromMail(o)) + '</option>'; }).join('');
-    $('fq').addEventListener('input', function () { filt.q = this.value; drawRows(); });
+    $('fq').addEventListener('input', function () { filt.q = this.value; drawRows(); if (window.DMSX) window.DMSX.search(filt.q); });
     [['fcat', 'cat'], ['fstatus', 'status'], ['fowner', 'owner'], ['fgroup', 'group']].forEach(function (p) { $(p[0]).addEventListener('change', function () { filt[p[1]] = this.value; drawRows(); }); });
     drawRows();
   }
@@ -340,6 +364,7 @@
     if (!rows) return;
     rows.innerHTML = '';
     var q = filt.q.trim().toLowerCase();
+    var hits = (window.DMSX && q.length >= 3) ? window.DMSX.hits(q) : {};
     var list = S.docs.filter(function (d) {
       if (!inView(d, S.view)) return false;
       if (filt.cat && d.category !== filt.cat) return false;
@@ -348,7 +373,9 @@
       if (q) {
         var hay = [d.docNumber, d.title, d.description, nameFromMail(d.owner), d.owner, d.category, (d.tags || []).join(' ')].join(' ').toLowerCase();
         var parts = q.split(/\s+/);
-        for (var i = 0; i < parts.length; i++) if (hay.indexOf(parts[i]) < 0) return false;
+        var metaOk = true;
+        for (var i = 0; i < parts.length; i++) if (hay.indexOf(parts[i]) < 0) metaOk = false;
+        if (!metaOk && !hits[d.id]) return false;
       }
       return true;
     });
@@ -375,6 +402,7 @@
       tr.className = 'click' + (doc.status === 'archiviert' ? ' dim' : '');
       tr.innerHTML = '<td class="docnr">' + esc(doc.docNumber) + '</td>' +
         '<td><div class="t-main">' + esc(doc.title) + '</div><div class="t-sub">' + esc(doc.category) + (doc.lock ? ' · 🔒 ' + esc(nameFromMail(doc.lock.by)) : '') + '</div>' +
+        (hits[doc.id] ? '<div class="snip">📄 Treffer im Dateiinhalt (v' + hits[doc.id].version + '): ' + window.DMSX.snippetHtml(hits[doc.id].snippet, q) + '</div>' : '') +
         ((doc.tags && doc.tags.length) ? '<div class="tags">' + doc.tags.map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') + '</div>' : '') +
         (task ? '<div class="tags"><span class="chip task">' + esc(task) + '</span></div>' : '') + '</td>' +
         '<td>' + statusChip(doc) + '</td><td class="mono muted">' + (doc.currentVersion ? 'v' + doc.currentVersion : '–') + '</td><td>' + who(doc.owner) + '</td><td>' + reviewCell(doc) + '</td>';
@@ -433,6 +461,7 @@
       }
     }
     if (s === 'archiviert' && w) h += aBtn('♻ Wiederherstellen', 'wiederherstellen');
+    if (!doc.versions.length && doc.templateId) h += '<a class="btn sm primary" href="/api/dms/template-file?docId=' + doc.id + '">📄 Word-Startdatei herunterladen</a>';
     var v = doc.releasedVersion || doc.currentVersion;
     if (v) {
       h += '<a class="btn sm" href="/api/dms/download?docId=' + doc.id + '&version=' + v + '&inline=1" target="_blank" rel="noopener">👁 ' + (doc.releasedVersion ? 'Gültige Version ansehen' : 'Ansehen') + '</a>';
@@ -525,6 +554,7 @@
   function mi(k, v, wide) { return '<div class="meta-item' + (wide ? ' wide' : '') + '"><div class="k">' + k + '</div><div class="v">' + v + '</div></div>'; }
   function tabUebersicht(doc) {
     var h = '';
+    if (!doc.versions.length && doc.templateId) h += '<div class="notice">📄 Dieses Dokument wurde aus einer Vorlage angelegt. Lade oben die <b>Word-Startdatei</b> herunter, fülle sie aus und lade sie danach als erste Version hoch.</div>';
     if (doc.lock) h += '<div class="notice warn">🔒 Ausgecheckt von <b>' + esc(nameFromMail(doc.lock.by)) + '</b> seit ' + fmtDateTime(doc.lock.at) + '. Andere können keine neue Version hochladen.</div>';
     if (doc.status === 'in_pruefung') h += '<div class="notice">Wartet auf Prüfung' + (doc.reviewer ? ' durch <b>' + esc(nameFromMail(doc.reviewer)) + '</b>' : '') + '.</div>';
     if (doc.status === 'geprueft') h += '<div class="notice">Geprüft. Wartet auf Freigabe' + (doc.approver ? ' durch <b>' + esc(nameFromMail(doc.approver)) + '</b>' : '') + '.</div>';
@@ -536,7 +566,7 @@
       mi('Verantwortlich', who(doc.owner)) + mi('Gültig ab', fmtDay(doc.validFrom)) +
       mi('Prüfer:in', doc.reviewer ? who(doc.reviewer) : 'jede Person mit Prüfrecht') + mi('Freigeber:in', doc.approver ? who(doc.approver) : 'jede Person mit Freigaberecht') +
       mi('Nächste Überprüfung', doc.nextReview ? fmtDay(doc.nextReview) : '–') + mi('Intervall', doc.reviewIntervalMonths ? 'alle ' + doc.reviewIntervalMonths + ' Monate' : 'keine Wiedervorlage') +
-      mi('Lesepflicht', doc.readRequired ? 'Ja, bestätigen alle' : 'Nein') + mi('Angelegt', fmtDateTime(doc.createdAt) + '<br>' + esc(nameFromMail(doc.createdBy))) +
+      mi('Lesepflicht', doc.readRequired ? 'Ja, für ' + esc(readersLabel(doc)) : 'Nein') + mi('Angelegt', fmtDateTime(doc.createdAt) + '<br>' + esc(nameFromMail(doc.createdBy))) +
       mi('Beschreibung', doc.description ? esc(doc.description).replace(/\n/g, '<br>') : '–', true) +
       mi('Schlagworte', (doc.tags && doc.tags.length) ? '<div class="tags">' + doc.tags.map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') + '</div>' : '–', true) + '</div>';
     if (doc.status !== 'archiviert' && can('write')) h += '<button class="btn sm" id="editMetaBtn">✎ Angaben bearbeiten</button>';
@@ -544,7 +574,7 @@
   }
   function tabVersionen(doc) {
     if (!doc.versions.length) return '<div class="empty">Noch keine Version hochgeladen.</div>';
-    return doc.versions.slice().reverse().map(function (v) {
+    return (doc.versions.length > 1 ? '<div class="row" style="margin-bottom:.8rem"><button class="btn" data-compare="1">⇄ Versionen vergleichen</button></div>' : '') + doc.versions.slice().reverse().map(function (v) {
       var valid = doc.releasedVersion === v.version, cur = doc.currentVersion === v.version;
       return '<div class="ver-item' + (valid ? ' valid' : '') + '"><div><div class="mono"><b>v' + v.version + '</b> · ' + esc(v.filename) + ' · ' + formatSize(v.size) + (valid ? ' <span class="chip freigegeben">gültig</span>' : '') + (cur && !valid ? ' <span class="chip">aktuell</span>' : '') + '</div>' +
         '<div class="t-sub">' + fmtDateTime(v.uploadedAt) + ' · ' + esc(nameFromMail(v.uploadedBy)) + (v.note ? ' · Änderung: ' + esc(v.note) : '') + '</div></div>' +
@@ -572,7 +602,8 @@
     if (!doc.releasedVersion) return '<div class="empty">Lesebestätigungen gibt es erst für freigegebene Dokumente.</div>';
     var reads = doc.reads || {};
     var keys = Object.keys(reads).filter(function (k) { return reads[k].version === doc.releasedVersion; });
-    var missing = (S.tenant.members || []).filter(function (m) { return keys.indexOf(m.email) < 0; });
+    var req = requiredReaders(doc);
+    var missing = (S.tenant.members || []).filter(function (m) { return req.indexOf(m.email) >= 0 && keys.indexOf(m.email) < 0; });
     var h = '<p class="muted" style="margin-bottom:.8rem">Bestätigungen für die gültige Version v' + doc.releasedVersion + (doc.readRequired ? '' : ' (die Lesepflicht ist für dieses Dokument nicht aktiviert)') + '.</p>';
     h += keys.length ? keys.map(function (k) { return '<div class="read-row"><span>' + who(k) + '</span><span class="muted">' + fmtDateTime(reads[k].at) + '</span></div>'; }).join('') : '<div class="empty" style="padding:.6rem 0">Noch niemand hat bestätigt.</div>';
     if (doc.readRequired && missing.length) h += '<h4 style="margin:1.2rem 0 .4rem">Noch offen (' + missing.length + ')</h4>' + missing.map(function (m) { return '<div class="read-row"><span>' + esc(m.name) + '</span><span class="muted">' + esc(ROLE_LABEL[m.role]) + '</span></div>'; }).join('');
@@ -582,6 +613,7 @@
   function wireDrawer(doc) {
     $('drawerActions').querySelectorAll('[data-act]').forEach(function (b) { b.addEventListener('click', function () { runAction(doc, b.getAttribute('data-act')); }); });
     var em = $('editMetaBtn'); if (em) em.addEventListener('click', function () { editMeta(doc); });
+    var cmp = $('drawerBody').querySelector('[data-compare]'); if (cmp) cmp.addEventListener('click', function () { window.DMSX.compareVersions(doc); });
     var cb = $('commentBtn');
     if (cb) cb.addEventListener('click', function () { var t = $('commentText').value.trim(); if (t) send('POST', '/api/dms/comment', { docId: doc.id, text: t }).then(afterChange).catch(fail); });
     $('drawerBody').querySelectorAll('[data-open]').forEach(function (el) { el.addEventListener('click', function () { openDrawer(el.getAttribute('data-open')); }); });
@@ -619,7 +651,7 @@
   function docFields(doc) {
     var d = doc || {};
     var ownerOpts = peopleOptions('write', 'Ich selbst'); ownerOpts[0].value = S.me;
-    return [
+    var arr = [
       { name: 'title', label: 'Titel', value: d.title || '', required: true, placeholder: 'z.B. Verfahrensanweisung Wareneingang' },
       { name: 'category', label: 'Kategorie / Abteilung', type: 'select', options: S.tenant.categories, value: d.category || S.tenant.categories[0] },
       { name: 'description', label: 'Beschreibung (Zweck, Geltungsbereich)', type: 'textarea', value: d.description || '' },
@@ -628,13 +660,18 @@
       { name: 'reviewer', label: 'Prüfung durch', type: 'select', options: peopleOptions('review', 'Jede Person mit Prüfrecht'), value: d.reviewer || '' },
       { name: 'approver', label: 'Freigabe durch', type: 'select', options: peopleOptions('approve', 'Jede Person mit Freigaberecht'), value: d.approver || '' },
       { name: 'reviewIntervalMonths', label: 'Überprüfung alle … Monate (0 = keine Wiedervorlage)', type: 'number', value: d.reviewIntervalMonths == null ? (S.tenant.defaultReviewMonths == null ? 12 : S.tenant.defaultReviewMonths) : d.reviewIntervalMonths },
-      { name: 'readRequired', label: 'Lesepflicht', hint: 'Alle Benutzer bestätigen «gelesen und verstanden».', type: 'checkbox', value: !!d.readRequired }
+      { name: 'readRequired', label: 'Lesepflicht', hint: 'Die Benutzer bestätigen «gelesen und verstanden».', type: 'checkbox', value: !!d.readRequired }
     ];
+    var groups = (S.tenant.groups || []).map(function (g) { return { value: g.id, label: g.name + ' (' + g.members.length + ')' }; });
+    if (groups.length) arr.push({ name: 'readGroups', label: 'Lesepflicht gilt für diese Gruppen', type: 'checks', options: groups, value: d.readGroups || [], hint: 'Keine Auswahl bedeutet: alle Benutzer.' });
+    return arr;
   }
-  function newDoc() {
-    askForm({ title: 'Neues Dokument', sub: 'Die Dokumentnummer wird automatisch vergeben. Die Datei lädst du danach im Dokument hoch.', fields: docFields(null), ok: 'Anlegen' }).then(function (v) {
+  function newDoc(prefill) {
+    if (!prefill && window.DMSX && window.DMSX.chooseTemplate) { window.DMSX.chooseTemplate(function (p) { newDoc(p || {}); }); return; }
+    askForm({ title: prefill && prefill.templateName ? 'Neues Dokument: ' + prefill.templateName : 'Neues Dokument', sub: prefill && prefill.templateId ? 'Nach dem Anlegen lädst du die <b>Word-Startdatei</b> herunter. Sie enthält schon Kopf und Gliederung.' : 'Die Dokumentnummer wird automatisch vergeben. Die Datei lädst du danach im Dokument hoch.', fields: docFields(prefill && Object.keys(prefill).length ? prefill : null), ok: 'Anlegen' }).then(function (v) {
       if (!v) return;
       v.tenantId = S.tenantId;
+      if (prefill && prefill.templateId) v.templateId = prefill.templateId;
       send('POST', '/api/dms/documents', v).then(function (res) { return loadDocs().then(function () { renderDocuments(); openDrawer(res.document.id); }); }).catch(fail);
     });
   }
@@ -659,7 +696,7 @@
         var xhr = new XMLHttpRequest();
         xhr.open('PUT', res.uploadUrl);
         xhr.onload = function () {
-          if (xhr.status >= 200 && xhr.status < 300) send('POST', '/api/dms/upload-done', { docId: doc.id, key: res.key, filename: res.filename, version: res.version, size: file.size, note: v.note }).then(function () { toast('Version ' + res.version + ' hochgeladen.'); return afterChange(); }).catch(fail);
+          if (xhr.status >= 200 && xhr.status < 300) send('POST', '/api/dms/upload-done', { docId: doc.id, key: res.key, filename: res.filename, version: res.version, size: file.size, note: v.note }).then(function () { toast('Version ' + res.version + ' hochgeladen.'); if (window.DMSX) window.DMSX.indexFile(doc.id, res.version, file); return afterChange(); }).catch(fail);
           else alert('Upload fehlgeschlagen (' + xhr.status + ').');
         };
         xhr.onerror = function () { alert('Netzwerkfehler beim Upload.'); };
@@ -726,6 +763,7 @@
       };
       $('uq').addEventListener('input', draw);
       draw();
+      if (window.DMSX) window.DMSX.groupsCard(members);
     }).catch(function (e) { $('page').innerHTML = '<div class="notice err">' + esc(e.message) + '</div>'; });
   }
 
@@ -785,6 +823,7 @@
       $('catRows').querySelectorAll('[data-cd]').forEach(function (el) { el.addEventListener('click', function () { cats.splice(+el.getAttribute('data-cd'), 1); drawCats(); }); });
     };
     drawCats();
+    if (window.DMSX) window.DMSX.settingsExtras();
     $('catAdd').addEventListener('click', function () { cats.push({ was: '', name: '', prefix: '' }); drawCats(); var inp = $('catRows').querySelectorAll('[data-cn]'); inp[inp.length - 1].focus(); });
     $('catSave').addEventListener('click', function () {
       var payload = cats.filter(function (c) { return c.name.trim(); }).map(function (c) { return { name: c.name.trim(), prefix: c.prefix, was: c.was || c.name.trim() }; });
@@ -1018,11 +1057,12 @@
     var bg = document.createElement('div');
     bg.className = 'modal-bg';
     bg.innerHTML = '<div class="modal wide"><h3>Änderungsjournal</h3><div class="m-sub">Jede veröffentlichte Version des Handbuchs mit Datum, Person und Änderung.</div><div class="m-body">' +
-      (revs.length ? '<div class="tbl-wrap"><table style="min-width:0"><thead><tr><th>Version</th><th>Datum</th><th>Von</th><th>Änderung</th><th></th></tr></thead><tbody>' + revs.map(function (r) { return '<tr><td class="mono"><b>v' + r.version + '</b></td><td class="muted">' + fmtDay(r.at) + '</td><td>' + who(r.by) + '</td><td>' + esc(r.note) + '</td><td>' + (r.legacy ? '<span class="muted" title="Aus dem früheren Handbuch übernommen, kein Archivstand vorhanden">früher</span>' : '<button class="btn sm" data-rev="' + r.version + '">Ansehen</button>') + '</td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="empty">Noch keine Version veröffentlicht.</div>') +
+      (revs.length ? '<div class="tbl-wrap"><table style="min-width:0"><thead><tr><th>Version</th><th>Datum</th><th>Von</th><th>Änderung</th><th></th></tr></thead><tbody>' + revs.map(function (r) { return '<tr><td class="mono"><b>v' + r.version + '</b></td><td class="muted">' + fmtDay(r.at) + '</td><td>' + who(r.by) + '</td><td>' + esc(r.note) + '</td><td>' + (r.legacy ? '<span class="muted" title="Aus dem früheren Handbuch übernommen, kein Archivstand vorhanden">früher</span>' : '<button class="btn sm" data-rev="' + r.version + '">Ansehen</button> <button class="btn sm" data-diff="' + r.version + '">Änderungen</button>') + '</td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="empty">Noch keine Version veröffentlicht.</div>') +
       '</div><div class="m-foot"><button class="btn primary" data-m="ok">Schliessen</button></div></div>';
     document.body.appendChild(bg);
     bg.addEventListener('mousedown', function (e) { if (e.target === bg) bg.remove(); });
     bg.querySelector('[data-m=ok]').addEventListener('click', function () { bg.remove(); });
+    bg.querySelectorAll('[data-diff]').forEach(function (b) { b.addEventListener('click', function () { window.DMSX.handbookDiff(Number(b.getAttribute('data-diff')), S.hb.revisions); }); });
     bg.querySelectorAll('[data-rev]').forEach(function (b) {
       b.addEventListener('click', function () {
         api('/api/dms/handbook/revision?tenantId=' + encodeURIComponent(S.tenantId) + '&version=' + b.getAttribute('data-rev')).then(function (res) {
@@ -1049,6 +1089,12 @@
     ['📘', 'QM-Handbuch', 'Das Handbuch deiner Firma lässt sich direkt hier bearbeiten, Kapitel für Kapitel. Änderungen sind zuerst ein Entwurf. Erst «Veröffentlichen» macht sie für alle sichtbar und trägt sie ins Änderungsjournal ein.'],
     ['👥', 'Benutzer', 'Administratoren laden Personen per E-Mail ein und vergeben Rollen: Leser, Ersteller, Prüfer, Freigeber oder Administrator. Ein Passwort braucht niemand, die Anmeldung läuft mit einem Code per E-Mail.'],
     ['⚙️', 'Einstellungen', 'Kategorien mit Kürzeln (daraus entstehen Nummern wie QM-001), das Vier-Augen-Prinzip und das Standard-Überprüfungsintervall stellst du hier ein.']
+    ['📊', 'Übersicht', 'Das Dashboard zeigt auf einen Blick: Freigaben pro Monat, wie lange eine Freigabe dauert, Dokumente pro Abteilung und welche Überprüfungen fällig sind. Jedes Diagramm gibt es auch als Tabelle.'],
+    ['📄', 'Dokumentvorlagen', 'Ein neues Dokument startest du aus einer Vorlage, zum Beispiel Verfahrensanweisung oder Prüfprotokoll. Du bekommst eine Word-Startdatei mit Kopf und Gliederung. Eigene Vorlagen legt ein Administrator in den Einstellungen an.'],
+    ['🔎', 'Suche im Dateiinhalt', 'Die Suche findet nicht nur Titel und Schlagworte, sondern auch Wörter im PDF. Neue Dateien werden beim Hochladen automatisch durchsuchbar gemacht.'],
+    ['⇄', 'Versionen vergleichen', 'Im Reiter «Versionen» siehst du zwei Versionen nebeneinander und alle Änderungen im Text hervorgehoben. Auch beim Handbuch gibt es im Änderungsjournal die Ansicht «Änderungen».'],
+    ['👥', 'Gruppen und Verteiler', 'Unter «Benutzer» legst du Gruppen an, zum Beispiel «Produktion». Bei einem Dokument mit Lesepflicht wählst du die Gruppen, die es lesen müssen. Nur sie bekommen die Aufgabe.'],
+    ['🧾', 'Auditbericht', 'Mit einem Klick erzeugst du ein PDF für Auditoren: alle gültigen Dokumente mit Version, Freigabe und Überprüfungsdatum, offene Punkte, Lesebestätigungen und das Handbuch.'],
   ];
   function tour() {
     var i = 0;
@@ -1079,5 +1125,12 @@
     root.setAttribute('data-theme', next);
     try { localStorage.setItem('theme', next); } catch (e) { /* egal */ }
   });
+  window.__dms = {
+    S: S, $: $, esc: esc, api: api, send: send, askForm: askForm, infoDialog: infoDialog, toast: toast, fail: fail,
+    fmtDay: fmtDay, fmtDateTime: fmtDateTime, nameFromMail: nameFromMail, who: who, can: can, daysUntil: daysUntil,
+    todayIso: todayIso, findDoc: findDoc, openDrawer: openDrawer, loadDocs: loadDocs, afterChange: afterChange,
+    newDoc: newDoc, renderDocuments: renderDocuments, drawRows: drawRows, requiredReaders: requiredReaders,
+    reviewState: reviewState, taskFor: taskFor, STATUS_LABEL: STATUS_LABEL, formatSize: formatSize, route: route, renderSettings: renderSettings, renderUsers: renderUsers
+  };
   boot();
 })();
