@@ -1,3 +1,7 @@
 node_modules/
 .wrangler/
 __pycache__/
+backups/
+*.json.gz
+.env
+.dev.vars

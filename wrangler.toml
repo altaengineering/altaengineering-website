@@ -88,3 +88,8 @@ MAIN_SITE_ORIGIN = "https://alta-engineering.ch"
 # Optional zusaetzlich RESEND_FROM_EMAIL, sonst Resend-Sandbox-Absender (onboarding@resend.dev),
 # der nur zuverlaessig an die E-Mail-Adresse des Resend-Kontoinhabers liefert, siehe dieselbe
 # Einschraenkung im Zeiterfassungstool-CLAUDE.md.
+
+# Taegliche Sicherung der KV-Daten nach B2 ("_backups/"), siehe src/backup.js. Zeit in UTC:
+# 02:30 UTC ist 03:30 bzw. 04:30 Uhr Schweizer Zeit. Aufruf geht an scheduled() in src/index.js.
+[triggers]
+crons = ["30 2 * * *"]

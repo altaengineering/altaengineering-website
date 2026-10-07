@@ -359,6 +359,23 @@ tbody tr:hover{background:var(--surface-2)}
       </div>
     </div>
 
+    <div class="panel" id="backupPanel" style="display:none">
+      <h2>Sicherung</h2>
+      <div class="sub">Die Daten der Dokumentenlenkung, die Freigabe-Links und die Zugangsanfragen werden jede Nacht automatisch gesichert und 30 Tage aufbewahrt. Hier siehst du die letzten Sicherungen oder löst eine von Hand aus.</div>
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin:.2rem 0 1rem">
+        <button class="btn-lg primary" id="backupRun">Jetzt sichern</button>
+        <a class="btn-lg ghost" href="/api/admin/backup">Frische Sicherung herunterladen</a>
+      </div>
+      <div id="backupMsg" class="sub" style="margin:0 0 .8rem"></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Sicherung</th><th>Erstellt</th><th>Größe</th><th></th></tr></thead>
+          <tbody id="backupRows"></tbody>
+        </table>
+        <div class="empty" id="backupEmpty" style="display:none">Noch keine Sicherung vorhanden. Die erste entsteht in der kommenden Nacht, oder jetzt mit «Jetzt sichern».</div>
+      </div>
+    </div>
+
     <p class="foot-note">alta-engineering.ch · Kundenportal läuft geschützt über Cloudflare Access</p>
   </div>
 </main>
@@ -436,6 +453,8 @@ tbody tr:hover{background:var(--surface-2)}
         loadAccessRequests();
         document.getElementById('activityPanel').style.display = '';
         loadActivity();
+        document.getElementById('backupPanel').style.display = '';
+        loadBackups();
       }
       document.getElementById('sharesPanel').style.display = '';
       loadShares();
@@ -741,6 +760,38 @@ tbody tr:hover{background:var(--surface-2)}
       });
     });
   }
+
+  // ---------- Sicherung (admin-only) ----------
+  function loadBackups(){
+    api('/api/admin/backups').then(function(res){
+      var rows = document.getElementById('backupRows');
+      var empty = document.getElementById('backupEmpty');
+      rows.innerHTML = '';
+      empty.style.display = res.backups.length ? 'none' : '';
+      res.backups.forEach(function(b){
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td class="fname">' + b.name + '</td>' +
+          '<td class="meta">' + fmtDate(b.uploaded) + '</td>' +
+          '<td class="meta">' + Math.max(1, Math.round(b.size / 1024)) + ' KB</td>' +
+          '<td><a class="btn-lg ghost" style="padding:.3rem .7rem;font-size:.8rem" href="/api/download?key=' + encodeURIComponent(b.key) + '">Herunterladen</a></td>';
+        rows.appendChild(tr);
+      });
+    }).catch(function(){});
+  }
+  document.getElementById('backupRun').addEventListener('click', function(){
+    var btn = this, msg = document.getElementById('backupMsg');
+    btn.disabled = true;
+    msg.textContent = 'Sicherung läuft …';
+    api('/api/admin/backup/run', { method: 'POST' }).then(function(r){
+      var n = Object.keys(r.counts || {}).map(function(k){ return k + ' ' + r.counts[k]; }).join(', ');
+      msg.textContent = 'Fertig: ' + r.key + ' (' + n + ')' + (r.truncated ? '. Achtung: Grenze erreicht, Sicherung unvollständig.' : '');
+      loadBackups();
+      loadActivity();
+    }).catch(function(e){
+      msg.textContent = 'Sicherung fehlgeschlagen: ' + (e && e.message ? e.message : e);
+    }).then(function(){ btn.disabled = false; });
+  });
 
   // ---------- Upload ----------
   function uploadFile(file){
