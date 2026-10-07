@@ -60,6 +60,14 @@ function folderFor(email) {
   return email.trim().toLowerCase();
 }
 
+// Dateischluessel duerfen keine "."- oder ".."-Segmente enthalten. Die URL-Bibliothek loest sie auf,
+// bevor die Anfrage an B2 geht: "eigene@mail.ch/../fremde@mail.ch/datei.pdf" besteht die
+// Praefix-Pruefung auf den eigenen Ordner, meint dann aber eine Datei in einem fremden Ordner.
+function isSafeKey(key) {
+  if (!key || key.includes("\\") || key.includes("\0")) return false;
+  return key.split("/").every((seg) => seg !== "" && seg !== "." && seg !== "..");
+}
+
 function b2Client(env) {
   return new AwsClient({
     accessKeyId: env.B2_KEY_ID,
@@ -538,8 +546,8 @@ export default {
       const body = await request.json().catch(() => ({}));
       const filename = (body.filename || "").trim();
       if (!filename) return json({ error: "Kein Dateiname uebergeben." }, 400);
-      if (filename.includes("/")) {
-        return json({ error: "Dateiname darf kein '/' enthalten." }, 400);
+      if (filename.includes("/") || !isSafeKey(filename)) {
+        return json({ error: "Ungueltiger Dateiname." }, 400);
       }
       const folder = admin && body.folder ? folderFor(body.folder) : ownFolder;
       const key = `${folder}/${filename}`;
@@ -579,6 +587,7 @@ export default {
 
     if (url.pathname === "/api/download" && request.method === "GET") {
       const key = url.searchParams.get("key") || "";
+      if (!isSafeKey(key)) return json({ error: "Ungueltiger Dateischluessel." }, 400);
       if (!admin && !key.startsWith(ownFolder + "/")) {
         return json({ error: "Keine Berechtigung fuer diese Datei." }, 403);
       }
@@ -629,6 +638,7 @@ export default {
 
     if (url.pathname === "/api/delete" && request.method === "DELETE") {
       const key = url.searchParams.get("key") || "";
+      if (!isSafeKey(key)) return json({ error: "Ungueltiger Dateischluessel." }, 400);
       if (!admin && !key.startsWith(ownFolder + "/")) {
         return json({ error: "Keine Berechtigung fuer diese Datei." }, 403);
       }
@@ -667,6 +677,9 @@ export default {
       const fileKeys = Array.isArray(body.fileKeys) ? body.fileKeys.filter(Boolean) : [];
       if (fileKeys.length === 0) {
         return json({ error: "Keine Dateien ausgewaehlt." }, 400);
+      }
+      if (!fileKeys.every(isSafeKey)) {
+        return json({ error: "Ungueltiger Dateischluessel." }, 400);
       }
       if (!admin && fileKeys.some((k) => !k.startsWith(ownFolder + "/"))) {
         return json({ error: "Keine Berechtigung fuer eine der ausgewaehlten Dateien." }, 403);

@@ -850,6 +850,8 @@ export async function handleDms(ctx) {
     const key = String(body.key || "").trim();
     if (!filename || !key) return json({ error: "Unvollständige Angaben." }, 400);
     if (!key.startsWith(`_dms/${doc.tenantId}/${doc.id}/`)) return json({ error: "Ungültiger Ablageort." }, 400);
+    // Keine "."- oder ".."-Segmente: sonst liesse sich der Schluessel auf eine fremde Datei umbiegen (siehe isSafeKey in index.js).
+    if (key.split("/").some((seg) => seg === "" || seg === "." || seg === "..") || key.includes("\\")) return json({ error: "Ungültiger Ablageort." }, 400);
     const note = String(body.note || "").trim().slice(0, 500);
     if (doc.currentVersion > 0 && !note) return json({ error: "Bitte den Änderungsgrund angeben." }, 400);
     doc.versions.push({ version, key, filename, size: Number(body.size) || 0, uploadedAt: new Date().toISOString(), uploadedBy: email, note });
