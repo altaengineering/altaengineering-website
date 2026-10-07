@@ -3,6 +3,7 @@ import { XMLParser } from "fast-xml-parser";
 import { zipSync } from "fflate";
 import { handleDms, tenantsFor, listTenants } from "./dms.js";
 import { renderHandbookPage } from "./handbook-view.js";
+import { collectKv, gzipJson, runBackup, listBackups } from "./backup.js";
 
 // Alta Engineering Kundenportal — Cloudflare Worker
 //
@@ -498,11 +499,11 @@ export default {
     if (url.pathname === "/api/folders" && request.method === "GET") {
       if (!admin) return json({ error: "Keine Berechtigung." }, 403);
       const listed = await listObjects(env, "", "/");
-      // "_dms" ist kein Kundenordner, sondern die Ablage der Dokumentenlenkung (siehe /api/dms/*
-      // weiter unten), soll hier also nicht als Kundenordner auftauchen.
+      // Namen mit fuehrendem Unterstrich sind keine Kundenordner ("_dms" = Ablage der
+      // Dokumentenlenkung, "_backups" = Sicherungen der KV-Daten), Kundenordner sind E-Mail-Adressen.
       const folderNames = listed.prefixes
         .map((p) => p.replace(/\/$/, ""))
-        .filter((name) => name !== "_dms")
+        .filter((name) => !name.startsWith("_"))
         .sort();
       // Dateianzahl pro Ordner mitliefern, damit die Ordner-Uebersicht auf einen Blick zeigt, wo
       // ueberhaupt etwas liegt, statt nur eine reine Namensliste zu sein.
@@ -796,6 +797,35 @@ export default {
       return json({ activity: items.slice(0, 100) });
     }
 
+    // --- Sicherung der KV-Daten (admin-only), Details in src/backup.js ---
+    if (url.pathname === "/api/admin/backups" && request.method === "GET") {
+      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
+      return json({ backups: await listBackups(env, { listObjects }) });
+    }
+
+    if (url.pathname === "/api/admin/backup" && request.method === "GET") {
+      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
+      const gz = gzipJson(await collectKv(env));
+      await logActivity(env, { email, action: "Sicherung heruntergeladen", detail: "" });
+      return new Response(gz, {
+        headers: {
+          "Content-Type": "application/gzip",
+          "Content-Disposition": `attachment; filename="alta-kv-${new Date().toISOString().slice(0, 10)}.json.gz"`,
+        },
+      });
+    }
+
+    if (url.pathname === "/api/admin/backup/run" && request.method === "POST") {
+      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
+      try {
+        const result = await runBackup(env, { b2Client, bucketUrl, listObjects });
+        await logActivity(env, { email, action: "Sicherung erstellt", detail: result.key });
+        return json({ ok: true, ...result });
+      } catch (e) {
+        return json({ error: String((e && e.message) || e) }, 502);
+      }
+    }
+
     // --- Dokumentenlenkung / DMS (/dms): komplett in src/dms.js ---
     const dmsResponse = await handleDms({
       request, url, env, admin, email, json, b2Client, bucketUrl, logActivity, sendMail,
@@ -804,5 +834,29 @@ export default {
     if (dmsResponse) return dmsResponse;
 
     return json({ error: "Unbekannter Endpunkt." }, 404);
+  },
+
+  // Cron-Trigger (siehe [triggers] in wrangler.toml): taegliche Sicherung der KV-Daten nach B2.
+  // Ein Fehlschlag steht im Aktivitaets-Log (Wer: "system") und geht per Mail an die Admins.
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(
+      (async () => {
+        try {
+          const result = await runBackup(env, { b2Client, bucketUrl, listObjects });
+          if (result.truncated) {
+            await logActivity(env, { email: "system", action: "Sicherung unvollstaendig", detail: result.key });
+          }
+        } catch (e) {
+          const msg = String((e && e.message) || e);
+          console.error("Automatische Sicherung fehlgeschlagen:", msg);
+          await logActivity(env, { email: "system", action: "Sicherung fehlgeschlagen", detail: msg.slice(0, 300) });
+          await sendMail(env, {
+            to: ADMIN_EMAILS,
+            subject: "Kundenportal: automatische Sicherung fehlgeschlagen",
+            text: "Die taegliche Sicherung der Portal-Daten ist fehlgeschlagen.\n\n" + msg + "\n\nBitte im Portal unter Aktivitaet nachsehen und die Sicherung von Hand ausloesen.",
+          });
+        }
+      })()
+    );
   },
 };
