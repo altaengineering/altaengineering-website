@@ -800,14 +800,22 @@ export default {
     // --- Admin-Aktivitaets-Log ---
     if (url.pathname === "/api/activity" && request.method === "GET") {
       if (!admin) return json({ error: "Keine Berechtigung." }, 403);
-      const list = await env.ACTIVITY.list({ prefix: "log:", limit: 200 });
+      // KV listet Schluessel aufsteigend, die neuesten stehen also ganz hinten. Darum erst alle
+      // Schluesselnamen seitenweise einsammeln und nur fuer die letzten 100 den Wert laden.
+      const names = [];
+      let cursor;
+      do {
+        const page = await env.ACTIVITY.list({ prefix: "log:", cursor, limit: 1000 });
+        for (const k of page.keys) names.push(k.name);
+        cursor = page.list_complete ? undefined : page.cursor;
+      } while (cursor);
       const items = [];
-      for (const k of list.keys) {
-        const raw = await env.ACTIVITY.get(k.name);
+      for (const name of names.slice(-100)) {
+        const raw = await env.ACTIVITY.get(name);
         if (raw) items.push(JSON.parse(raw));
       }
       items.sort((a, b) => new Date(b.at) - new Date(a.at));
-      return json({ activity: items.slice(0, 100) });
+      return json({ activity: items });
     }
 
     // --- Sicherung der KV-Daten (admin-only), Details in src/backup.js ---
