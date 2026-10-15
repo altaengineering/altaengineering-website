@@ -1,0 +1,35 @@
+# Alta Engineering AG
+
+> Ingenieurbüro in Weggis (Kanton Luzern, Schweiz) mit 14 Mitarbeitenden. Konstruktion, Entwicklung, CAD-Support, Berechnung, Projektleitung und Management-Systeme für Maschinenbau, Anlagenbau, Metallbau und Stahlbau. Neu: Software nach Mass für KMU, die Kosten senkt und Umsatz steigert. Zertifiziert nach ISO 9001, 14001, 45001 und EN 1090.
+
+Diese Datei fasst die Website für KI-Assistenten und Suchsysteme zusammen. Alle Angaben stehen auch auf den verlinkten Seiten. Preise für Software werden als Fixpreis nach einem ersten Gespräch angeboten.
+
+## Software und Digitalisierung
+
+- [Software nach Mass für KMU](https://alta-engineering.ch/software.html): Überblick, Rechner für Einsparung und Umsatz, häufige Fragen.
+- [Websites](https://alta-engineering.ch/software.html#fb-websites): rechtlich saubere, mehrsprachige Firmenwebsites mit Grundlagen für Suchmaschinen, inklusive Domain und Hosting.
+- [Web-Apps und Portale](https://alta-engineering.ch/software.html#fb-portale): Kundenportale mit Dateiaustausch, Anmeldung, Rollen und verschlüsselten geschützten Bereichen.
+- [Betriebssoftware](https://alta-engineering.ch/software.html#fb-betriebssoftware): Zeiterfassung, Dokumentenlenkung, Spesen und Ferien, Exporte im gewohnten Format.
+- [Automatisierung und KI](https://alta-engineering.ch/software.html#fb-automatisierung): Daten übernehmen, Berichte automatisch erstellen, Assistenten für Abläufe.
+- [Hardware und Steuerungen](https://alta-engineering.ch/software.html#fb-hardware): Mikrocontroller, Sensoren, Funk, Firmware, Konstruktion mit CAD.
+- [Firmenmodernisierung](https://alta-engineering.ch/software.html#fb-modernisierung): Gesamtpaket für KMU mit Website und Kundengewinnung, Sofortpreis und Offerten, automatischer Arbeitsvorbereitung mit Anbindung ans bestehende ERP, Kundenportal, Chef-Cockpit und Werkstatt-Tablet. Mit eigener Demo für jede Firma und einem Businesscase.
+- [Pentesting](https://alta-engineering.ch/software.html#fb-pentesting): Prüfung von Websites, Web-Anwendungen und Portalen auf Schwachstellen, nur mit schriftlichem Auftrag.
+
+## Weitere Leistungen
+
+- [Konstruktion](https://alta-engineering.ch/konstruktion.html): vom Konzept bis zur fertigungsreifen Zeichnung.
+- [Entwicklung und Design](https://alta-engineering.ch/entwicklung-design.html): von der ersten Idee bis zur Serienreife.
+- [CAD-Support](https://alta-engineering.ch/cad-support.html): Erfahrung mit acht CAD-Systemen, vor Ort oder remote.
+- [Management-Systeme](https://alta-engineering.ch/management-systeme.html): Audits nach ISO 9001, 14001, 45001 und EN 1090, Begleitung beim Aufbau.
+- [Projektleitung](https://alta-engineering.ch/projektleitung.html): feste Ansprechperson für Termine, Kosten und Qualität.
+- [Berechnung](https://alta-engineering.ch/berechnung.html): Festigkeits- und Tragfähigkeitsnachweise.
+
+## Firma und Kontakt
+
+- [Firma](https://alta-engineering.ch/firma.html): Ingenieurbüro am Vierwaldstättersee.
+- [Jobs](https://alta-engineering.ch/jobs.html): offene Stellen und Initiativbewerbungen.
+- [Kontakt](https://alta-engineering.ch/kontakt.html): Röhrlistrasse 3, 6353 Weggis, +41 41 390 10 50, info@alta-engineering.ch.
+
+## Optional
+
+- [Sitemap](https://alta-engineering.ch/sitemap.xml)
