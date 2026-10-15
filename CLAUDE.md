@@ -176,6 +176,15 @@ Mass, Kundenportale, Dokumentenlenkung, Datenprojekte usw., alles mit Claude Cod
   Rechner, Hochzählen, Sticky-Button. CSS dazu mit Präfix `sw-` in `style.css`.
 
 
+### 1.7 Software-Seite neu gegliedert, Fachbereiche und KI-Auffindbarkeit (2026-10-15)
+
+`software.html` wurde aufgeraeumt und auf die Botschaft "Geld sparen und Umsatz steigern" ausgerichtet.
+- **Fachbereiche-Menue** (`#fachbereiche`): sieben Bereiche (Websites, Web-Apps und Portale, Betriebssoftware, Automatisierung und KI, Hardware und Steuerungen, Firmenmodernisierung, Pentesting) als Tab-Menue mit Filter nach Ziel (Kosten, Umsatz, Sicherheit), Tastatursteuerung, Direktlinks (`#fb-<bereich>`). Ohne JavaScript stehen alle Bereiche untereinander (Klasse `js` am `<html>` schaltet das Menue frei), so sehen auch Suchmaschinen und KI-Crawler den ganzen Inhalt.
+- **Geld-Abschnitt** (`#geld`), **zwei Rechner** (`#rechner`: Kosten durch Handarbeit, Umsatz durch schnellere Offerten, beide nur mit eigenen Annahmen), Seitennavigation (`.sw-subnav`) mit Abschnittsanzeige.
+- Entfernt: die neun Karten ("Neun Wege"), die Datenfluss-Grafik und das Laufband. Der Produkt-Rundgang (`#beispiele`), Vergleich, Versprechen, Ablauf und Warum-Alta blieben.
+- **Suche und KI:** ein verknuepfter JSON-LD-Graph (Organisation, WebSite, WebPage, Breadcrumb, OfferCatalog mit sieben Services, FAQPage mit 13 Fragen, deckungsgleich mit dem sichtbaren Text), Kurzfakten-Block "Auf einen Blick", `llms.txt` im Wurzelordner, `robots.txt` mit ausdruecklicher Erlaubnis fuer KI-Crawler, `hreflang`, `max-snippet`.
+- Die Seite wurde mit einem einmaligen Skript aus Bausteinen erzeugt (kein Build-Schritt im Repo). Aenderungen am Text kuenftig direkt in `software.html` machen und dabei FAQ-Text und JSON-LD synchron halten.
+
 ## 2. Kundenportal (Cloudflare Worker)
 
 ### 2.1 Architektur
