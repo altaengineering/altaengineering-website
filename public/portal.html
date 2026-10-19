@@ -8,8 +8,7 @@
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/fonts.css">
 <style>
 /* ===== Design-Tokens 1:1 von alta-engineering.ch uebernommen ===== */
 :root{
@@ -111,6 +110,7 @@ header{position:sticky;top:0;z-index:40;background:var(--header-bg);backdrop-fil
 .filter-input:focus{outline:2px solid var(--accent);outline-offset:1px}
 th.sortable{cursor:pointer;user-select:none;white-space:nowrap}
 th.sortable:hover,th.sortable:focus-visible{color:var(--accent)}
+.notice-warn{border:1px solid var(--line-2);border-left:4px solid #d39a1d;background:rgba(211,154,29,.1);border-radius:8px;padding:.7rem .9rem;margin:.2rem 0 1rem;font-size:.88rem}
 .pill-new{display:inline-block;margin-left:.5rem;font-size:.62rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#1c7a4a;background:rgba(46,158,91,.16);border-radius:99px;padding:.08rem .5rem;vertical-align:middle}
 
 main .wrap{padding:clamp(28px,5vw,48px) var(--gutter) 80px}
@@ -254,7 +254,8 @@ tbody tr:hover{background:var(--surface-2)}
     <div class="who" id="whoBox">Lade Nutzerinfo …</div>
     <div class="stat-row" id="statRow" style="display:none">
       <div class="stat"><div class="num" id="statFolders">–</div><div class="lbl">Kundenordner</div></div>
-      <div class="stat"><div class="num" id="statRequests">–</div><div class="lbl">Offene Anfragen</div></div>
+      <div class="stat"><div class="num" id="statInquiries">–</div><div class="lbl">Neue Website-Anfragen</div></div>
+      <div class="stat"><div class="num" id="statRequests">–</div><div class="lbl">Offene Zugangsanfragen</div></div>
       <div class="stat"><div class="num" id="statShares">–</div><div class="lbl">Aktive Freigaben</div></div>
       <div class="stat"><div class="num" id="statStorage">–</div><div class="lbl">Speicher belegt</div></div>
     </div>
@@ -341,6 +342,21 @@ tbody tr:hover{background:var(--surface-2)}
           <tbody id="handbuchShareRows"></tbody>
         </table>
         <div class="empty" id="handbuchSharesEmptyState" style="display:none">Noch keine Freigabe-Links für das Handbuch erstellt.</div>
+      </div>
+    </div>
+
+    <div class="panel accent" id="inquiriesPanel" style="display:none">
+      <h2>Anfragen von der Website</h2>
+      <div class="sub">Nachrichten aus dem Kontaktformular von alta-engineering.ch. Neue stehen oben.</div>
+      <div class="notice-warn" id="inqMailWarn" style="display:none"><b>E-Mail-Versand nicht eingerichtet.</b> Neue Anfragen melden sich nur hier, bitte regelmässig nachsehen.</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Eingang</th><th>Von</th><th>Thema</th><th>Nachricht</th><th></th></tr>
+          </thead>
+          <tbody id="inqRows"></tbody>
+        </table>
+        <div class="empty" id="inqEmpty" style="display:none">Noch keine Anfragen über die Website.</div>
       </div>
     </div>
 
@@ -484,6 +500,8 @@ tbody tr:hover{background:var(--surface-2)}
         loadFolders();
         document.getElementById('handbuchPanel').style.display = '';
         loadHandbuchShares();
+        document.getElementById('inquiriesPanel').style.display = '';
+        loadInquiries();
         document.getElementById('accessRequestsPanel').style.display = '';
         loadAccessRequests();
         document.getElementById('activityPanel').style.display = '';
@@ -494,6 +512,52 @@ tbody tr:hover{background:var(--surface-2)}
       document.getElementById('sharesPanel').style.display = '';
       loadShares();
       refreshList();
+    });
+  }
+
+  // ---------- Anfragen von der Website (admin-only) ----------
+  function loadInquiries(){
+    api('/api/inquiries').then(function(res){
+      var rows = document.getElementById('inqRows');
+      var empty = document.getElementById('inqEmpty');
+      document.getElementById('inqMailWarn').style.display = res.mailConfigured ? 'none' : '';
+      var open = res.inquiries.filter(function(i){ return i.status === 'neu'; }).length;
+      var st = document.getElementById('statInquiries');
+      if (st) st.textContent = open;
+      rows.innerHTML = '';
+      empty.style.display = res.inquiries.length ? 'none' : '';
+      res.inquiries.forEach(function(i){
+        var tr = document.createElement('tr');
+        if (i.status === 'erledigt') tr.style.opacity = '.6';
+        var tel = i.phone ? '<br><a href="tel:' + esc(i.phone.replace(/[^+0-9]/g, '')) + '">' + esc(i.phone) + '</a>' : '';
+        tr.innerHTML =
+          '<td class="meta">' + fmtDate(i.submittedAt) + (i.status === 'neu' ? '<span class="pill-new">Neu</span>' : '') + '</td>' +
+          '<td class="fname">' + esc(i.name) + (i.company ? '<br><span class="meta">' + esc(i.company) + '</span>' : '') +
+            '<br><a href="mailto:' + esc(i.email) + '?subject=' + encodeURIComponent('Ihre Anfrage bei Alta Engineering') + '">' + esc(i.email) + '</a>' + tel + '</td>' +
+          '<td class="meta">' + esc(i.topicLabel || '–') + '</td>' +
+          '<td class="fname" style="white-space:pre-wrap;max-width:420px">' + esc(i.message) + '</td>' +
+          '<td><div class="actions">' +
+            '<button class="iconbtn" data-inq-status="' + esc(i.id) + '" data-to="' + (i.status === 'neu' ? 'erledigt' : 'neu') + '">' + (i.status === 'neu' ? 'Erledigt' : 'Wieder öffnen') + '</button>' +
+            '<button class="iconbtn danger" data-inq-del="' + esc(i.id) + '">Löschen</button>' +
+          '</div></td>';
+        rows.appendChild(tr);
+      });
+      rows.querySelectorAll('[data-inq-status]').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          api('/api/inquiries/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: btn.getAttribute('data-inq-status'), status: btn.getAttribute('data-to') })
+          }).then(loadInquiries).catch(function(e){ alert(e.message); });
+        });
+      });
+      rows.querySelectorAll('[data-inq-del]').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          if (!confirm('Diese Anfrage endgültig löschen? Die Daten der Person werden entfernt.')) return;
+          api('/api/inquiries?id=' + encodeURIComponent(btn.getAttribute('data-inq-del')), { method: 'DELETE' })
+            .then(loadInquiries).catch(function(e){ alert(e.message); });
+        });
+      });
     });
   }
 

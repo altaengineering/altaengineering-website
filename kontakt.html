@@ -19,9 +19,7 @@
 <meta name="twitter:description" content="Kontakt zur Alta Engineering AG in Weggis: Röhrlistrasse 3, 6353 Weggis. Telefon +41 41 390 10 50, info@alta-engineering.ch.">
 <meta name="twitter:image" content="https://alta-engineering.ch/weggis.jpg">
 <script>(function(){try{var t=localStorage.getItem('theme');if(t){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();</script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preload" href="fonts/inter-latin-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="style.css">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
@@ -89,13 +87,17 @@
             <div class="ib"><div class="k">Telefon</div><div class="v"><a href="tel:+41413901050">+41 41 390 10 50</a></div></div>
             <div class="ib"><div class="k">E-Mail</div><div class="v"><a href="mailto:info@alta-engineering.ch">info@alta-engineering.ch</a></div></div>
           </div>
-          <div class="map">
-            <iframe title="Standort Weggis" loading="lazy" src="https://www.openstreetmap.org/export/embed.html?bbox=8.4079%2C47.0272%2C8.4419%2C47.0432&layer=mapnik&marker=47.035232%2C8.422893"></iframe>
+          <div class="map" id="mapBox">
+            <div class="map-ph">
+              <p><b>Karte von OpenStreetMap</b><br>Beim Laden der Karte wird Ihre IP-Adresse an die OpenStreetMap Foundation übermittelt. <a href="datenschutz.html#karte">Mehr dazu</a></p>
+              <button class="btn btn-ghost" type="button" id="mapLoad">Karte laden</button>
+              <a href="https://www.openstreetmap.org/?mlat=47.035232&amp;mlon=8.422893#map=16/47.035232/8.422893" target="_blank" rel="noopener">Auf openstreetmap.org öffnen</a>
+            </div>
           </div>
         </div>
 
         <div class="rv">
-          <form class="form" id="kontaktForm">
+          <form class="form" id="kontaktForm" novalidate>
             <div class="row">
               <div class="field"><label for="name">Name</label><input id="name" name="name" type="text" autocomplete="name" required></div>
               <div class="field"><label for="firma">Firma</label><input id="firma" name="firma" type="text" autocomplete="organization"></div>
@@ -104,29 +106,78 @@
               <div class="field"><label for="email">E-Mail</label><input id="email" name="email" type="email" autocomplete="email" required></div>
               <div class="field"><label for="tel">Telefon</label><input id="tel" name="telefon" type="tel" autocomplete="tel"></div>
             </div>
-            <div class="field"><label for="msg">Ihre Nachricht</label><textarea id="msg" name="nachricht" required></textarea></div>
-            <button class="btn btn-primary" type="submit">Nachricht senden <span class="arw">→</span></button>
-            <p class="hint">Der Klick öffnet Ihr E-Mail-Programm mit vorausgefüllter Nachricht an info@alta-engineering.ch.</p>
+            <div class="field"><label for="thema">Thema</label><select id="thema" name="thema"><option value="">Bitte wählen (optional)</option><option value="websites">Websites</option><option value="portale">Web-Apps und Portale</option><option value="betriebssoftware">Betriebssoftware</option><option value="automatisierung">Automatisierung und KI</option><option value="hardware">Hardware und Steuerungen</option><option value="modernisierung">Firmenmodernisierung</option><option value="pentesting">Pentesting</option><option value="konstruktion">Konstruktion und Entwicklung</option><option value="cad-support">CAD-Support</option><option value="management-systeme">Management-Systeme</option><option value="projektleitung">Projektleitung</option><option value="berechnung">Berechnung</option><option value="sonstiges">Sonstiges</option></select></div>
+            <div class="field"><label for="msg">Ihre Nachricht</label><textarea id="msg" name="nachricht" required minlength="10"></textarea></div>
+            <div class="field hp" aria-hidden="true"><label for="website">Website (bitte leer lassen)</label><input id="website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+            <label class="consent"><input type="checkbox" id="consent" required><span>Ich habe die <a href="datenschutz.html">Datenschutzerklärung</a> gelesen und bin damit einverstanden, dass meine Angaben zur Bearbeitung meiner Anfrage gespeichert werden.</span></label>
+            <button class="btn btn-primary" type="submit" id="kSend">Nachricht senden <span class="arw">→</span></button>
+            <p class="hint">Ihre Nachricht geht direkt an unser Team. Falls der Versand nicht klappt, öffnet sich stattdessen Ihr E-Mail-Programm.</p>
+            <div class="k-msg" id="kMsg" role="status" aria-live="polite"></div>
           </form>
           <script>
           (function(){
+            var API = 'https://alta-kundenportal.alta-engineering.workers.dev/api/request-access';
             var f = document.getElementById('kontaktForm');
-            f.addEventListener('submit', function(e){
-              e.preventDefault();
-              var name = document.getElementById('name').value.trim();
-              var firma = document.getElementById('firma').value.trim();
-              var email = document.getElementById('email').value.trim();
-              var tel = document.getElementById('tel').value.trim();
-              var msg = document.getElementById('msg').value.trim();
+            var msgBox = document.getElementById('kMsg');
+            var btn = document.getElementById('kSend');
 
+            // Thema aus der Adresse vorwaehlen, zum Beispiel kontakt.html?thema=modernisierung
+            try {
+              var wanted = new URLSearchParams(location.search).get('thema');
+              var sel = document.getElementById('thema');
+              if (wanted && sel.querySelector('option[value="' + wanted.replace(/[^a-z-]/g, '') + '"]')) sel.value = wanted.replace(/[^a-z-]/g, '');
+            } catch (e) {}
+
+            // Karte erst nach Klick laden (Datenschutz)
+            document.getElementById('mapLoad').addEventListener('click', function(){
+              var box = document.getElementById('mapBox');
+              box.innerHTML = '<iframe title="Standort Weggis" src="https://www.openstreetmap.org/export/embed.html?bbox=8.4079%2C47.0272%2C8.4419%2C47.0432&layer=mapnik&marker=47.035232%2C8.422893"></iframe>';
+            });
+
+            function esc(v){ return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+            function val(id){ return document.getElementById(id).value.trim(); }
+            function mailtoHref(){
+              var name = val('name'), firma = val('firma');
               var subject = 'Kontaktanfrage von ' + name + (firma ? ' (' + firma + ')' : '');
               var body = 'Name: ' + name + '\n';
               if (firma) body += 'Firma: ' + firma + '\n';
-              body += 'E-Mail: ' + email + '\n';
-              if (tel) body += 'Telefon: ' + tel + '\n';
-              body += '\nNachricht:\n' + msg;
+              body += 'E-Mail: ' + val('email') + '\n';
+              if (val('tel')) body += 'Telefon: ' + val('tel') + '\n';
+              if (val('thema')) body += 'Thema: ' + document.getElementById('thema').selectedOptions[0].text + '\n';
+              body += '\nNachricht:\n' + val('msg');
+              return 'mailto:info@alta-engineering.ch?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+            }
 
-              window.location.href = 'mailto:info@alta-engineering.ch?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+            f.addEventListener('submit', function(e){
+              e.preventDefault();
+              msgBox.innerHTML = '';
+              if (!f.checkValidity()) { f.reportValidity(); return; }
+              btn.disabled = true;
+              var href = mailtoHref();
+              fetch(API, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  type: 'kontakt', name: val('name'), email: val('email'), company: val('firma'), phone: val('tel'),
+                  topic: val('thema'), message: val('msg'), consent: document.getElementById('consent').checked, website: val('website')
+                })
+              }).then(function(r){ return r.json().then(function(d){ return { ok: r.ok, status: r.status, d: d }; }); })
+                .then(function(res){
+                  if (res.ok) {
+                    var extra = res.d.notified ? '' : '<br><a class="btn btn-ghost" href="' + esc(href) + '">Zusätzlich per E-Mail senden</a>';
+                    msgBox.innerHTML = '<div class="ok"><b>Danke, Ihre Nachricht ist bei uns eingegangen.</b> Wir melden uns kurzfristig bei Ihnen.' + extra + '</div>';
+                    f.reset();
+                  } else if (res.status === 400 || res.status === 429) {
+                    msgBox.innerHTML = '<div class="err">' + esc(res.d.error || 'Das hat nicht geklappt.') + '</div>';
+                  } else {
+                    throw new Error('server');
+                  }
+                })
+                .catch(function(){
+                  msgBox.innerHTML = '<div class="err">Der Versand über die Website ist gerade nicht möglich. Wir öffnen Ihr E-Mail-Programm mit Ihrer Nachricht.</div>';
+                  window.location.href = href;
+                })
+                .then(function(){ btn.disabled = false; });
             });
           })();
           </script>
@@ -143,7 +194,7 @@
       <div class="fcol"><h5>Arbeitsbereiche</h5><a href="konstruktion.html">Konstruktion</a><a href="entwicklung-design.html">Entwicklung+Design</a><a href="software.html">Software</a><a href="cad-support.html">CAD-Support</a><a href="management-systeme.html">Management-Systeme</a><a href="projektleitung.html">Projektleitung</a><a href="berechnung.html">Berechnung</a></div>
       <div class="fcol"><h5>Unternehmen</h5><a href="firma.html">Firma</a><a href="jobs.html">Jobs</a><a href="kontakt.html">Kontakt</a><a href="alta-engineering-flyer.pdf?v=20260910" target="_blank" rel="noopener">Firmenflyer (PDF)</a></div>
     </div>
-    <div class="foot-base">© <span id="yr">2025</span> alta-engineering.ch</div>
+    <div class="foot-base">© <span id="yr">2025</span> alta-engineering.ch · <a href="impressum.html">Impressum</a> · <a href="datenschutz.html">Datenschutz</a></div>
   </div>
 </footer>
 
