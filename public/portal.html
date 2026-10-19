@@ -107,6 +107,11 @@ header{position:sticky;top:0;z-index:40;background:var(--header-bg);backdrop-fil
 .folder-card.active{border-color:var(--accent);background:var(--chip)}
 .folder-card .fname{font-size:.86rem;word-break:break-all}
 .folder-card .fcount{font-size:.76rem;color:var(--muted);font-family:var(--mono)}
+.filter-input{width:100%;max-width:340px;margin:.2rem 0 1rem;padding:.55rem .8rem;border:1px solid var(--line-2);border-radius:8px;background:var(--surface-2);color:var(--text);font:inherit;font-size:.9rem}
+.filter-input:focus{outline:2px solid var(--accent);outline-offset:1px}
+th.sortable{cursor:pointer;user-select:none;white-space:nowrap}
+th.sortable:hover,th.sortable:focus-visible{color:var(--accent)}
+.pill-new{display:inline-block;margin-left:.5rem;font-size:.62rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#1c7a4a;background:rgba(46,158,91,.16);border-radius:99px;padding:.08rem .5rem;vertical-align:middle}
 
 main .wrap{padding:clamp(28px,5vw,48px) var(--gutter) 80px}
 
@@ -251,6 +256,7 @@ tbody tr:hover{background:var(--surface-2)}
       <div class="stat"><div class="num" id="statFolders">–</div><div class="lbl">Kundenordner</div></div>
       <div class="stat"><div class="num" id="statRequests">–</div><div class="lbl">Offene Anfragen</div></div>
       <div class="stat"><div class="num" id="statShares">–</div><div class="lbl">Aktive Freigaben</div></div>
+      <div class="stat"><div class="num" id="statStorage">–</div><div class="lbl">Speicher belegt</div></div>
     </div>
   </div>
 </div>
@@ -260,7 +266,8 @@ tbody tr:hover{background:var(--surface-2)}
 
     <div class="panel" id="adminPanel" style="display:none">
       <h2>Ordner ansehen</h2>
-      <div class="sub">Alle Kundenordner auf einen Blick, anklicken für die Dateien.</div>
+      <div class="sub">Alle Kundenordner auf einen Blick, zuletzt aktive zuerst. Anklicken für die Dateien.</div>
+      <input type="search" class="filter-input" id="folderFilter" placeholder="Ordner suchen …" aria-label="Ordner suchen">
       <div class="folder-grid" id="folderGrid"></div>
     </div>
 
@@ -288,10 +295,16 @@ tbody tr:hover{background:var(--surface-2)}
         <a class="iconbtn" id="zipDownloadLink" href="#" style="display:none">Ordner als ZIP herunterladen</a>
       </div>
       <div class="sub" id="listSub">Alles, was hier liegt, ist nur für dich (und Stefan / Michael) sichtbar.</div>
+      <input type="search" class="filter-input" id="fileFilter" placeholder="Dateien durchsuchen …" aria-label="Dateien durchsuchen">
       <div id="tableWrap" class="table-wrap">
         <table>
           <thead>
-            <tr><th>Datei</th><th>Grösse</th><th>Hochgeladen</th><th></th></tr>
+            <tr>
+              <th class="sortable" data-sort="name" data-label="Datei" tabindex="0" role="button" aria-sort="none">Datei</th>
+              <th class="sortable" data-sort="size" data-label="Grösse" tabindex="0" role="button" aria-sort="none">Grösse</th>
+              <th class="sortable" data-sort="uploaded" data-label="Hochgeladen" tabindex="0" role="button" aria-sort="descending">Hochgeladen ↓</th>
+              <th></th>
+            </tr>
           </thead>
           <tbody id="fileRows"></tbody>
         </table>
@@ -412,6 +425,28 @@ tbody tr:hover{background:var(--surface-2)}
     if (el) el.textContent = state.activeFileShares + state.activeHandbuchShares;
   }
 
+  // Alles, was aus Daten stammt (Dateinamen, Namen, Texte aus Anfragen), wird maskiert, bevor es in HTML landet.
+  function esc(v){
+    return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+  function fmtSize(b){
+    if (!b) return '0 B';
+    if (b < 1024) return b + ' B';
+    var u = ['KB','MB','GB','TB'], v = b, i = -1;
+    do { v /= 1024; i++; } while (v >= 1024 && i < u.length - 1);
+    return v.toFixed(1) + ' ' + u[i];
+  }
+  function relDay(iso){
+    var d = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+    if (d <= 0) return 'heute';
+    if (d === 1) return 'gestern';
+    if (d < 30) return 'vor ' + d + ' Tagen';
+    return fmtDateOnly(iso);
+  }
+  function canPreview(name){
+    return /\.(pdf|png|jpe?g|gif|txt)$/i.test(name);
+  }
+
   function fmtDate(iso){
     var d = new Date(iso);
     return d.toLocaleDateString('de-CH', {day:'2-digit',month:'2-digit',year:'numeric'}) + ' ' +
@@ -435,7 +470,7 @@ tbody tr:hover{background:var(--surface-2)}
       var rollenText = me.isAdmin ? 'Admin, sieht alle Ordner' : (me.isMitarbeiter ? 'Mitarbeiter' : 'Kunde');
       var whoBox = document.getElementById('whoBox');
       whoBox.innerHTML =
-        '<span class="email-mono">' + me.email + '</span>' +
+        '<span class="email-mono">' + esc(me.email) + '</span>' +
         '<span class="badge' + (me.isAdmin ? ' admin' : '') + '">' + rollenText + '</span>';
 
       if (me.isAdmin){
@@ -482,14 +517,14 @@ tbody tr:hover{background:var(--surface-2)}
       res.requests.forEach(function(r){
         var tr = document.createElement('tr');
         tr.innerHTML =
-          '<td class="fname">' + (r.name || '–') + '</td>' +
-          '<td class="meta">' + r.email + '</td>' +
-          '<td class="meta">' + (r.company || '–') + '</td>' +
-          '<td class="fname">' + (r.message || '–') + '</td>' +
+          '<td class="fname">' + esc(r.name || '–') + '</td>' +
+          '<td class="meta">' + esc(r.email) + '</td>' +
+          '<td class="meta">' + esc(r.company || '–') + '</td>' +
+          '<td class="fname">' + esc(r.message || '–') + '</td>' +
           '<td class="meta">' + fmtDateOnly(r.submittedAt) + '</td>' +
           '<td><div class="actions">' +
-            '<button class="iconbtn" data-approve-id="' + r.id + '">Freigeben</button>' +
-            '<button class="iconbtn danger" data-deny-id="' + r.id + '">Ablehnen</button>' +
+            '<button class="iconbtn" data-approve-id="' + esc(r.id) + '">Freigeben</button>' +
+            '<button class="iconbtn danger" data-deny-id="' + esc(r.id) + '">Ablehnen</button>' +
           '</div></td>';
         rows.appendChild(tr);
       });
@@ -519,22 +554,40 @@ tbody tr:hover{background:var(--surface-2)}
   function loadFolders(){
     return api('/api/folders').then(function(res){
       state.folders = res.folders;
-      var grid = document.getElementById('folderGrid');
-      grid.innerHTML = '';
-      res.folders.forEach(function(f){
-        var card = document.createElement('button');
-        card.type = 'button';
-        card.className = 'folder-card' + (f.name === state.currentFolder ? ' active' : '');
-        card.innerHTML = '<span class="fname">' + f.name + '</span><span class="fcount">' + f.fileCount + ' Datei' + (f.fileCount === 1 ? '' : 'en') + '</span>';
-        card.addEventListener('click', function(){
-          state.currentFolder = f.name;
-          refreshList();
-          highlightFolderCard();
-        });
-        grid.appendChild(card);
-      });
+      var total = res.folders.reduce(function(sum, f){ return sum + (f.size || 0); }, 0);
+      var st = document.getElementById('statStorage');
+      if (st) st.textContent = fmtSize(total);
       var statFolders = document.getElementById('statFolders');
       if (statFolders) statFolders.textContent = res.folders.length;
+      renderFolders();
+    });
+  }
+
+  function renderFolders(){
+    var grid = document.getElementById('folderGrid');
+    var q = (document.getElementById('folderFilter').value || '').trim().toLowerCase();
+    var list = state.folders.filter(function(f){ return !q || f.name.toLowerCase().indexOf(q) >= 0; }).sort(function(x, y){
+      return (y.lastUploaded || '').localeCompare(x.lastUploaded || '') || x.name.localeCompare(y.name);
+    });
+    grid.innerHTML = '';
+    if (!list.length){
+      grid.innerHTML = '<div class="sub">Kein Ordner passt zur Suche.</div>';
+      return;
+    }
+    list.forEach(function(f){
+      var card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'folder-card' + (f.name === state.currentFolder ? ' active' : '');
+      card.innerHTML =
+        '<span class="fname">' + esc(f.name) + '</span>' +
+        '<span class="fcount">' + f.fileCount + ' Datei' + (f.fileCount === 1 ? '' : 'en') + ' · ' + fmtSize(f.size || 0) + '</span>' +
+        '<span class="fcount">' + (f.lastUploaded ? 'zuletzt ' + relDay(f.lastUploaded) : 'noch leer') + '</span>';
+      card.addEventListener('click', function(){
+        state.currentFolder = f.name;
+        refreshList();
+        highlightFolderCard();
+      });
+      grid.appendChild(card);
     });
   }
 
@@ -542,6 +595,71 @@ tbody tr:hover{background:var(--surface-2)}
     document.querySelectorAll('.folder-card').forEach(function(card){
       var name = card.querySelector('.fname').textContent;
       card.classList.toggle('active', name === state.currentFolder);
+    });
+  }
+
+  var fileSort = { key: 'uploaded', dir: -1 };
+
+  function renderFiles(){
+    var rows = document.getElementById('fileRows');
+    var empty = document.getElementById('emptyState');
+    var zipLink = document.getElementById('zipDownloadLink');
+    var q = (document.getElementById('fileFilter').value || '').trim().toLowerCase();
+    var all = state.files || [];
+    var files = all.filter(function(f){ return !q || f.name.toLowerCase().indexOf(q) >= 0; }).sort(function(x, y){
+      var k = fileSort.key, p, r;
+      if (k === 'name'){ p = x.name.toLowerCase(); r = y.name.toLowerCase(); }
+      else if (k === 'size'){ p = x.size; r = y.size; }
+      else { p = new Date(x.uploaded).getTime(); r = new Date(y.uploaded).getTime(); }
+      return (p < r ? -1 : p > r ? 1 : 0) * fileSort.dir;
+    });
+    document.querySelectorAll('th.sortable').forEach(function(th){
+      var on = th.getAttribute('data-sort') === fileSort.key;
+      th.textContent = th.getAttribute('data-label') + (on ? (fileSort.dir > 0 ? ' ↑' : ' ↓') : '');
+      th.setAttribute('aria-sort', on ? (fileSort.dir > 0 ? 'ascending' : 'descending') : 'none');
+    });
+    rows.innerHTML = '';
+    if (!all.length){
+      empty.textContent = 'Noch keine Dateien in diesem Ordner.';
+      empty.style.display = '';
+      zipLink.style.display = 'none';
+      return;
+    }
+    zipLink.href = '/api/download-zip?folder=' + encodeURIComponent(state.currentFolder);
+    zipLink.style.display = '';
+    if (!files.length){
+      empty.textContent = 'Keine Datei passt zur Suche.';
+      empty.style.display = '';
+      return;
+    }
+    empty.style.display = 'none';
+    var weekAgo = Date.now() - 7 * 86400000;
+    files.forEach(function(f){
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td class="fname">' + esc(f.name) + (new Date(f.uploaded).getTime() > weekAgo ? '<span class="pill-new">Neu</span>' : '') + '</td>' +
+        '<td class="meta">' + esc(f.sizeLabel) + '</td>' +
+        '<td class="meta">' + fmtDate(f.uploaded) + '</td>' +
+        '<td><div class="actions">' +
+          (canPreview(f.name) ? '<a class="iconbtn" target="_blank" rel="noopener" href="/api/download?key=' + encodeURIComponent(f.key) + '&inline=1">Ansehen</a>' : '') +
+          '<a class="iconbtn" href="/api/download?key=' + encodeURIComponent(f.key) + '">Download</a>' +
+          '<button class="iconbtn" data-share-key="' + esc(f.key) + '" data-share-name="' + esc(f.name) + '">Freigeben</button>' +
+          '<button class="iconbtn danger" data-key="' + esc(f.key) + '">Löschen</button>' +
+        '</div></td>';
+      rows.appendChild(tr);
+    });
+    rows.querySelectorAll('.danger').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        if (!confirm('Diese Datei wirklich löschen?')) return;
+        api('/api/delete?key=' + encodeURIComponent(btn.getAttribute('data-key')), { method: 'DELETE' })
+          .then(function(){ refreshList(); if (state.isAdmin) loadFolders(); })
+          .catch(function(e){ alert(e.message); });
+      });
+    });
+    rows.querySelectorAll('[data-share-key]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        createShare(btn.getAttribute('data-share-key'), btn.getAttribute('data-share-name'));
+      });
     });
   }
 
@@ -555,48 +673,24 @@ tbody tr:hover{background:var(--surface-2)}
       title.textContent = 'Meine Dateien';
       sub.textContent = 'Nur für dich (und Stefan / Michael) sichtbar.';
     }
-
-    api('/api/list?folder=' + encodeURIComponent(state.currentFolder)).then(function(res){
-      var rows = document.getElementById('fileRows');
-      var empty = document.getElementById('emptyState');
-      var zipLink = document.getElementById('zipDownloadLink');
-      rows.innerHTML = '';
-      if (!res.files.length){
-        empty.style.display = '';
-        zipLink.style.display = 'none';
-        return;
-      }
-      empty.style.display = 'none';
-      zipLink.href = '/api/download-zip?folder=' + encodeURIComponent(state.currentFolder);
-      zipLink.style.display = '';
-      res.files.forEach(function(f){
-        var tr = document.createElement('tr');
-        tr.innerHTML =
-          '<td class="fname">' + f.name + '</td>' +
-          '<td class="meta">' + f.sizeLabel + '</td>' +
-          '<td class="meta">' + fmtDate(f.uploaded) + '</td>' +
-          '<td><div class="actions">' +
-            '<a class="iconbtn" href="/api/download?key=' + encodeURIComponent(f.key) + '">Download</a>' +
-            '<button class="iconbtn" data-share-key="' + f.key + '" data-share-name="' + f.name + '">Freigeben</button>' +
-            '<button class="iconbtn danger" data-key="' + f.key + '">Löschen</button>' +
-          '</div></td>';
-        rows.appendChild(tr);
-      });
-      rows.querySelectorAll('.danger').forEach(function(btn){
-        btn.addEventListener('click', function(){
-          if (!confirm('Diese Datei wirklich löschen?')) return;
-          api('/api/delete?key=' + encodeURIComponent(btn.getAttribute('data-key')), { method: 'DELETE' })
-            .then(refreshList)
-            .catch(function(e){ alert(e.message); });
-        });
-      });
-      rows.querySelectorAll('[data-share-key]').forEach(function(btn){
-        btn.addEventListener('click', function(){
-          createShare(btn.getAttribute('data-share-key'), btn.getAttribute('data-share-name'));
-        });
-      });
+    return api('/api/list?folder=' + encodeURIComponent(state.currentFolder)).then(function(res){
+      state.files = res.files;
+      renderFiles();
     });
   }
+
+  document.getElementById('fileFilter').addEventListener('input', renderFiles);
+  document.getElementById('folderFilter').addEventListener('input', renderFolders);
+  document.querySelectorAll('th.sortable').forEach(function(th){
+    function toggle(){
+      var k = th.getAttribute('data-sort');
+      if (fileSort.key === k) fileSort.dir = -fileSort.dir;
+      else { fileSort.key = k; fileSort.dir = k === 'name' ? 1 : -1; }
+      renderFiles();
+    }
+    th.addEventListener('click', toggle);
+    th.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggle(); } });
+  });
 
   // ---------- Freigabe-Links ----------
   function createShare(key, name){
@@ -639,8 +733,8 @@ tbody tr:hover{background:var(--surface-2)}
         var fileNames = s.files.map(function(f){ return f.name; }).join(', ');
         var tr = document.createElement('tr');
         tr.innerHTML =
-          '<td class="fname">' + (s.label || '(ohne Bezeichnung)') + '</td>' +
-          '<td class="meta-files">' + fileNames + '</td>' +
+          '<td class="fname">' + esc(s.label || '(ohne Bezeichnung)') + '</td>' +
+          '<td class="meta-files">' + esc(fileNames) + '</td>' +
           '<td class="meta">' + fmtDate(s.expiresAt) + (expired ? ' (abgelaufen)' : '') + '</td>' +
           '<td class="meta">' + (s.downloadCount || 0) + '</td>' +
           '<td><div class="actions">' +
@@ -709,7 +803,7 @@ tbody tr:hover{background:var(--surface-2)}
         var expired = new Date(s.expiresAt).getTime() < Date.now();
         var tr = document.createElement('tr');
         tr.innerHTML =
-          '<td class="fname">' + (s.label || '(ohne Bezeichnung)') + '</td>' +
+          '<td class="fname">' + esc(s.label || '(ohne Bezeichnung)') + '</td>' +
           '<td class="meta">' + fmtDate(s.expiresAt) + (expired ? ' (abgelaufen)' : '') + '</td>' +
           '<td class="meta">' + (s.viewCount || 0) + '</td>' +
           '<td><div class="actions">' +
@@ -753,9 +847,9 @@ tbody tr:hover{background:var(--surface-2)}
         var tr = document.createElement('tr');
         tr.innerHTML =
           '<td class="meta">' + fmtDate(a.at) + '</td>' +
-          '<td class="meta">' + a.email + '</td>' +
-          '<td class="fname">' + a.action + '</td>' +
-          '<td class="meta-files">' + (a.detail || '') + '</td>';
+          '<td class="meta">' + esc(a.email) + '</td>' +
+          '<td class="fname">' + esc(a.action) + '</td>' +
+          '<td class="meta-files">' + esc(a.detail || '') + '</td>';
         rows.appendChild(tr);
       });
     });
@@ -771,7 +865,7 @@ tbody tr:hover{background:var(--surface-2)}
       res.backups.forEach(function(b){
         var tr = document.createElement('tr');
         tr.innerHTML =
-          '<td class="fname">' + b.name + '</td>' +
+          '<td class="fname">' + esc(b.name) + '</td>' +
           '<td class="meta">' + fmtDate(b.uploaded) + '</td>' +
           '<td class="meta">' + Math.max(1, Math.round(b.size / 1024)) + ' KB</td>' +
           '<td><a class="btn-lg ghost" style="padding:.3rem .7rem;font-size:.8rem" href="/api/download?key=' + encodeURIComponent(b.key) + '">Herunterladen</a></td>';
@@ -801,7 +895,7 @@ tbody tr:hover{background:var(--surface-2)}
     var item = document.createElement('div');
     item.className = 'upload-item';
     item.innerHTML =
-      '<div class="top"><span class="name">' + file.name + '</span><span class="status">0%</span></div>' +
+      '<div class="top"><span class="name">' + esc(file.name) + '</span><span class="status">0%</span></div>' +
       '<div class="bar"><div></div></div>';
     document.getElementById('uploadList').prepend(item);
     var statusEl = item.querySelector('.status');
