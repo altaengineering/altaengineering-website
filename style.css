@@ -3,6 +3,10 @@
    Light + professional dark mode, manual theme toggle
    =========================================================== */
 
+/* Schriften lokal eingebunden (Inter, SIL Open Font License), kein Abruf bei Google. */
+@font-face{font-family:"Inter";font-style:normal;font-weight:400 500;font-display:swap;src:url("fonts/inter-latin-400.woff2") format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Inter";font-style:normal;font-weight:600 800;font-display:swap;src:url("fonts/inter-latin-600.woff2") format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+
 /* ---------- LIGHT (default) ---------- */
 :root{
   color-scheme: light;
@@ -741,3 +745,32 @@ html:has(.sw-subnav){scroll-padding-top:132px}
 .sw-calc.earn .sw-slider input[type=range]{accent-color:#2e9e5b}
 .sw-calc.earn .sw-result .btn{color:#1d4f3b}
 @media(prefers-reduced-motion:reduce){.js .fb-panel.on{animation:none}.fb-tab{transition:none}}
+
+/* ===== Rechtliche Seiten, Kontaktformular, Karte (2026-10-19) ===== */
+.legal{max-width:78ch}
+.legal h2{font-size:1.25rem;font-weight:700;margin:2.2rem 0 .7rem;letter-spacing:-.005em}
+.legal h2:first-child{margin-top:0}
+.legal p,.legal li{color:var(--text);font-size:1rem;line-height:1.65}
+.legal p{margin-bottom:.9rem}
+.legal ul{margin:0 0 1rem 1.2rem}
+.legal li{margin-bottom:.35rem}
+.legal a{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+.legal dl{display:grid;grid-template-columns:11rem 1fr;gap:.5rem 1.2rem;margin-bottom:1.2rem}
+@media(max-width:560px){.legal dl{grid-template-columns:1fr;gap:.1rem}.legal dd{margin-bottom:.7rem}}
+.legal dt{font-weight:600;color:var(--muted)}
+.legal .stand{font-size:.88rem;color:var(--muted);margin-top:2rem}
+.foot-base a{color:inherit;text-decoration:underline;text-underline-offset:2px}
+.foot-base a:hover{color:var(--footer-head)}
+.field select{font-family:inherit;font-size:.97rem;color:var(--text);background:var(--bg);border:1px solid var(--line-2);border-radius:6px;padding:.7rem .8rem}
+.field select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
+.field.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.consent{display:flex;gap:.6rem;align-items:flex-start;font-size:.86rem;color:var(--muted);margin:.2rem 0 1rem;line-height:1.5}
+.consent input{margin-top:.25rem;flex:none}
+.consent a{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+.k-msg{margin-top:1rem;font-size:.92rem}
+.k-msg .ok{border-left:4px solid #2e9e5b;background:color-mix(in srgb,#2e9e5b 10%,var(--surface));padding:.8rem 1rem;border-radius:6px}
+.k-msg .err{border-left:4px solid #c0564b;background:color-mix(in srgb,#c0564b 10%,var(--surface));padding:.8rem 1rem;border-radius:6px}
+.k-msg .btn{margin-top:.7rem;width:auto}
+.map-ph{display:flex;flex-direction:column;align-items:flex-start;gap:.8rem;padding:1.4rem;min-height:260px;justify-content:center;font-size:.9rem;color:var(--muted)}
+.map-ph b{color:var(--text)}
+.map-ph a{color:var(--accent);text-decoration:underline;text-underline-offset:2px}

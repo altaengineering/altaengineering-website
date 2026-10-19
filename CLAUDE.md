@@ -176,6 +176,12 @@ Mass, Kundenportale, Dokumentenlenkung, Datenprojekte usw., alles mit Claude Cod
   Rechner, Hochzählen, Sticky-Button. CSS dazu mit Präfix `sw-` in `style.css`.
 
 
+### 1.9 Kontaktanfragen, Rechtliches, lokale Schriften (2026-10-19)
+
+- **Kontaktformular** (`kontakt.html`) sendet an `POST /api/request-access` mit `type:"kontakt"` (Pfad ist in Access schon freigegeben). Speicherung als `inq:<uuid>` in KV `REQUESTS`, Mengenbegrenzung 8 pro Stunde ueber gehashte IP (`rl:<hash>`), Honigtopf, Pflicht-Einwilligung. Admins: Bereich "Anfragen von der Website" im Portal (`/api/inquiries`, `/api/inquiries/status`, DELETE). **Ohne RESEND_API_KEY wird niemand benachrichtigt**, das Portal zeigt dann eine Warnung. Bei `notified:false` bietet das Formular zusaetzlich "per E-Mail senden", bei Serverfehler oeffnet sich wie frueher das Mailprogramm.
+- **Impressum und Datenschutz** (`impressum.html`, `datenschutz.html`, Fusszeile, Sitemap). Daten aus dem Handelsregister (UID CHE-431.949.818, Vertretung Stefan Herger). Neue Drittdienste immer in der Datenschutzerklaerung nachtragen.
+- **Schriften lokal** (`fonts/`, Inter 400 und 600, OFL), kein Google Fonts mehr. Worker-Seiten: `/fonts.css`, oeffentliche Seiten (request-access, share) mit eingebetteter Schrift. Karte auf kontakt.html erst nach Klick.
+
 ### 1.8 Portal: Sicherheit und Dateiverwaltung (2026-10-19)
 
 - **XSS behoben:** `public/portal.html` maskiert alle Werte aus Daten mit `esc()` (Dateinamen, Ordner, Anfragen, Protokoll, Links, Sicherungen, Upload-Anzeige). Neuer Code: nie rohe Daten in `innerHTML`.

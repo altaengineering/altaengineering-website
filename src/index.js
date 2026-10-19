@@ -120,7 +120,7 @@ async function listObjects(env, prefix, delimiter) {
 async function sendMail(env, { to, subject, text }) {
   if (!env.RESEND_API_KEY) {
     console.warn("RESEND_API_KEY nicht gesetzt, E-Mail wurde nicht versendet:", subject);
-    return;
+    return false;
   }
   try {
     const res = await fetch("https://api.resend.com/emails", {
@@ -138,10 +138,46 @@ async function sendMail(env, { to, subject, text }) {
     });
     if (!res.ok) {
       console.error("Resend-Versand fehlgeschlagen:", res.status, await res.text());
+      return false;
     }
+    return true;
   } catch (e) {
     console.error("Resend-Versand fehlgeschlagen:", e);
+    return false;
   }
+}
+
+// Themen der Kontaktanfragen (Schluessel kommen vom Formular auf der Website).
+const INQUIRY_TOPICS = {
+  websites: "Websites",
+  portale: "Web-Apps und Portale",
+  betriebssoftware: "Betriebssoftware",
+  automatisierung: "Automatisierung und KI",
+  hardware: "Hardware und Steuerungen",
+  modernisierung: "Firmenmodernisierung",
+  pentesting: "Pentesting",
+  konstruktion: "Konstruktion und Entwicklung",
+  "cad-support": "CAD-Support",
+  "management-systeme": "Management-Systeme",
+  projektleitung: "Projektleitung",
+  berechnung: "Berechnung",
+  sonstiges: "Sonstiges",
+};
+
+async function sha256Hex(text) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+// Einfache Mengenbegrenzung pro Absender (gehashte IP, ohne die Adresse selbst zu speichern):
+// hoechstens 8 Formularaufrufe pro Stunde. Der Zaehler verfaellt von selbst (KV-Ablauf).
+async function rateLimited(env, request) {
+  const ip = request.headers.get("CF-Connecting-IP") || "unbekannt";
+  const key = "rl:" + (await sha256Hex("alta-portal:" + ip)).slice(0, 24);
+  const n = Number((await env.REQUESTS.get(key)) || 0);
+  if (n >= 8) return true;
+  await env.REQUESTS.put(key, String(n + 1), { expirationTtl: 3600 });
+  return false;
 }
 
 function json(data, status = 200) {
@@ -414,6 +450,47 @@ export default {
         return respond({ error: "Ungueltige E-Mail-Adresse." }, 400);
       }
 
+      if (await rateLimited(env, request)) {
+        return respond({ error: "Zu viele Anfragen von dieser Adresse. Bitte später erneut versuchen." }, 429);
+      }
+
+      if (body.type === "kontakt") {
+        const phone = String(body.phone || "").trim().slice(0, 40);
+        const topic = Object.prototype.hasOwnProperty.call(INQUIRY_TOPICS, body.topic) ? body.topic : "";
+        const text = String(body.message || "").trim().slice(0, 2000);
+        if (name.length < 2) return respond({ error: "Bitte Ihren Namen angeben." }, 400);
+        if (text.length < 10) return respond({ error: "Bitte kurz beschreiben, worum es geht." }, 400);
+        if (body.consent !== true) return respond({ error: "Bitte der Datenschutzerklärung zustimmen." }, 400);
+        const inqId = crypto.randomUUID();
+        const inquiry = {
+          id: inqId,
+          type: "kontakt",
+          name,
+          email: reqEmail,
+          company,
+          phone,
+          topic,
+          message: text,
+          submittedAt: new Date().toISOString(),
+          status: "neu",
+        };
+        await env.REQUESTS.put("inq:" + inqId, JSON.stringify(inquiry));
+        const notified = await sendMail(env, {
+          to: ADMIN_EMAILS,
+          subject: `Website-Anfrage: ${topic ? INQUIRY_TOPICS[topic] : "Kontakt"} von ${name}`,
+          text:
+            `Neue Anfrage über das Kontaktformular der Website.\n\n` +
+            `Name: ${name}\n` +
+            `Firma: ${company || "(keine Angabe)"}\n` +
+            `E-Mail: ${reqEmail}\n` +
+            `Telefon: ${phone || "(keine Angabe)"}\n` +
+            `Thema: ${topic ? INQUIRY_TOPICS[topic] : "(keine Angabe)"}\n\n` +
+            `Nachricht:\n${text}\n\n` +
+            `Bearbeiten im Portal: https://${env.PORTAL_HOSTNAME}`,
+        });
+        return respond({ ok: true, notified }, 200);
+      }
+
       const id = crypto.randomUUID();
       const record = {
         id,
@@ -499,6 +576,47 @@ export default {
       record.status = "denied";
       await env.REQUESTS.put("req:" + record.id, JSON.stringify(record));
       await logActivity(env, { email, action: "Zugangsanfrage abgelehnt", detail: record.email });
+      return json({ ok: true });
+    }
+
+    // --- Admin: Kontaktanfragen von der Website ---
+
+    if (url.pathname === "/api/inquiries" && request.method === "GET") {
+      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
+      const list = await env.REQUESTS.list({ prefix: "inq:" });
+      const items = [];
+      for (const k of list.keys) {
+        const raw = await env.REQUESTS.get(k.name);
+        if (raw) items.push(JSON.parse(raw));
+      }
+      items.sort((a, b) => (a.status === b.status ? 0 : a.status === "neu" ? -1 : 1) || new Date(b.submittedAt) - new Date(a.submittedAt));
+      return json({
+        inquiries: items.map((i) => ({ ...i, topicLabel: INQUIRY_TOPICS[i.topic] || "" })),
+        mailConfigured: !!env.RESEND_API_KEY,
+      });
+    }
+
+    if (url.pathname === "/api/inquiries/status" && request.method === "POST") {
+      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
+      const body = await request.json().catch(() => ({}));
+      const raw = body.id && (await env.REQUESTS.get("inq:" + body.id));
+      if (!raw) return json({ error: "Anfrage nicht gefunden." }, 404);
+      const inq = JSON.parse(raw);
+      inq.status = body.status === "neu" ? "neu" : "erledigt";
+      inq.handledBy = inq.status === "erledigt" ? email : undefined;
+      inq.handledAt = inq.status === "erledigt" ? new Date().toISOString() : undefined;
+      await env.REQUESTS.put("inq:" + inq.id, JSON.stringify(inq));
+      await logActivity(env, { email, action: inq.status === "erledigt" ? "Kontaktanfrage erledigt" : "Kontaktanfrage wieder geöffnet", detail: inq.name });
+      return json({ ok: true });
+    }
+
+    if (url.pathname === "/api/inquiries" && request.method === "DELETE") {
+      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
+      const id = url.searchParams.get("id") || "";
+      const raw = id && (await env.REQUESTS.get("inq:" + id));
+      if (!raw) return json({ error: "Anfrage nicht gefunden." }, 404);
+      await env.REQUESTS.delete("inq:" + id);
+      await logActivity(env, { email, action: "Kontaktanfrage gelöscht", detail: JSON.parse(raw).name });
       return json({ ok: true });
     }
 
