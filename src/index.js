@@ -518,8 +518,10 @@ export default {
       const folders = [];
       for (const name of folderNames) {
         const inner = await listObjects(env, name + "/", null);
-        const fileCount = inner.objects.filter((o) => o.key !== name + "/").length;
-        folders.push({ name, fileCount });
+        const own = inner.objects.filter((o) => o.key !== name + "/");
+        const size = own.reduce((sum, o) => sum + (o.size || 0), 0);
+        const lastUploaded = own.reduce((max, o) => (o.uploaded && o.uploaded > max ? o.uploaded : max), "");
+        folders.push({ name, fileCount: own.length, size, lastUploaded });
       }
       return json({ folders });
     }
@@ -597,7 +599,18 @@ export default {
       if (!upstream.ok) return json({ error: "Datei nicht gefunden." }, 404);
       const headers = new Headers(upstream.headers);
       const filename = key.split("/").pop();
-      headers.set("Content-Disposition", `attachment; filename="${filename}"`);
+      // Ansehen im Browser nur fuer harmlose Typen (PDF, Bilder, Text). HTML oder SVG werden nie inline
+      // ausgeliefert, sie koennten Skripte enthalten. Alles andere kommt als Download.
+      const previewTypes = { pdf: "application/pdf", png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", txt: "text/plain; charset=utf-8" };
+      const previewType = previewTypes[filename.split(".").pop().toLowerCase()];
+      if (url.searchParams.get("inline") === "1" && previewType) {
+        headers.set("Content-Type", previewType);
+        headers.set("Content-Disposition", `inline; filename="${filename.replace(/"/g, "")}"`);
+        headers.set("X-Content-Type-Options", "nosniff");
+        if (previewType.startsWith("text/")) headers.set("Content-Security-Policy", "default-src 'none'");
+      } else {
+        headers.set("Content-Disposition", `attachment; filename="${filename.replace(/"/g, "")}"`);
+      }
       return new Response(upstream.body, { headers });
     }
 

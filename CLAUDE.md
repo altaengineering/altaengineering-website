@@ -176,6 +176,13 @@ Mass, Kundenportale, Dokumentenlenkung, Datenprojekte usw., alles mit Claude Cod
   Rechner, Hochzählen, Sticky-Button. CSS dazu mit Präfix `sw-` in `style.css`.
 
 
+### 1.8 Portal: Sicherheit und Dateiverwaltung (2026-10-19)
+
+- **XSS behoben:** `public/portal.html` maskiert alle Werte aus Daten mit `esc()` (Dateinamen, Ordner, Anfragen, Protokoll, Links, Sicherungen, Upload-Anzeige). Neuer Code: nie rohe Daten in `innerHTML`.
+- **Dateiliste:** Suchfeld, sortierbare Spalten, Markierung "Neu" (7 Tage), "Ansehen" fuer PDF, Bilder, Text (`/api/download?inline=1`, serverseitig nur harmlose Typen).
+- **Admin-Ordneruebersicht:** pro Ordner Dateizahl, Speicher und letzte Aktivitaet (`/api/folders` liefert `size` und `lastUploaded`), Suche, Kennzahl "Speicher belegt".
+- Getestet mit einer Testkopie der Seite und simulierten Serverantworten (inklusive bösartiger Namen), nicht gegen echtes B2.
+
 ### 1.7 Software-Seite neu gegliedert, Fachbereiche und KI-Auffindbarkeit (2026-10-15)
 
 `software.html` wurde aufgeraeumt und auf die Botschaft "Geld sparen und Umsatz steigern" ausgerichtet.
