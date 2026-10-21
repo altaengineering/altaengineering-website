@@ -215,6 +215,7 @@ tbody tr:hover{background:var(--surface-2)}
       <a class="back-link handbuch-link" href="/portal" id="navPortalLink" style="display:none"><span>📁</span><span class="lbl">Kundenportal</span></a>
       <a class="back-link handbuch-link" href="/dms" id="navDmsLink" style="display:none"><span>🗂️</span><span class="lbl">Dokumentenlenkung</span></a>
       <a class="back-link handbuch-link" href="/qm-handbuch" id="navHandbuchLink" style="display:none"><span>📘</span><span class="lbl">QM-Handbuch</span></a>
+      <a class="back-link" href="/viewer" title="3D-Modelle ansehen (STEP, STL, OBJ)"><span class="lbl">3D-Viewer</span></a>
       <a class="back-link" href="https://alta-engineering.ch" target="_blank" rel="noopener">
         <span class="lbl">Hauptwebsite</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg>
@@ -462,6 +463,10 @@ tbody tr:hover{background:var(--surface-2)}
   function canPreview(name){
     return /\.(pdf|png|jpe?g|gif|txt)$/i.test(name);
   }
+  // 3D-Modelle oeffnen im CAD-Viewer (/viewer), die Datei wird dort im Browser gelesen
+  function canView3d(name){
+    return /\.(step|stp|iges|igs|stl|obj)$/i.test(name);
+  }
 
   function fmtDate(iso){
     var d = new Date(iso);
@@ -706,6 +711,7 @@ tbody tr:hover{background:var(--surface-2)}
         '<td class="meta">' + fmtDate(f.uploaded) + '</td>' +
         '<td><div class="actions">' +
           (canPreview(f.name) ? '<a class="iconbtn" target="_blank" rel="noopener" href="/api/download?key=' + encodeURIComponent(f.key) + '&inline=1">Ansehen</a>' : '') +
+          (canView3d(f.name) ? '<a class="iconbtn" target="_blank" rel="noopener" href="/viewer?key=' + encodeURIComponent(f.key) + '">3D ansehen</a>' : '') +
           '<a class="iconbtn" href="/api/download?key=' + encodeURIComponent(f.key) + '">Download</a>' +
           '<button class="iconbtn" data-share-key="' + esc(f.key) + '" data-share-name="' + esc(f.name) + '">Freigeben</button>' +
           '<button class="iconbtn danger" data-key="' + esc(f.key) + '">Löschen</button>' +

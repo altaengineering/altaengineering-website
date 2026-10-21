@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CAD-Viewer — Alta Engineering AG</title>
+<meta name="color-scheme" content="light dark">
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<script>(function(){try{var t=localStorage.getItem('theme');if(t){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();</script>
+<link rel="stylesheet" href="/fonts.css">
+<link rel="stylesheet" href="/viewer.css">
+<script type="importmap">{"imports":{"three":"/vendor/three/three.module.min.js"}}</script>
+</head>
+<body>
+<header class="vbar">
+  <a class="vback" href="/" title="Zurück zum Kundenportal">&larr; Portal</a>
+  <div class="vtitle"><b>CAD-Viewer</b><span id="vFile">Kein Modell geladen</span></div>
+  <div class="vbar-r">
+    <label class="vbtn" for="vOpen">Datei öffnen</label>
+    <input id="vOpen" type="file" accept=".step,.stp,.iges,.igs,.brep,.stl,.obj" hidden>
+    <button class="vbtn" type="button" id="vDemo">Beispielmodell</button>
+    <button class="vbtn" type="button" id="vShot">Bild speichern</button>
+  </div>
+</header>
+
+<div class="vapp">
+  <main class="vstage" id="vStage">
+    <canvas id="vCanvas"></canvas>
+    <div id="vOverlay" class="voverlay"></div>
+
+    <div class="vtools" role="toolbar" aria-label="Ansichten">
+      <button type="button" data-view="iso" class="active">Iso</button>
+      <button type="button" data-view="front">Vorne</button>
+      <button type="button" data-view="top">Oben</button>
+      <button type="button" data-view="right">Rechts</button>
+      <button type="button" data-view="fit">Einpassen</button>
+    </div>
+
+    <div class="vhint" id="vHint"></div>
+
+    <div class="vdrop" id="vDrop">
+      <div>
+        <h2>3D-Modell ansehen</h2>
+        <p>Ziehen Sie eine Datei hierher (STEP, STP, IGES, STL, OBJ) oder wählen Sie oben «Datei öffnen».<br>Das Modell wird nur in Ihrem Browser gelesen und nicht hochgeladen.</p>
+      </div>
+    </div>
+
+    <div class="vload" id="vLoad" hidden>
+      <div class="vload-box">
+        <div id="vLoadText">Modell wird geladen</div>
+        <div class="vprog"><span id="vProgBar"></span></div>
+      </div>
+    </div>
+  </main>
+
+  <aside class="vside" id="vSide">
+    <section class="vsec">
+      <h3>Modell</h3>
+      <dl class="vkv">
+        <dt>Abmessungen</dt><dd id="mDims">–</dd>
+        <dt>Volumen</dt><dd id="mVol">–</dd>
+        <dt>Oberfläche</dt><dd id="mArea">–</dd>
+        <dt>Material</dt>
+        <dd><select id="mMat" aria-label="Material">
+          <option value="7.85">Stahl (7,85 g/cm³)</option>
+          <option value="7.90">Edelstahl (7,90)</option>
+          <option value="2.70">Aluminium (2,70)</option>
+          <option value="8.96">Kupfer (8,96)</option>
+          <option value="8.50">Messing (8,50)</option>
+          <option value="4.51">Titan (4,51)</option>
+          <option value="7.20">Gusseisen (7,20)</option>
+          <option value="1.14">Kunststoff PA (1,14)</option>
+        </select></dd>
+        <dt>Gewicht</dt><dd id="mMass" class="vbig">–</dd>
+        <dt>Dreiecke</dt><dd id="mTris">–</dd>
+      </dl>
+      <p class="vsmall">Gewicht und Volumen sind Schätzwerte aus dem Netz, Einheit Millimeter angenommen.</p>
+    </section>
+
+    <section class="vsec">
+      <h3>Darstellung</h3>
+      <div class="vseg" id="vMode">
+        <button type="button" data-mode="shaded" class="active">Schattiert</button>
+        <button type="button" data-mode="edges">Kanten</button>
+        <button type="button" data-mode="wire">Gitter</button>
+        <button type="button" data-mode="xray">Röntgen</button>
+      </div>
+      <label class="vchk"><input type="checkbox" id="vGrid" checked> Raster anzeigen</label>
+    </section>
+
+    <section class="vsec">
+      <h3>Schnitt</h3>
+      <div class="vseg" id="vCutAxis">
+        <button type="button" data-axis="off" class="active">Aus</button>
+        <button type="button" data-axis="x">X</button>
+        <button type="button" data-axis="y">Y</button>
+        <button type="button" data-axis="z">Z</button>
+      </div>
+      <input type="range" id="vCutPos" min="0" max="1000" value="500" disabled aria-label="Schnittposition">
+      <label class="vchk"><input type="checkbox" id="vCutFlip" disabled> Seite umkehren</label>
+    </section>
+
+    <section class="vsec">
+      <h3>Messen</h3>
+      <div class="vrow">
+        <button type="button" class="vbtn" id="vMeasure">Abstand messen</button>
+        <button type="button" class="vbtn ghost" id="vMeasureClear">Löschen</button>
+      </div>
+      <ul class="vlist" id="vMeasList"></ul>
+    </section>
+
+    <section class="vsec" id="vPartsSec" hidden>
+      <h3>Teile <span class="vcount" id="vPartCount"></span></h3>
+      <ul class="vlist parts" id="vParts"></ul>
+    </section>
+
+    <section class="vsec">
+      <h3>Kommentare <span class="vcount" id="vNoteCount"></span></h3>
+      <div class="vrow"><button type="button" class="vbtn" id="vNoteTool">Kommentar setzen</button></div>
+      <form class="vnoteform" id="vNoteForm" hidden>
+        <textarea id="vNoteText" rows="3" maxlength="1000" placeholder="Was soll an dieser Stelle geändert oder beachtet werden?" required></textarea>
+        <div class="vrow"><button class="vbtn primary" type="submit">Speichern</button><button class="vbtn ghost" type="button" id="vNoteCancel">Abbrechen</button></div>
+      </form>
+      <ul class="vlist notes" id="vNotes"></ul>
+      <p class="vsmall" id="vNoteInfo"></p>
+    </section>
+
+    <section class="vsec" id="vApproveSec">
+      <h3>Freigabe</h3>
+      <div class="vapproval" id="vApproval">Noch nicht freigegeben.</div>
+      <div class="vrow"><button type="button" class="vbtn primary" id="vApprove">Diese Fassung freigeben</button></div>
+      <ul class="vlist" id="vApprovals"></ul>
+      <p class="vsmall" id="vApproveInfo"></p>
+    </section>
+  </aside>
+</div>
+
+<script type="module" src="/viewer.js"></script>
+</body>
+</html>
