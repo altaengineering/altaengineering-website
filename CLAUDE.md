@@ -176,6 +176,12 @@ Mass, Kundenportale, Dokumentenlenkung, Datenprojekte usw., alles mit Claude Cod
   Rechner, Hochzählen, Sticky-Button. CSS dazu mit Präfix `sw-` in `style.css`.
 
 
+### 1.11 Sicherheitscheck und CAD-Viewer (2026-10-22)
+
+- **Sicherheitscheck** (`sicherheitscheck.html`, `sicherheitscheck.js`, Worker `src/security-check.js`): passive Pruefung einer Domain mit Note A bis F. Nur Oeffentliches (Startseite, DNS ueber DoH, security.txt), keine Pfad-Proben. Der Endpunkt laeuft unter `/api/request-access/security-check`, weil die bestehende Access-Ausnahme fuer `/api/request-access` Unterpfade mit abdeckt (`/api/security-check` braeuchte eine eigene Ausnahme). Mengenbegrenzung 20 pro Stunde und Absender, 400 pro Stunde insgesamt. Tests: `node scripts/test-security-check.mjs`, Kommandozeile: `node scripts/check-domain.mjs beispiel.ch`. Verlinkt aus der Pentesting-Karte auf `software.html`, in Sitemap und `llms.txt`, in der Datenschutzerklaerung beschrieben.
+- **CAD-Viewer** (`public/viewer.*`, `public/vendor/`, Worker `src/cad.js`): STEP, IGES, STL, OBJ im Browser (three.js, `occt-import-js` als WebAssembly, alles selbst gehostet, Lizenztexte in `public/vendor`). Schnitt, Messen, Gewichtsschaetzung, Kommentare am Modell, Freigabe mit ETag und SHA-256. Daten in der KV `DMS` unter `cad:`. Im Portal ueber den Knopf "3D ansehen" bei CAD-Dateien oder `/viewer`. Nicht gegen echtes Backblaze getestet (ETag und Pruefsumme der Freigabe). Details im Entwicklerhandbuch Kap. 5.14 und 5.15.
+- Vorsicht beim Testen mit grossen Dateien in `public/`: der Worker lehnt Dateien ueber 25 MB als Asset ab ("Asset too large") und startet dann nicht. Testdateien nie in `public/` liegen lassen.
+
 ### 1.9 Kontaktanfragen, Rechtliches, lokale Schriften (2026-10-19)
 
 - **Kontaktformular** (`kontakt.html`) sendet an `POST /api/request-access` mit `type:"kontakt"` (Pfad ist in Access schon freigegeben). Speicherung als `inq:<uuid>` in KV `REQUESTS`, Mengenbegrenzung 8 pro Stunde ueber gehashte IP (`rl:<hash>`), Honigtopf, Pflicht-Einwilligung. Admins: Bereich "Anfragen von der Website" im Portal (`/api/inquiries`, `/api/inquiries/status`, DELETE). **Ohne RESEND_API_KEY wird niemand benachrichtigt**, das Portal zeigt dann eine Warnung. Bei `notified:false` bietet das Formular zusaetzlich "per E-Mail senden", bei Serverfehler oeffnet sich wie frueher das Mailprogramm.
