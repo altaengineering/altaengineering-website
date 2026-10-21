@@ -126,6 +126,10 @@
               var wanted = new URLSearchParams(location.search).get('thema');
               var sel = document.getElementById('thema');
               if (wanted && sel.querySelector('option[value="' + wanted.replace(/[^a-z-]/g, '') + '"]')) sel.value = wanted.replace(/[^a-z-]/g, '');
+              // Nachricht vorbelegen, zum Beispiel aus dem Sicherheitscheck
+              var pre = new URLSearchParams(location.search).get('nachricht');
+              var ta = document.getElementById('msg');
+              if (pre && ta && !ta.value) ta.value = pre.slice(0, 600);
             } catch (e) {}
 
             // Karte erst nach Klick laden (Datenschutz)

@@ -4,6 +4,7 @@ import { zipSync } from "fflate";
 import { handleDms, tenantsFor, listTenants } from "./dms.js";
 import { renderHandbookPage } from "./handbook-view.js";
 import { collectKv, gzipJson, runBackup, listBackups } from "./backup.js";
+import { normalizeDomain, runSecurityCheck } from "./security-check.js";
 
 // Alta Engineering Kundenportal — Cloudflare Worker
 //
@@ -171,12 +172,22 @@ async function sha256Hex(text) {
 
 // Einfache Mengenbegrenzung pro Absender (gehashte IP, ohne die Adresse selbst zu speichern):
 // hoechstens 8 Formularaufrufe pro Stunde. Der Zaehler verfaellt von selbst (KV-Ablauf).
-async function rateLimited(env, request) {
+async function rateLimited(env, request, { prefix = "rl:", max = 8 } = {}) {
   const ip = request.headers.get("CF-Connecting-IP") || "unbekannt";
-  const key = "rl:" + (await sha256Hex("alta-portal:" + ip)).slice(0, 24);
+  const key = prefix + (await sha256Hex("alta-portal:" + prefix + ip)).slice(0, 24);
   const n = Number((await env.REQUESTS.get(key)) || 0);
-  if (n >= 8) return true;
+  if (n >= max) return true;
   await env.REQUESTS.put(key, String(n + 1), { expirationTtl: 3600 });
+  return false;
+}
+
+// Gesamtgrenze ueber alle Absender (pro Stunde), damit der oeffentliche Sicherheitscheck nicht als
+// Werkzeug fuer Massenabfragen fremder Seiten missbraucht werden kann.
+async function globalRateLimited(env, name, max) {
+  const key = `rlg:${name}:${new Date().toISOString().slice(0, 13)}`;
+  const n = Number((await env.REQUESTS.get(key)) || 0);
+  if (n >= max) return true;
+  await env.REQUESTS.put(key, String(n + 1), { expirationTtl: 7200 });
   return false;
 }
 
@@ -362,6 +373,41 @@ export default {
     // (siehe [assets] in wrangler.toml) — inkl. portal.html, Login-Seite etc.
     if (!url.pathname.startsWith("/api/")) {
       return env.ASSETS.fetch(request);
+    }
+
+    // --- Oeffentlicher Sicherheitscheck (/sicherheitscheck.html auf der Hauptwebsite) ---
+    // Passive Pruefung einer fremden Domain, Details und Grenzen in src/security-check.js. Braucht wie
+    // /api/request-access einen Bypass in der Cloudflare-Access-Policy (Pfad /api/security-check).
+    // Zusaetzlich unter /api/request-access/security-check erreichbar: Der bestehende Bypass fuer
+    // /api/request-access in Cloudflare Access gilt auch fuer Unterpfade, so braucht es keine neue Regel.
+    if (url.pathname === "/api/security-check" || url.pathname === "/api/request-access/security-check") {
+      const origin = request.headers.get("Origin") || "";
+      const allowOrigin = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) ? origin : env.MAIN_SITE_ORIGIN || "*";
+      const cors = {
+        "Access-Control-Allow-Origin": allowOrigin,
+        "Access-Control-Allow-Methods": "POST,OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Cache-Control": "no-store",
+      };
+      const reply = (data, status = 200) =>
+        new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json; charset=utf-8", ...cors } });
+      if (request.method === "OPTIONS") return new Response(null, { headers: cors });
+      if (request.method !== "POST") return reply({ error: "Methode nicht erlaubt." }, 405);
+
+      const body = await request.json().catch(() => ({}));
+      if ((body.website || "").trim()) return reply({ error: "Anfrage abgelehnt." }, 400);
+      const target = normalizeDomain(body.domain);
+      if (!target) return reply({ error: "Bitte eine gueltige Domain eingeben, zum Beispiel ihre-firma.ch." }, 400);
+
+      if ((await rateLimited(env, request, { prefix: "rlc:", max: 20 })) || (await globalRateLimited(env, "check", 400))) {
+        return reply({ error: "Zu viele Pruefungen in kurzer Zeit. Bitte in einer Stunde erneut versuchen." }, 429);
+      }
+      try {
+        return reply(await runSecurityCheck(target));
+      } catch (e) {
+        console.error("Sicherheitscheck fehlgeschlagen:", e);
+        return reply({ error: "Die Pruefung konnte nicht abgeschlossen werden. Bitte spaeter erneut versuchen." }, 502);
+      }
     }
 
     // --- Oeffentliche Endpunkte fuer Freigabe-Links (kein Access-Login) ---
