@@ -14,6 +14,7 @@ Diese Datei fasst die Website für KI-Assistenten und Suchsysteme zusammen. Alle
 - [Hardware und Steuerungen](https://alta-engineering.ch/software.html#fb-hardware): Mikrocontroller, Sensoren, Funk, Firmware, Konstruktion mit CAD.
 - [Firmenmodernisierung](https://alta-engineering.ch/software.html#fb-modernisierung): Gesamtpaket für KMU mit Website und Kundengewinnung, Sofortpreis und Offerten, automatischer Arbeitsvorbereitung mit Anbindung ans bestehende ERP, Kundenportal, Chef-Cockpit und Werkstatt-Tablet. Mit eigener Demo für jede Firma und einem Businesscase.
 - [Pentesting](https://alta-engineering.ch/software.html#fb-pentesting): Prüfung von Websites, Web-Anwendungen und Portalen auf Schwachstellen, nur mit schriftlichem Auftrag.
+- [Website-Sicherheitscheck](https://alta-engineering.ch/sicherheitscheck.html): kostenloser, passiver Check einer Domain auf Verschlüsselung, Sicherheits-Header, E-Mail-Absicherung (SPF, DMARC), Datenschutz-Hinweise und DNS, mit Note und Anleitung zur Behebung.
 
 ## Weitere Leistungen
 
