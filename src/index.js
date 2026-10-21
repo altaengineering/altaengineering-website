@@ -5,6 +5,7 @@ import { handleDms, tenantsFor, listTenants } from "./dms.js";
 import { renderHandbookPage } from "./handbook-view.js";
 import { collectKv, gzipJson, runBackup, listBackups } from "./backup.js";
 import { normalizeDomain, runSecurityCheck } from "./security-check.js";
+import { handleCad } from "./cad.js";
 
 // Alta Engineering Kundenportal — Cloudflare Worker
 //
@@ -1023,6 +1024,12 @@ export default {
         return json({ error: String((e && e.message) || e) }, 502);
       }
     }
+
+    // --- CAD-Viewer (/viewer): Kommentare und Freigaben, siehe src/cad.js ---
+    const cadResponse = await handleCad({
+      request, url, env, admin, email, ownFolder, json, isSafeKey, b2Client, bucketUrl, logActivity,
+    });
+    if (cadResponse) return cadResponse;
 
     // --- Dokumentenlenkung / DMS (/dms): komplett in src/dms.js ---
     const dmsResponse = await handleDms({
