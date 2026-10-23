@@ -407,7 +407,7 @@ export default {
         return reply({ error: "Zu viele Pruefungen in kurzer Zeit. Bitte in einer Stunde erneut versuchen." }, 429);
       }
       try {
-        return reply(await runSecurityCheck(target));
+        return reply(await runSecurityCheck(target, { lang: body.lang === "en" ? "en" : "de" }));
       } catch (e) {
         console.error("Sicherheitscheck fehlgeschlagen:", e);
         return reply({ error: "Die Pruefung konnte nicht abgeschlossen werden. Bitte spaeter erneut versuchen." }, 502);
