@@ -4,7 +4,8 @@ import assert from "node:assert/strict";
 import { normalizeDomain, scoreFindings, gradeFor, _internals } from "../src/security-check.js";
 
 const { checkTransport, checkHeaders, checkPage, checkMail, checkDns, checkDisclosure, txtValues } = _internals;
-const ids = (list) => list.map((f) => f.id);
+// Jeder Befund braucht eine englische Fassung mit Titel und Text
+const ids = (list) => list.map((f) => { assert.ok(f.en && f.en.title && f.en.detail != null, "Englische Fassung fehlt: " + f.id); return f.id; });
 const home = (headers = {}, body = "", extra = {}) => ({
   http: { status: 301, location: "https://x.ch/" },
   https: { status: 200, url: "https://x.ch/", headers: new Headers(headers), cookies: [], body, ...extra },
