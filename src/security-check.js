@@ -230,12 +230,26 @@ function parseCsp(csp) {
   return dirs;
 }
 
+// CSP aus einem Meta-Tag (<meta http-equiv="Content-Security-Policy" content="...">). Browser setzen sie durch,
+// ausser frame-ancestors, report-uri und sandbox: die wirken nur im HTTP-Header.
+function metaCsp(body) {
+  for (const m of (body || "").matchAll(/<meta\b[^>]*>/gi)) {
+    const tag = m[0];
+    if (!/http-equiv\s*=\s*["']?content-security-policy["'\s>]/i.test(tag)) continue;
+    const c = /\bcontent\s*=\s*(?:"([^"]*)"|'([^']*)')/i.exec(tag);
+    if (c) return (c[1] ?? c[2]).replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&").trim() || null;
+  }
+  return null;
+}
+
 function checkHeaders(home) {
   const out = [];
   if (home.httpsError) return out;
   const h = home.https.headers;
 
-  const csp = h.get("content-security-policy");
+  const cspHeader = h.get("content-security-policy");
+  const cspMeta = cspHeader ? null : metaCsp(home.https.body);
+  const csp = cspHeader || cspMeta;
   if (!csp) {
     out.push(
       F("csp-missing", "browser", "medium", "Content-Security-Policy fehlt",
@@ -252,12 +266,15 @@ function checkHeaders(home) {
     } else if (weak.length) {
       out.push(F("csp-weak", "browser", "low", "CSP ist aufgeweicht", `Die Skript-Regel erlaubt ${weak.join(", ")}. Damit verliert die Richtlinie einen grossen Teil ihrer Schutzwirkung gegen eingeschleusten Code.`, "Inline-Skripte durch Dateien oder Nonces ersetzen und unsafe-inline entfernen."));
     } else {
-      out.push(F("csp-ok", "browser", "ok", "Content-Security-Policy ist gesetzt", "Skripte sind auf definierte Quellen eingeschränkt."));
+      out.push(cspMeta
+        ? F("csp-ok", "browser", "ok", "Content-Security-Policy ist gesetzt (Meta-Tag)", "Skripte sind auf definierte Quellen eingeschränkt. Die Richtlinie steht als Meta-Tag im HTML. Der Schutz vor Einbettung (frame-ancestors) wirkt nur als HTTP-Header.")
+        : F("csp-ok", "browser", "ok", "Content-Security-Policy ist gesetzt", "Skripte sind auf definierte Quellen eingeschränkt."));
     }
   }
 
   const xfo = h.get("x-frame-options");
-  const frameAncestors = csp && /frame-ancestors/i.test(csp);
+  // frame-ancestors wirkt nur im Header, im Meta-Tag ignorieren Browser die Anweisung
+  const frameAncestors = cspHeader && /frame-ancestors/i.test(cspHeader);
   if (!xfo && !frameAncestors) {
     out.push(
       F("clickjacking", "browser", "low", "Schutz vor Einbettung (Clickjacking) fehlt",

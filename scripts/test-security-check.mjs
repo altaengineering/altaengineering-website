@@ -34,6 +34,11 @@ for (const id of ["csp-missing", "clickjacking", "nosniff", "referrer", "permiss
 const good = ids(checkHeaders(home({ "content-security-policy": "default-src 'self'; frame-ancestors 'self'", "x-content-type-options": "nosniff", "referrer-policy": "no-referrer", "permissions-policy": "camera=()" })));
 assert.ok(good.includes("csp-ok") && good.includes("clickjacking-ok") && good.includes("nosniff-ok"));
 assert.ok(ids(checkHeaders(home({ "content-security-policy": "script-src 'self' 'unsafe-inline'" }))).includes("csp-weak"));
+// CSP als Meta-Tag zählt, frame-ancestors im Meta-Tag aber nicht (Browser ignorieren es dort)
+const meta = ids(checkHeaders(home({}, `<head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; frame-ancestors 'none'"></head>`)));
+assert.ok(meta.includes("csp-ok") && !meta.includes("csp-missing") && meta.includes("clickjacking"));
+assert.ok(ids(checkHeaders(home({}, `<meta content="script-src 'self' 'unsafe-inline'" http-equiv='content-security-policy'>`))).includes("csp-weak"));
+assert.ok(ids(checkHeaders(home({}, `<meta name="description" content="Content-Security-Policy erklärt">`))).includes("csp-missing"));
 const ck = ids(checkHeaders(home({}, "", { cookies: ["PHPSESSID=abc; path=/", "x=1; Secure; HttpOnly"] })));
 assert.ok(ck.includes("cookie-secure") && ck.includes("cookie-httponly"));
 assert.ok(ids(checkHeaders(home({ "access-control-allow-origin": "*", "access-control-allow-credentials": "true" }))).includes("cors"));
