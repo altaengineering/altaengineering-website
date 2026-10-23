@@ -383,12 +383,15 @@ export default {
     // /api/request-access in Cloudflare Access gilt auch fuer Unterpfade, so braucht es keine neue Regel.
     if (url.pathname === "/api/security-check" || url.pathname === "/api/request-access/security-check") {
       const origin = request.headers.get("Origin") || "";
-      const allowOrigin = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) ? origin : env.MAIN_SITE_ORIGIN || "*";
+      // Erlaubt: die Hauptwebsite, die Websites aus CHECK_ORIGINS (z.B. underpressure.ch) und lokale Tests
+      const allowed = [env.MAIN_SITE_ORIGIN, ...(env.CHECK_ORIGINS || "").split(",")].map((s) => (s || "").trim()).filter(Boolean);
+      const allowOrigin = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) || allowed.includes(origin) ? origin : env.MAIN_SITE_ORIGIN || "*";
       const cors = {
         "Access-Control-Allow-Origin": allowOrigin,
         "Access-Control-Allow-Methods": "POST,OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
         "Cache-Control": "no-store",
+        Vary: "Origin",
       };
       const reply = (data, status = 200) =>
         new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json; charset=utf-8", ...cors } });
