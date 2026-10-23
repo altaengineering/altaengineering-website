@@ -68,6 +68,11 @@ PORTAL_HOSTNAME = "alta-kundenportal.alta-engineering.workers.dev"
 # Origin der Hauptwebsite (fuer CORS auf /api/request-access).
 MAIN_SITE_ORIGIN = "https://alta-engineering.ch"
 
+# Weitere Websites, die den oeffentlichen Sicherheitscheck (/api/security-check) aufrufen duerfen,
+# durch Komma getrennt. underpressure.ch zeigt den Check als Live-Demo (Michael Kueng, mit Erlaubnis
+# von Stefan Herger, 2026-10-23). Gilt nur fuer den Sicherheitscheck, nicht fuer andere Endpunkte.
+CHECK_ORIGINS = "https://underpressure.ch,https://www.underpressure.ch"
+
 # Geheime Werte NICHT hier eintragen! Auf dem live Worker bereits gesetzt
 # (per "npx wrangler secret list --name alta-kundenportal" geprueft am
 # 2026-09-08): B2_KEY_ID, B2_APPLICATION_KEY, CF_API_TOKEN, CF_ACCOUNT_ID.
