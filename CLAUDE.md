@@ -176,6 +176,13 @@ Mass, Kundenportale, Dokumentenlenkung, Datenprojekte usw., alles mit Claude Cod
   Rechner, Hochzählen, Sticky-Button. CSS dazu mit Präfix `sw-` in `style.css`.
 
 
+### 1.12 Speicheranzeige, Warnungen, Auflistung ueber 1000 Dateien, Uebergabe (2026-10-28)
+
+- **Speicherplatz im Portal** (Admin-Panel, `src/storage.js`, Endpunkt `GET /api/storage`): belegt, noch frei, Bereiche (Kunden, Dokumentenlenkung, Sicherungen), groesste Ordner. "Noch frei" bezieht sich auf die Planungsgrenze `STORAGE_QUOTA_GB` in `wrangler.toml` (Backblaze hat keine feste Groesse und verhindert nichts). Warnmails bei 80, 95, 100 Prozent, sobald Resend eingerichtet ist. Naechtlich aktualisiert durch den Cron der Sicherung.
+- **Fehler behoben:** `listObjects` las nur die erste Seite (1000 Eintraege), Dateien danach waren unsichtbar. Jetzt seitenweise. `/api/folders` braucht eine Auflistung statt einer je Kundenordner (vorher bei mehr als 48 Ordnern am Limit des kostenlosen Tarifs).
+- **Uebergabe:** Kapitel 21 des Entwicklerhandbuchs (auch als `Dokumentation/Uebergabe-Checkliste.pdf`): Konten, Zwei-Faktor, Zahlungsmittel, Tarif, Resend, Speicher anheben, monatliche Kontrolle. Offen bei Abfassung: Zugaenge von Stefan, `CF_API_TOKEN` als Konto-Schluessel, Resend, Cloudflare-Tarif pruefen.
+- Tests: `node scripts/test-storage.mjs`, `node scripts/test-listing.mjs`.
+
 ### 1.11 Sicherheitscheck und CAD-Viewer (2026-10-22)
 
 - **Sicherheitscheck** (`sicherheitscheck.html`, `sicherheitscheck.js`, Worker `src/security-check.js`): passive Pruefung einer Domain mit Note A bis F. Nur Oeffentliches (Startseite, DNS ueber DoH, security.txt), keine Pfad-Proben. Der Endpunkt laeuft unter `/api/request-access/security-check`, weil die bestehende Access-Ausnahme fuer `/api/request-access` Unterpfade mit abdeckt (`/api/security-check` braeuchte eine eigene Ausnahme). Mengenbegrenzung 20 pro Stunde und Absender, 400 pro Stunde insgesamt. Tests: `node scripts/test-security-check.mjs`, Kommandozeile: `node scripts/check-domain.mjs beispiel.ch`. Verlinkt aus der Pentesting-Karte auf `software.html`, in Sitemap und `llms.txt`, in der Datenschutzerklaerung beschrieben.

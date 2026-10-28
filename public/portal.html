@@ -111,6 +111,25 @@ header{position:sticky;top:0;z-index:40;background:var(--header-bg);backdrop-fil
 th.sortable{cursor:pointer;user-select:none;white-space:nowrap}
 th.sortable:hover,th.sortable:focus-visible{color:var(--accent)}
 .notice-warn{border:1px solid var(--line-2);border-left:4px solid #d39a1d;background:rgba(211,154,29,.1);border-radius:8px;padding:.7rem .9rem;margin:.2rem 0 1rem;font-size:.88rem}
+.sto-main{display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap}
+.sto-big{font-size:2rem;font-weight:700;letter-spacing:-.02em}
+.sto-of{color:var(--muted);font-size:.95rem}
+.sto-bar{height:12px;border-radius:99px;background:var(--line);overflow:hidden;margin:.7rem 0 .5rem}
+.sto-bar > span{display:block;height:100%;width:0;background:var(--ok);border-radius:99px;transition:width .6s ease}
+.sto-bar.warn > span{background:#d39a1d}
+.sto-bar.crit > span{background:var(--err)}
+.sto-free{font-size:.92rem;font-weight:600}
+.sto-areas{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.7rem;margin:1.1rem 0 .4rem}
+.sto-area{border:1px solid var(--line);border-radius:8px;padding:.7rem .9rem;background:var(--alt)}
+.sto-area b{display:block;font-size:1.05rem}
+.sto-area span{font-size:.8rem;color:var(--muted)}
+.sto-h{font-size:.86rem;font-weight:700;margin:1.2rem 0 .5rem}
+.sto-row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto;gap:.8rem;align-items:center;padding:.3rem 0;font-size:.86rem;border-bottom:1px solid var(--line)}
+.sto-row .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sto-row .mini{height:6px;border-radius:99px;background:var(--line);overflow:hidden}
+.sto-row .mini > span{display:block;height:100%;background:var(--accent)}
+.sto-row .sz{color:var(--muted);font-variant-numeric:tabular-nums}
+.sto-foot{margin-top:1rem;font-size:.78rem;color:var(--muted)}
 .pill-new{display:inline-block;margin-left:.5rem;font-size:.62rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#1c7a4a;background:rgba(46,158,91,.16);border-radius:99px;padding:.08rem .5rem;vertical-align:middle}
 
 main .wrap{padding:clamp(28px,5vw,48px) var(--gutter) 80px}
@@ -215,7 +234,6 @@ tbody tr:hover{background:var(--surface-2)}
       <a class="back-link handbuch-link" href="/portal" id="navPortalLink" style="display:none"><span>📁</span><span class="lbl">Kundenportal</span></a>
       <a class="back-link handbuch-link" href="/dms" id="navDmsLink" style="display:none"><span>🗂️</span><span class="lbl">Dokumentenlenkung</span></a>
       <a class="back-link handbuch-link" href="/qm-handbuch" id="navHandbuchLink" style="display:none"><span>📘</span><span class="lbl">QM-Handbuch</span></a>
-      <a class="back-link" href="/viewer" title="3D-Modelle ansehen (STEP, STL, OBJ)"><span class="lbl">3D-Viewer</span></a>
       <a class="back-link" href="https://alta-engineering.ch" target="_blank" rel="noopener">
         <span class="lbl">Hauptwebsite</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg>
@@ -266,6 +284,22 @@ tbody tr:hover{background:var(--surface-2)}
 <main>
   <div class="wrap">
 
+    <div class="panel accent" id="storagePanel" style="display:none">
+      <div class="row" style="justify-content:space-between;align-items:baseline">
+        <h2 style="margin:0">Speicherplatz</h2>
+        <button class="iconbtn" id="storageRefresh" type="button">Neu berechnen</button>
+      </div>
+      <div class="sub">Dateien aller Kunden, der Dokumentenlenkung und der Sicherungen bei Backblaze.</div>
+      <div class="sto-main"><span class="sto-big" id="stoUsed">–</span><span class="sto-of" id="stoOf"></span></div>
+      <div class="sto-bar" aria-hidden="true"><span id="stoFill"></span></div>
+      <div class="sto-free" id="stoFree"></div>
+      <div class="notice-warn" id="stoWarn" style="display:none"></div>
+      <div class="sto-areas" id="stoAreas"></div>
+      <h3 class="sto-h">Grösste Kundenordner</h3>
+      <div class="sto-top" id="stoTop"></div>
+      <p class="sto-foot" id="stoFoot"></p>
+    </div>
+
     <div class="panel" id="adminPanel" style="display:none">
       <h2>Ordner ansehen</h2>
       <div class="sub">Alle Kundenordner auf einen Blick, zuletzt aktive zuerst. Anklicken für die Dateien.</div>
@@ -275,7 +309,7 @@ tbody tr:hover{background:var(--surface-2)}
 
     <div class="panel">
       <h2>Datei hochladen</h2>
-      <div class="sub">Alle Dateitypen erlaubt, auch grosse CAD-/Plandateien.</div>
+      <div class="sub">Alle Dateitypen erlaubt, auch grosse CAD-/Plandateien. CAD-Modelle (STEP, STL, OBJ) lassen sich im <a href="/viewer" style="color:var(--accent);text-decoration:underline">3D-Viewer</a> ansehen.</div>
 
       <div class="row" id="uploadTargetRow" style="display:none">
         <label class="small" for="uploadTarget">Hochladen für Ordner</label>
@@ -507,6 +541,11 @@ tbody tr:hover{background:var(--surface-2)}
         loadHandbuchShares();
         document.getElementById('inquiriesPanel').style.display = '';
         loadInquiries();
+        loadStorage(false).catch(function(){});
+        document.getElementById('storageRefresh').addEventListener('click', function(){
+          var b = this; b.disabled = true; b.textContent = 'Berechne …';
+          loadStorage(true).catch(function(e){ alert(e.message); }).then(function(){ b.disabled = false; b.textContent = 'Neu berechnen'; });
+        });
         document.getElementById('accessRequestsPanel').style.display = '';
         loadAccessRequests();
         document.getElementById('activityPanel').style.display = '';
@@ -620,12 +659,56 @@ tbody tr:hover{background:var(--surface-2)}
     });
   }
 
+  // ---------- Speicherplatz (admin-only) ----------
+  function loadStorage(refresh){
+    return api('/api/storage' + (refresh ? '?refresh=1' : '')).then(function(d){
+      var panel = document.getElementById('storagePanel');
+      panel.style.display = '';
+      var gb = function(b){ return b >= 1073741824 ? (b / 1073741824).toLocaleString('de-CH', {maximumFractionDigits: 1}) + ' GB' : fmtSize(b); };
+      document.getElementById('stoUsed').textContent = gb(d.used);
+      document.getElementById('stoOf').textContent = 'von ' + gb(d.quota) + ' Planungsgrenze (' + d.percent.toLocaleString('de-CH') + ' %)';
+      var bar = document.querySelector('#storagePanel .sto-bar');
+      bar.className = 'sto-bar' + (d.level >= 2 ? ' crit' : d.level === 1 ? ' warn' : '');
+      document.getElementById('stoFill').style.width = Math.min(100, d.percent) + '%';
+      document.getElementById('stoFree').textContent = d.used >= d.quota ? 'Die Planungsgrenze ist erreicht. Uploads funktionieren weiter.' : 'Noch frei: ' + gb(d.free);
+      var warn = document.getElementById('stoWarn');
+      if (d.level >= 1) {
+        warn.style.display = '';
+        warn.textContent = d.level >= 3
+          ? 'Die Planungsgrenze ist überschritten. Es geht nichts verloren, Backblaze speichert weiter. Bitte im Backblaze-Konto Kostengrenze und Zahlungsmittel prüfen und die Planungsgrenze (STORAGE_QUOTA_GB) anheben.'
+          : 'Der Speicher ist zu ' + Math.round(d.percent) + ' Prozent belegt. Bitte rechtzeitig die Planungsgrenze anheben (Anleitung im Entwicklerhandbuch, Kapitel 5.16).';
+      } else {
+        warn.style.display = 'none';
+      }
+      if (d.truncated) { warn.style.display = ''; warn.textContent = 'Es sind so viele Dateien vorhanden, dass nicht alle gezählt werden konnten. Die Zahlen sind eine Untergrenze.'; }
+      var areas = document.getElementById('stoAreas');
+      areas.innerHTML = '';
+      [['customers', 'Kundendateien'], ['dms', 'Dokumentenlenkung'], ['backups', 'Sicherungen']].forEach(function(a){
+        var x = d.areas[a[0]] || {size: 0, count: 0};
+        var box = document.createElement('div');
+        box.className = 'sto-area';
+        box.innerHTML = '<b>' + esc(fmtSize(x.size)) + '</b><span>' + esc(a[1]) + ', ' + x.count + ' Datei' + (x.count === 1 ? '' : 'en') + '</span>';
+        areas.appendChild(box);
+      });
+      var top = document.getElementById('stoTop');
+      top.innerHTML = '';
+      var max = d.folders.length ? d.folders[0].size || 1 : 1;
+      d.folders.slice(0, 8).forEach(function(f){
+        var row = document.createElement('div');
+        row.className = 'sto-row';
+        row.innerHTML = '<span class="nm">' + esc(f.name) + '</span><span class="mini"><span style="width:' + Math.max(2, Math.round(f.size / max * 100)) + '%"></span></span><span class="sz">' + esc(fmtSize(f.size)) + '</span>';
+        top.appendChild(row);
+      });
+      if (!d.folders.length) top.innerHTML = '<div class="sub">Noch keine Kundendateien.</div>';
+      document.getElementById('stoFoot').textContent = 'Stand ' + fmtDate(d.computedAt) + ', wird täglich nachts aktualisiert. Die Planungsgrenze legt fest, wann gewarnt wird, sie verhindert keine Uploads. Backblaze rechnet nach Verbrauch ab.';
+      var st = document.getElementById('statStorage');
+      if (st) st.textContent = fmtSize(d.used);
+    });
+  }
+
   function loadFolders(){
     return api('/api/folders').then(function(res){
       state.folders = res.folders;
-      var total = res.folders.reduce(function(sum, f){ return sum + (f.size || 0); }, 0);
-      var st = document.getElementById('statStorage');
-      if (st) st.textContent = fmtSize(total);
       var statFolders = document.getElementById('statFolders');
       if (statFolders) statFolders.textContent = res.folders.length;
       renderFolders();

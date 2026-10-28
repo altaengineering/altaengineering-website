@@ -6,6 +6,7 @@ import { renderHandbookPage } from "./handbook-view.js";
 import { collectKv, gzipJson, runBackup, listBackups } from "./backup.js";
 import { normalizeDomain, runSecurityCheck } from "./security-check.js";
 import { handleCad } from "./cad.js";
+import { refreshStorage, describe as describeStorage, checkStorageAlert } from "./storage.js";
 
 // Alta Engineering Kundenportal — Cloudflare Worker
 //
@@ -83,35 +84,53 @@ function bucketUrl(env) {
   return `https://${env.B2_BUCKET_NAME}.${env.B2_ENDPOINT}`;
 }
 
-const xml = new XMLParser({ ignoreAttributes: false });
+// parseTagValue false: Dateinamen und Token bleiben Text (sonst wird aus einer Datei "123" die Zahl 123).
+const xml = new XMLParser({ ignoreAttributes: false, parseTagValue: false });
 
-async function listObjects(env, prefix, delimiter) {
+async function listObjects(env, prefix, delimiter, { maxPages = 30 } = {}) {
   const client = b2Client(env);
-  const url = new URL(bucketUrl(env) + "/");
-  url.searchParams.set("list-type", "2");
-  if (prefix) url.searchParams.set("prefix", prefix);
-  if (delimiter) url.searchParams.set("delimiter", delimiter);
+  const objects = [];
+  const prefixes = [];
+  let token = "";
+  let truncated = false;
+  for (let page = 0; ; page++) {
+    const url = new URL(bucketUrl(env) + "/");
+    url.searchParams.set("list-type", "2");
+    if (prefix) url.searchParams.set("prefix", prefix);
+    if (delimiter) url.searchParams.set("delimiter", delimiter);
+    if (token) url.searchParams.set("continuation-token", token);
 
-  const res = await client.fetch(url.toString());
-  if (!res.ok) {
-    throw new Error("B2-Liste fehlgeschlagen: " + res.status + " " + (await res.text()));
+    const res = await client.fetch(url.toString());
+    if (!res.ok) {
+      throw new Error("B2-Liste fehlgeschlagen: " + res.status + " " + (await res.text()));
+    }
+
+    const body = xml.parse(await res.text());
+    const result = body.ListBucketResult || {};
+
+    let contents = result.Contents || [];
+    if (!Array.isArray(contents)) contents = [contents];
+    let commonPrefixes = result.CommonPrefixes || [];
+    if (!Array.isArray(commonPrefixes)) commonPrefixes = [commonPrefixes];
+
+    for (const c of contents) {
+      if (c && c.Key) objects.push({ key: c.Key, size: Number(c.Size || 0), uploaded: c.LastModified });
+    }
+    for (const p of commonPrefixes) {
+      if (p && p.Prefix) prefixes.push(p.Prefix);
+    }
+
+    // Mehr als 1000 Eintraege kommen seitenweise: ohne Weiterblaettern waeren alle Dateien ab Nr. 1001 unsichtbar.
+    const more = String(result.IsTruncated) === "true" && result.NextContinuationToken;
+    if (!more) break;
+    if (page + 1 >= maxPages) {
+      truncated = true;
+      break;
+    }
+    token = result.NextContinuationToken;
   }
 
-  const body = xml.parse(await res.text());
-  const result = body.ListBucketResult || {};
-
-  let contents = result.Contents || [];
-  if (!Array.isArray(contents)) contents = [contents];
-
-  let commonPrefixes = result.CommonPrefixes || [];
-  if (!Array.isArray(commonPrefixes)) commonPrefixes = [commonPrefixes];
-
-  return {
-    objects: contents
-      .filter((c) => c && c.Key)
-      .map((c) => ({ key: c.Key, size: Number(c.Size || 0), uploaded: c.LastModified })),
-    prefixes: commonPrefixes.filter((p) => p && p.Prefix).map((p) => p.Prefix),
-  };
+  return { objects, prefixes, truncated };
 }
 
 // E-Mail-Versand ist optional, analog zum selben Muster im Zeiterfassungstool: ohne
@@ -674,24 +693,25 @@ export default {
 
     if (url.pathname === "/api/folders" && request.method === "GET") {
       if (!admin) return json({ error: "Keine Berechtigung." }, 403);
-      const listed = await listObjects(env, "", "/");
-      // Namen mit fuehrendem Unterstrich sind keine Kundenordner ("_dms" = Ablage der
-      // Dokumentenlenkung, "_backups" = Sicherungen der KV-Daten), Kundenordner sind E-Mail-Adressen.
-      const folderNames = listed.prefixes
-        .map((p) => p.replace(/\/$/, ""))
-        .filter((name) => !name.startsWith("_"))
-        .sort();
-      // Dateianzahl pro Ordner mitliefern, damit die Ordner-Uebersicht auf einen Blick zeigt, wo
-      // ueberhaupt etwas liegt, statt nur eine reine Namensliste zu sein.
-      const folders = [];
-      for (const name of folderNames) {
-        const inner = await listObjects(env, name + "/", null);
-        const own = inner.objects.filter((o) => o.key !== name + "/");
-        const size = own.reduce((sum, o) => sum + (o.size || 0), 0);
-        const lastUploaded = own.reduce((max, o) => (o.uploaded && o.uploaded > max ? o.uploaded : max), "");
-        folders.push({ name, fileCount: own.length, size, lastUploaded });
-      }
+      // Eine einzige Auflistung des ganzen Buckets (eine Abfrage pro 1000 Dateien) statt einer Abfrage
+      // je Kundenordner. Namen mit fuehrendem Unterstrich sind keine Kundenordner ("_dms" = Ablage der
+      // Dokumentenlenkung, "_backups" = Sicherungen), Kundenordner sind E-Mail-Adressen.
+      const summary = await refreshStorage(env, { listObjects }, { maxAgeMs: 60 * 1000 });
+      const folders = summary.folders
+        .map((f) => ({ name: f.name, fileCount: f.count, size: f.size, lastUploaded: f.lastUploaded }))
+        .sort((a, b) => a.name.localeCompare(b.name));
       return json({ folders });
+    }
+
+    // Speicheruebersicht fuer das Admin-Panel "Speicherplatz" (Details in src/storage.js)
+    if (url.pathname === "/api/storage" && request.method === "GET") {
+      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
+      try {
+        const summary = await refreshStorage(env, { listObjects }, { force: url.searchParams.get("refresh") === "1" });
+        return json(describeStorage(env, summary));
+      } catch (e) {
+        return json({ error: String((e && e.message) || e) }, 502);
+      }
     }
 
     if (url.pathname === "/api/list" && request.method === "GET") {
@@ -1054,6 +1074,9 @@ export default {
           if (result.truncated) {
             await logActivity(env, { email: "system", action: "Sicherung unvollstaendig", detail: result.key });
           }
+          // Speicherverbrauch aktualisieren und bei 80, 95 und 100 Prozent der Planungsgrenze warnen
+          const summary = await refreshStorage(env, { listObjects }, { force: true });
+          await checkStorageAlert(env, summary, { sendMail, adminEmails: ADMIN_EMAILS, logActivity });
         } catch (e) {
           const msg = String((e && e.message) || e);
           console.error("Automatische Sicherung fehlgeschlagen:", msg);
