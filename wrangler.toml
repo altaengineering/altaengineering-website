@@ -68,6 +68,12 @@ PORTAL_HOSTNAME = "alta-kundenportal.alta-engineering.workers.dev"
 # Origin der Hauptwebsite (fuer CORS auf /api/request-access).
 MAIN_SITE_ORIGIN = "https://alta-engineering.ch"
 
+# Planungsgrenze fuer den Dateispeicher in Gigabyte. Backblaze hat keine feste Groesse (der Bucket wachst
+# mit und wird nach Verbrauch abgerechnet), diese Zahl bestimmt nur die Anzeige "noch frei" im Portal und die
+# Warnmails bei 80, 95 und 100 Prozent. Sie verhindert keine Uploads. Anheben: Zahl aendern und
+# "npx wrangler deploy" ausfuehren. Hintergrund in Kapitel 5.16 des Entwicklerhandbuchs.
+STORAGE_QUOTA_GB = "100"
+
 # Weitere Websites, die den oeffentlichen Sicherheitscheck (/api/security-check) aufrufen duerfen,
 # durch Komma getrennt. underpressure.ch zeigt den Check als Live-Demo (Michael Kueng, mit Erlaubnis
 # von Stefan Herger, 2026-10-23). Gilt nur fuer den Sicherheitscheck, nicht fuer andere Endpunkte.
