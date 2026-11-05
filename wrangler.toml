@@ -78,7 +78,7 @@ STORAGE_QUOTA_GB = "100"
 # Komma getrennt. Leer lassen = die Administratoren aus ADMIN_EMAILS in src/index.js. Besser ein gemeinsames
 # Firmenpostfach eintragen, dann haengt der Empfang nicht an einer Person. Aendern: Wert setzen, deployen.
 # Gesendet wird nur, wenn der Schluessel RESEND_API_KEY gesetzt ist (Kapitel 21.2 des Entwicklerhandbuchs).
-NOTIFY_EMAILS = ""
+NOTIFY_EMAILS = "s.herger@alta-engineering.ch"
 
 # Weitere Websites, die den oeffentlichen Sicherheitscheck (/api/security-check) aufrufen duerfen,
 # durch Komma getrennt. underpressure.ch zeigt den Check als Live-Demo (Michael Kueng, mit Erlaubnis
