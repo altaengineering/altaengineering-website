@@ -168,9 +168,12 @@
               }).then(function(r){ return r.json().then(function(d){ return { ok: r.ok, status: r.status, d: d }; }); })
                 .then(function(res){
                   if (res.ok) {
-                    var extra = res.d.notified ? '' : '<br><a class="btn btn-ghost" href="' + esc(href) + '">Zusätzlich per E-Mail senden</a>';
+                    // Ohne Mailversand auf dem Server (notified false) öffnet sich das E-Mail-Programm mit der fertigen
+                    // Nachricht, damit sie auch per Mail bei uns ankommt. Die Nachricht ist in jedem Fall gespeichert.
+                    var extra = res.d.notified ? '' : '<br>Damit Ihre Nachricht uns sofort erreicht, öffnet sich Ihr E-Mail-Programm. Bitte dort auf «Senden» klicken.<br><a class="btn btn-ghost" href="' + esc(href) + '">E-Mail-Programm erneut öffnen</a>';
                     msgBox.innerHTML = '<div class="ok"><b>Danke, Ihre Nachricht ist bei uns eingegangen.</b> Wir melden uns kurzfristig bei Ihnen.' + extra + '</div>';
                     f.reset();
+                    if (!res.d.notified) setTimeout(function(){ window.location.href = href; }, 600);
                   } else if (res.status === 400 || res.status === 429) {
                     msgBox.innerHTML = '<div class="err">' + esc(res.d.error || 'Das hat nicht geklappt.') + '</div>';
                   } else {
