@@ -51,6 +51,14 @@ const MITARBEITER_EMAILS = [
   "r.vonlanthen@alta-engineering.ch",
 ];
 
+// Empfaenger fuer Benachrichtigungen (neue Anfragen, Uploads, Warnungen). Standard sind die Administratoren
+// im Code. Mit der Variable NOTIFY_EMAILS (Komma getrennt, in wrangler.toml) lassen sich andere Adressen
+// festlegen, zum Beispiel ein gemeinsames Firmenpostfach. So haengt der Mailempfang nicht an einer Person.
+function notifyList(env) {
+  const custom = String(env.NOTIFY_EMAILS || "").split(",").map((s) => s.trim()).filter(Boolean);
+  return custom.length ? custom : ADMIN_EMAILS;
+}
+
 function isAdminEmail(email) {
   return ADMIN_EMAILS.includes(email.toLowerCase());
 }
@@ -545,7 +553,7 @@ export default {
         };
         await env.REQUESTS.put("inq:" + inqId, JSON.stringify(inquiry));
         const notified = await sendMail(env, {
-          to: ADMIN_EMAILS,
+          to: notifyList(env),
           subject: `Website-Anfrage: ${topic ? INQUIRY_TOPICS[topic] : "Kontakt"} von ${name}`,
           text:
             `Neue Anfrage über das Kontaktformular der Website.\n\n` +
@@ -572,7 +580,7 @@ export default {
       };
       await env.REQUESTS.put("req:" + id, JSON.stringify(record));
       await sendMail(env, {
-        to: ADMIN_EMAILS,
+        to: notifyList(env),
         subject: `Kundenportal: neue Zugangsanfrage von ${name || reqEmail}`,
         text:
           `Neue Zugangsanfrage fuers Kundenportal.\n\n` +
@@ -761,7 +769,7 @@ export default {
       const key = (body.key || "").trim();
       const folder = (body.folder || "").trim();
       if (!key) return json({ error: "Kein Key uebergeben." }, 400);
-      const empfaenger = ADMIN_EMAILS.filter((a) => a.toLowerCase() !== email.toLowerCase());
+      const empfaenger = notifyList(env).filter((a) => a.toLowerCase() !== email.toLowerCase());
       await sendMail(env, {
         to: empfaenger,
         subject: `Kundenportal: neue Datei von ${email}`,
@@ -1076,13 +1084,13 @@ export default {
           }
           // Speicherverbrauch aktualisieren und bei 80, 95 und 100 Prozent der Planungsgrenze warnen
           const summary = await refreshStorage(env, { listObjects }, { force: true });
-          await checkStorageAlert(env, summary, { sendMail, adminEmails: ADMIN_EMAILS, logActivity });
+          await checkStorageAlert(env, summary, { sendMail, adminEmails: notifyList(env), logActivity });
         } catch (e) {
           const msg = String((e && e.message) || e);
           console.error("Automatische Sicherung fehlgeschlagen:", msg);
           await logActivity(env, { email: "system", action: "Sicherung fehlgeschlagen", detail: msg.slice(0, 300) });
           await sendMail(env, {
-            to: ADMIN_EMAILS,
+            to: notifyList(env),
             subject: "Kundenportal: automatische Sicherung fehlgeschlagen",
             text: "Die taegliche Sicherung der Portal-Daten ist fehlgeschlagen.\n\n" + msg + "\n\nBitte im Portal unter Aktivitaet nachsehen und die Sicherung von Hand ausloesen.",
           });

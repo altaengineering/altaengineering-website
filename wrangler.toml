@@ -74,6 +74,12 @@ MAIN_SITE_ORIGIN = "https://alta-engineering.ch"
 # "npx wrangler deploy" ausfuehren. Hintergrund in Kapitel 5.16 des Entwicklerhandbuchs.
 STORAGE_QUOTA_GB = "100"
 
+# Empfaenger der Benachrichtigungsmails (neue Website-Anfragen, Zugangsanfragen, Uploads, Warnungen),
+# Komma getrennt. Leer lassen = die Administratoren aus ADMIN_EMAILS in src/index.js. Besser ein gemeinsames
+# Firmenpostfach eintragen, dann haengt der Empfang nicht an einer Person. Aendern: Wert setzen, deployen.
+# Gesendet wird nur, wenn der Schluessel RESEND_API_KEY gesetzt ist (Kapitel 21.2 des Entwicklerhandbuchs).
+NOTIFY_EMAILS = ""
+
 # Weitere Websites, die den oeffentlichen Sicherheitscheck (/api/security-check) aufrufen duerfen,
 # durch Komma getrennt. underpressure.ch zeigt den Check als Live-Demo (Michael Kueng, mit Erlaubnis
 # von Stefan Herger, 2026-10-23). Gilt nur fuer den Sicherheitscheck, nicht fuer andere Endpunkte.
