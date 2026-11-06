@@ -6,6 +6,7 @@ import { renderHandbookPage } from "./handbook-view.js";
 import { collectKv, gzipJson, runBackup, listBackups } from "./backup.js";
 import { normalizeDomain, runSecurityCheck } from "./security-check.js";
 import { handleCad } from "./cad.js";
+import { handleShareView, isShareViewPath } from "./share-view.js";
 import { refreshStorage, describe as describeStorage, checkStorageAlert } from "./storage.js";
 
 // Alta Engineering Kundenportal — Cloudflare Worker
@@ -329,6 +330,13 @@ export default {
     // /api/share-info. Muss wie /request-access in der Cloudflare-Access-Policy
     // als Bypass markiert sein, sonst kommen Empfaenger ohne Access-Login nicht
     // durch Access selbst.
+    // 3D-Ansicht fuer Freigabe-Links ohne Login (/share/<id>/3d und /share/<id>/a/...), siehe
+    // src/share-view.js. Muss vor der allgemeinen Freigabe-Seite stehen, sonst fangen deren Block
+    // auch diese Unterpfade ab.
+    if (isShareViewPath(url.pathname)) {
+      return handleShareView(request, env, shareIsUsable);
+    }
+
     if (url.pathname.startsWith("/share/") && request.method === "GET") {
       // Die "saubere" URL /share (ohne .html) anfordern, nicht /share.html direkt --
       // sonst leitet Cloudflares Asset-Routing mit 307 auf /share um, statt den

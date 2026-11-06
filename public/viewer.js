@@ -7,6 +7,9 @@ import { OrbitControls } from '/vendor/three/OrbitControls.js';
 import { STLLoader } from '/vendor/three/STLLoader.js';
 import { OBJLoader } from '/vendor/three/OBJLoader.js';
 
+// Gesetzt vom Worker bei der oeffentlichen Ansicht eines Freigabe-Links (src/share-view.js)
+const SHARE = window.__SHARE__ || null;
+
 const $ = (id) => document.getElementById(id);
 function el(tag, cls, text) {
   const e = document.createElement(tag);
@@ -702,7 +705,7 @@ async function openBuffer(name, buf, fileKey) {
     buildModel(name, parts);
     S.fileKey = fileKey || null;
     S.server = !!fileKey;
-    $('vApproveSec').hidden = false;
+    $('vApproveSec').hidden = !!SHARE;
     if (S.server) await loadServerState(); else { renderNotes(); renderApproval(null); }
     loading(null);
   } catch (err) {
@@ -775,6 +778,20 @@ $('vShot').addEventListener('click', () => {
   renderApproval(null);
   const params = new URLSearchParams(location.search);
   const k = params.get('key');
+  if (SHARE) {
+    // Oeffentliche Ansicht ueber einen Freigabe-Link: nur ansehen, kein Zugriff auf Kommentare und Freigaben
+    document.body.classList.add('share');
+    S.name = SHARE.file.split('/').pop();
+    try {
+      loading('Datei wird geladen', 0.05);
+      const buf = await fetchBytes('/api/share-download?id=' + encodeURIComponent(SHARE.id) + '&file=' + encodeURIComponent(SHARE.file));
+      await openBuffer(S.name, buf, null);
+    } catch (err) {
+      loading(null);
+      hint(err.message, 10000);
+    }
+    return;
+  }
   if (params.get('demo')) { $('vDemo').click(); return; }
   if (!k) return;
   S.name = k.split('/').pop();

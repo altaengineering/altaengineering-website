@@ -57,6 +57,9 @@ h1{font-weight:700;font-size:clamp(1.5rem,4vw,1.9rem);letter-spacing:-.02em;marg
 .file-size{font-size:.8rem;color:var(--muted);margin-top:.15rem}
 .dl{flex-shrink:0;display:inline-flex;align-items:center;gap:.4rem;padding:.55rem 1rem;font-weight:600;font-size:.86rem;border-radius:6px;background:var(--btn);color:#fff;text-decoration:none;transition:.15s}
 .dl:hover{background:var(--btn-hover)}
+.file-actions{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:flex-end}
+.dl.alt{background:transparent;color:var(--btn);border:1px solid var(--btn)}
+.dl.alt:hover{background:var(--btn);color:#fff}
 .state{padding:2.4rem 1.5rem;text-align:center;color:var(--muted)}
 .state.err{color:var(--err)}
 .back{display:inline-block;margin-top:1.8rem;font-size:.86rem;color:var(--muted)}
@@ -128,7 +131,10 @@ fetch('/api/share-info?id=' + encodeURIComponent(id))
           '<div class="file-name">' + esc(f.name) + '</div>' +
           '<div class="file-size">' + esc(f.sizeLabel) + '</div>' +
         '</div>' +
-        '<a class="dl" href="/api/share-download?id=' + encodeURIComponent(id) + '&file=' + encodeURIComponent(f.key) + '">Herunterladen</a>';
+        '<div class="file-actions">' +
+          (/\.(step|stp|iges|igs|stl|obj)$/i.test(f.name) ? '<a class="dl alt" target="_blank" rel="noopener" href="/share/' + encodeURIComponent(id) + '/3d?file=' + encodeURIComponent(f.key) + '">3D ansehen</a>' : '') +
+          '<a class="dl" href="/api/share-download?id=' + encodeURIComponent(id) + '&file=' + encodeURIComponent(f.key) + '">Herunterladen</a>' +
+        '</div>';
       panel.appendChild(row);
     });
   })

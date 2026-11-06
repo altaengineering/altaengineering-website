@@ -785,3 +785,9 @@ Datei-Listing-/Upload-Endpunkte brauchen B2, `/api/access-requests/approve` brau
 
 Deploy: `npx wrangler deploy` (braucht `wrangler login` oder `CLOUDFLARE_API_TOKEN` env var mit
 Berechtigung für Workers-Deployment in diesem Account).
+
+### Teilen mit 3D-Ansicht (November 2026)
+
+- **Portal:** Der Knopf «Teilen» in der Dateiliste öffnet einen Dialog (Gültigkeit 1, 7, 30 oder 90 Tage, vorgewählt 7). Danach erscheinen der Link, «Link kopieren» und «Per E-Mail senden» (vorbereitete Mail im E-Mail-Programm). Der Link wird automatisch kopiert.
+- **Empfänger ohne Login:** Die Freigabeseite `/share/<id>` zeigt bei STEP, IGES, STL und OBJ zusätzlich «3D ansehen». Die Ansicht läuft über `/share/<id>/3d?file=<key>` und `/share/<id>/a/<pfad>` (Code: `src/share-view.js`). Beide Pfade liegen unter `/share`, wofür in Cloudflare Access schon eine Ausnahme besteht, es ist keine neue Einstellung nötig. Der Worker schreibt die absoluten Pfade des Viewers auf den Freigabepfad um und liefert nur eine feste Liste von Viewer-Dateien aus. Das Modell kommt über `/api/share-download`, das Gültigkeit und Zugehörigkeit der Datei prüft. Kommentare und Freigaben (Genehmigungen) gibt es in dieser Ansicht nicht.
+- Test: `node scripts/test-share-view.mjs`.

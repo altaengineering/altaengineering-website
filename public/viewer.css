@@ -34,6 +34,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 .vbar{height:52px;flex:none;display:flex;align-items:center;gap:1rem;padding:0 1rem;border-bottom:1px solid var(--line);background:var(--surface)}
 .vback{color:var(--muted);font-size:.85rem;text-decoration:none;white-space:nowrap}
 .vback:hover{color:var(--accent)}
+/* Oeffentliche Ansicht ueber einen Freigabe-Link: nur ansehen */
+body.share .vback,body.share label[for="vOpen"],body.share #vDemo,body.share .vdrop{display:none}
 .vtitle{display:flex;flex-direction:column;line-height:1.2;min-width:0;flex:1}
 .vtitle b{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
 .vtitle span{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
