@@ -89,6 +89,40 @@ input:focus,select:focus{outline:2px solid var(--accent);outline-offset:1px}
 .fitbar .bx.h{left:16%;background:var(--accent)}
 .fitbar .bx.s{left:52%;background:#b07a12}
 .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.2rem;align-items:start}
+.wlayout{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(220px,1fr);gap:1.2rem;align-items:start;margin-bottom:1rem}
+.wlayout .grid{margin-bottom:0}
+.sketch{border:1px solid var(--line);border-radius:8px;background:var(--alt);padding:.6rem;text-align:center}
+.sketch svg{width:100%;max-width:260px;height:auto;color:var(--text)}
+.sketch .cap{font-size:.78rem;color:var(--muted);margin-top:.3rem}
+.sketch .fill{fill:var(--accent);fill-opacity:.18;stroke:var(--accent);stroke-width:2}
+.sketch .dim{stroke:var(--muted);stroke-width:1}
+.sketch text{font:600 13px var(--font);fill:var(--text)}
+.subgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1rem}
+.subcard{border:1px solid var(--line);border-radius:10px;padding:1rem 1.1rem;background:var(--alt)}
+.subcard h3{font-size:1rem;margin-bottom:.15rem}
+.subcard .sub{margin-bottom:.7rem;font-size:.84rem}
+.subcard .grid{grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.6rem;margin-bottom:.7rem}
+.subcard .res{background:var(--surface);padding:.7rem .9rem}
+.bands{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.7rem}
+.bands select{width:auto;min-width:6.5rem}
+.resistor{display:flex;align-items:center;justify-content:center;margin:.3rem 0 .8rem}
+.resistor .body{display:flex;gap:7px;padding:6px 16px;border-radius:14px;background:#d9c7a1}
+.resistor .band{width:9px;height:30px;border-radius:2px}
+.resistor .wire{width:40px;height:3px;background:#9aa3ad}
+.idio-tools{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:.9rem}
+.idio-tools input{flex:1 1 260px}
+.idio-tools select{flex:0 0 200px}
+.idio{width:100%;border-collapse:collapse;font-size:.9rem}
+.idio th{text-align:left;font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:.45rem .5rem;border-bottom:1px solid var(--line-2)}
+.idio td{padding:.45rem .5rem;border-bottom:1px solid var(--line);vertical-align:top}
+.idio td:first-child{font-weight:600}
+.idio td.h{color:var(--muted);font-size:.84rem}
+.idio .kat{display:inline-block;font-size:.7rem;font-weight:700;color:var(--accent);background:var(--chip);border-radius:99px;padding:.05rem .45rem;margin-left:.35rem;vertical-align:middle}
+.tbl-wrap{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:.9rem}
+.tbl th{text-align:left;font-size:.78rem;color:var(--muted);padding:.4rem .5rem;border-bottom:1px solid var(--line-2)}
+.tbl td{padding:.4rem .5rem;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+@media (max-width:760px){ .wlayout{grid-template-columns:1fr} .sketch{order:-1} }
 footer{color:var(--muted);font-size:.8rem;padding:1rem 0 2.5rem}
 @media (max-width:640px){ .nav-actions .lbl{display:none} }
 </style>
@@ -106,14 +140,17 @@ footer{color:var(--muted);font-size:.8rem;padding:1rem 0 2.5rem}
 
 <main class="wrap">
   <h1>Ingenieur-Rechner</h1>
-  <p class="lead">Schnelle Auslegung im Alltag: Passungen, Gewichte, Biegebalken, Schrauben und Einheiten. Alles rechnet sofort beim Tippen, im Browser, ohne dass Daten das Gerät verlassen. Mit «Ergebnis kopieren» landet ein sauberer Text in der Zwischenablage, für Bericht, Offerte oder E-Mail.</p>
+  <p class="lead">Schnelle Auslegung im Alltag: Passungen, Gewichte, Biegebalken, Schrauben, Elektronik, Werkstatt, Einheiten und ein Fachwörterbuch. Alles rechnet sofort beim Tippen, im Browser, ohne dass Daten das Gerät verlassen. Mit «Ergebnis kopieren» landet ein sauberer Text in der Zwischenablage, für Bericht, Offerte oder E-Mail.</p>
 
   <nav class="tabs" role="tablist" aria-label="Rechner">
     <button type="button" role="tab" data-calc="fit" aria-selected="true">Passungen ISO 286</button>
     <button type="button" role="tab" data-calc="weight" aria-selected="false">Gewicht</button>
     <button type="button" role="tab" data-calc="beam" aria-selected="false">Biegebalken</button>
     <button type="button" role="tab" data-calc="bolt" aria-selected="false">Schrauben</button>
+    <button type="button" role="tab" data-calc="elek" aria-selected="false">Elektronik</button>
+    <button type="button" role="tab" data-calc="werk" aria-selected="false">Werkstatt</button>
     <button type="button" role="tab" data-calc="units" aria-selected="false">Einheiten</button>
+    <button type="button" role="tab" data-calc="idio" aria-selected="false">Idiotikon</button>
   </nav>
 
   <!-- Passungen -->
@@ -142,22 +179,30 @@ footer{color:var(--muted);font-size:.8rem;padding:1rem 0 2.5rem}
 
   <!-- Gewicht -->
   <section class="card" id="calc-weight" hidden>
-    <h2>Gewicht von Halbzeugen</h2>
-    <p class="sub">Rundstab, Rohr, Flach und Blech, Rechteck- und Quadratrohr, Sechskant. Scharfkantig gerechnet, Profile mit Radien wiegen etwas weniger.</p>
-    <div class="grid">
-      <div><label for="wShape">Form</label><select id="wShape">
-        <option value="rund">Rundstab</option><option value="rohr">Rundrohr</option><option value="rechteck">Flach / Blech</option>
-        <option value="rechteckrohr">Rechteck- / Quadratrohr</option><option value="sechskant">Sechskant</option>
-      </select></div>
-      <div><label for="wMat">Werkstoff</label><select id="wMat"></select></div>
-      <div data-w="rund"><label for="wd">Durchmesser d (mm)</label><input id="wd" type="number" step="any" value="20"></div>
-      <div data-w="rohr"><label for="wD">Aussen-Ø D (mm)</label><input id="wD" type="number" step="any" value="60.3"></div>
-      <div data-w="rohr rechteckrohr"><label for="ws">Wandstärke s (mm)</label><input id="ws" type="number" step="any" value="2.9"></div>
-      <div data-w="rechteck rechteckrohr"><label for="wb">Breite b (mm)</label><input id="wb" type="number" step="any" value="1000"></div>
-      <div data-w="rechteck rechteckrohr"><label for="wh">Dicke / Höhe h (mm)</label><input id="wh" type="number" step="any" value="3"></div>
-      <div data-w="sechskant"><label for="wsw">Schlüsselweite SW (mm)</label><input id="wsw" type="number" step="any" value="17"></div>
-      <div><label for="wL">Länge (mm)</label><input id="wL" type="number" step="any" value="1000"></div>
-      <div><label for="wN">Stückzahl</label><input id="wN" type="number" min="1" step="1" value="1"></div>
+    <h2>Gewicht von Halbzeugen und Profilen</h2>
+    <p class="sub">Form wählen, die Masse aus der Skizze eintragen, Länge und Stückzahl dazu. Rund, Flach und Rohr scharfkantig gerechnet; Normprofile mit dem Tabellengewicht.</p>
+    <div class="wlayout">
+      <div class="grid">
+        <div><label for="wShape">Form</label><select id="wShape">
+          <option value="rund">Rundstab</option><option value="rohr">Rundrohr</option>
+          <option value="flach">Flachstahl</option><option value="blech">Blech / Platte</option>
+          <option value="rechteckrohr">Rechteck- / Quadratrohr</option><option value="sechskant">Sechskant</option>
+          <option value="profil">Normprofil IPE, HEA, HEB, UPN</option>
+        </select></div>
+        <div><label for="wMat">Werkstoff</label><select id="wMat"></select></div>
+        <div data-w="profil"><label for="wSeries">Reihe</label><select id="wSeries"></select></div>
+        <div data-w="profil"><label for="wSize">Grösse</label><select id="wSize"></select></div>
+        <div data-w="rund"><label for="wd">Durchmesser d (mm)</label><input id="wd" type="number" step="any" value="20"></div>
+        <div data-w="rohr"><label for="wD">Aussendurchmesser D (mm)</label><input id="wD" type="number" step="any" value="60.3"></div>
+        <div data-w="flach blech rechteckrohr"><label for="wb" id="wbLbl">Breite B (mm)</label><input id="wb" type="number" step="any" value="1000"></div>
+        <div data-w="rechteckrohr"><label for="wh">Höhe H (mm)</label><input id="wh" type="number" step="any" value="60"></div>
+        <div data-w="flach blech"><label for="wt">Dicke t (mm)</label><input id="wt" type="number" step="any" value="3"></div>
+        <div data-w="rohr rechteckrohr"><label for="ws">Wandstärke s (mm)</label><input id="ws" type="number" step="any" value="2.9"></div>
+        <div data-w="sechskant"><label for="wsw">Schlüsselweite SW (mm)</label><input id="wsw" type="number" step="any" value="17"></div>
+        <div><label for="wL">Länge L (mm)</label><input id="wL" type="number" step="any" value="1000"></div>
+        <div><label for="wN">Stückzahl</label><input id="wN" type="number" min="1" step="1" value="1"></div>
+      </div>
+      <div class="sketch"><div id="wSketch"></div><div class="cap" id="wCap"></div></div>
     </div>
     <div class="res" id="weightRes"></div>
     <div class="row-btns"><button class="btn" type="button" data-copy="weight">Ergebnis kopieren</button></div>
@@ -179,7 +224,10 @@ footer{color:var(--muted);font-size:.8rem;padding:1rem 0 2.5rem}
       <div><label for="bShape">Querschnitt</label><select id="bShape">
         <option value="rechteck">Rechteck (Flach)</option><option value="rechteckrohr">Rechteckrohr</option>
         <option value="rund">Rundstab</option><option value="rohr">Rundrohr</option>
+        <option value="profil">Normprofil IPE, HEA, HEB, UPN</option>
       </select></div>
+      <div data-b="profil"><label for="bSeries">Reihe</label><select id="bSeries"></select></div>
+      <div data-b="profil"><label for="bSize">Grösse (Biegung um die starke Achse)</label><select id="bSize"></select></div>
       <div data-b="rechteck rechteckrohr"><label for="bb">Breite b (mm)</label><input id="bb" type="number" step="any" value="20"></div>
       <div data-b="rechteck rechteckrohr"><label for="bh">Höhe h (mm, in Lastrichtung)</label><input id="bh" type="number" step="any" value="40"></div>
       <div data-b="rund"><label for="bd">Durchmesser d (mm)</label><input id="bd" type="number" step="any" value="30"></div>
@@ -211,6 +259,109 @@ footer{color:var(--muted);font-size:.8rem;padding:1rem 0 2.5rem}
     <p class="note">Richtwerte, gerechnet wie die Tabellen der VDI 2230 (Abweichung zu den Tabellenwerten unter 2 Prozent bei der Kraft). Edelstahl neigt zum Fressen, dort Paste verwenden. Bei Drehmomentschlüsseln mit ±10 Prozent Streuung ist die tatsächliche Vorspannkraft entsprechend unsicher.</p>
   </section>
 
+  <!-- Elektronik -->
+  <section class="card" id="calc-elek" hidden>
+    <h2>Elektronik</h2>
+    <p class="sub">Die häufigsten Rechnungen am Labortisch und im Schaltschrank. Normwerte aus der Reihe E24, Leitungen mit Kupfer 0,0175 bzw. Aluminium 0,0286 Ω·mm²/m bei 20 °C.</p>
+    <div class="subgrid">
+      <div class="subcard">
+        <h3>Ohmsches Gesetz und Leistung</h3>
+        <p class="sub">Genau zwei Werte eintragen, die anderen zwei leer lassen.</p>
+        <div class="grid">
+          <div><label for="oU">Spannung U (V)</label><input id="oU" type="number" step="any" value="12"></div>
+          <div><label for="oI">Strom I (A)</label><input id="oI" type="number" step="any" value="0.5"></div>
+          <div><label for="oR">Widerstand R (Ω)</label><input id="oR" type="number" step="any"></div>
+          <div><label for="oP">Leistung P (W)</label><input id="oP" type="number" step="any"></div>
+        </div>
+        <div class="res" id="ohmRes"></div>
+        <div class="row-btns"><button class="btn" type="button" data-copy="ohm">Ergebnis kopieren</button></div>
+      </div>
+      <div class="subcard">
+        <h3>LED-Vorwiderstand</h3>
+        <p class="sub">Mit dem nächstgrösseren Normwiderstand (E24) und dessen Leistung.</p>
+        <div class="grid">
+          <div><label for="lUs">Speisespannung (V)</label><input id="lUs" type="number" step="any" value="12"></div>
+          <div><label for="lCol">LED-Farbe</label><select id="lCol"><option value="2.0">rot (2,0 V)</option><option value="2.1">gelb (2,1 V)</option><option value="2.2">grün, klassisch (2,2 V)</option><option value="3.1" selected>weiss, blau, grün hell (3,1 V)</option><option value="1.3">infrarot (1,3 V)</option></select></div>
+          <div><label for="lUf">Flussspannung (V)</label><input id="lUf" type="number" step="any" value="3.1"></div>
+          <div><label for="lI">Strom (mA)</label><input id="lI" type="number" step="any" value="20"></div>
+          <div><label for="lN">LEDs in Serie</label><input id="lN" type="number" min="1" step="1" value="1"></div>
+        </div>
+        <div class="res" id="ledRes"></div>
+        <div class="row-btns"><button class="btn" type="button" data-copy="led">Ergebnis kopieren</button></div>
+      </div>
+      <div class="subcard">
+        <h3>Spannungsteiler</h3>
+        <p class="sub">Uaus = Uein · R2 / (R1 + R2). Mit «Ziel Uaus» rechnet er R2 als Normwert aus.</p>
+        <div class="grid">
+          <div><label for="dUin">Uein (V)</label><input id="dUin" type="number" step="any" value="12"></div>
+          <div><label for="dR1">R1 (Ω)</label><input id="dR1" type="number" step="any" value="10000"></div>
+          <div><label for="dR2">R2 (Ω)</label><input id="dR2" type="number" step="any" value="3300"></div>
+          <div><label for="dZiel">Ziel Uaus (V, optional)</label><input id="dZiel" type="number" step="any" placeholder="z.B. 3.3"></div>
+        </div>
+        <div class="res" id="divRes"></div>
+        <div class="row-btns"><button class="btn" type="button" data-copy="div">Ergebnis kopieren</button></div>
+      </div>
+      <div class="subcard">
+        <h3>Widerstand-Farbcode</h3>
+        <p class="sub">Ringe von links nach rechts, der Toleranzring (meist gold oder braun) steht rechts.</p>
+        <div class="bands">
+          <select id="cN"><option value="4">4 Ringe</option><option value="5">5 Ringe</option></select>
+          <select id="c1"></select><select id="c2"></select><select id="c3"></select><select id="cM"></select><select id="cT"></select>
+        </div>
+        <div class="resistor"><span class="wire"></span><span class="body" id="cBody"></span><span class="wire"></span></div>
+        <div class="res" id="colRes"></div>
+      </div>
+      <div class="subcard">
+        <h3>Leitung: Spannungsfall und Querschnitt</h3>
+        <p class="sub">Einfache Leitungslänge eintragen, Hin- und Rückleiter rechnet er selbst. Gleichstrom oder einphasig mit cos φ = 1.</p>
+        <div class="grid">
+          <div><label for="vL">Länge einfach (m)</label><input id="vL" type="number" step="any" value="25"></div>
+          <div><label for="vI">Strom (A)</label><input id="vI" type="number" step="any" value="10"></div>
+          <div><label for="vU">Spannung (V)</label><input id="vU" type="number" step="any" value="230"></div>
+          <div><label for="vA">Querschnitt (mm²)</label><select id="vA"></select></div>
+          <div><label for="vMat">Leiter</label><select id="vMat"><option value="kupfer">Kupfer</option><option value="alu">Aluminium</option></select></div>
+          <div><label for="vMax">Zulässig (%)</label><input id="vMax" type="number" step="any" value="3"></div>
+        </div>
+        <div class="res" id="vdRes"></div>
+        <div class="row-btns"><button class="btn" type="button" data-copy="vd">Ergebnis kopieren</button></div>
+        <p class="note">Nur der Spannungsfall. Die Strombelastbarkeit und Absicherung nach NIN (SN 411000) gehen vor.</p>
+      </div>
+      <div class="subcard">
+        <h3>RC-Glied</h3>
+        <p class="sub">Zeitkonstante, Grenzfrequenz eines Tiefpasses und Zeit bis zur fast vollen Ladung.</p>
+        <div class="grid">
+          <div><label for="rR">R (kΩ)</label><input id="rR" type="number" step="any" value="10"></div>
+          <div><label for="rC">C (µF)</label><input id="rC" type="number" step="any" value="1"></div>
+        </div>
+        <div class="res" id="rcRes"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Werkstatt -->
+  <section class="card" id="calc-werk" hidden>
+    <h2>Werkstatt</h2>
+    <p class="sub">Drehzahl zum Bohren und Fräsen, dazu die Bohrungen für metrische Schrauben.</p>
+    <div class="subgrid">
+      <div class="subcard">
+        <h3>Drehzahl aus Schnittgeschwindigkeit</h3>
+        <p class="sub">n = vc · 1000 / (π · d). Richtwerte für vc, im Zweifel beim Werkzeughersteller nachsehen.</p>
+        <div class="grid">
+          <div><label for="nMat">Werkstoff</label><select id="nMat"></select></div>
+          <div><label for="nTool">Werkzeug</label><select id="nTool"><option value="0">HSS</option><option value="1">Hartmetall</option></select></div>
+          <div><label for="nVc">vc (m/min)</label><input id="nVc" type="number" step="any"></div>
+          <div><label for="nD">Durchmesser (mm)</label><input id="nD" type="number" step="any" value="10"></div>
+        </div>
+        <div class="res" id="rpmRes"></div>
+      </div>
+      <div class="subcard">
+        <h3>Metrisches Regelgewinde: Bohrungen</h3>
+        <p class="sub">Kernlochbohrer für Innengewinde und Durchgangsbohrung nach ISO 273.</p>
+        <div class="tbl-wrap"><table class="tbl" id="thrTable"></table></div>
+      </div>
+    </div>
+  </section>
+
   <!-- Einheiten -->
   <section class="card" id="calc-units" hidden>
     <h2>Einheiten umrechnen</h2>
@@ -224,10 +375,23 @@ footer{color:var(--muted);font-size:.8rem;padding:1rem 0 2.5rem}
     <div class="row-btns"><button class="btn" type="button" data-copy="units">Ergebnis kopieren</button></div>
   </section>
 
+  <!-- Idiotikon -->
+  <section class="card" id="calc-idio" hidden>
+    <h2>Idiotikon: Fachwörter und Helvetismen</h2>
+    <p class="sub">Technische Begriffe auf Deutsch, Englisch und Französisch, dazu Schweizer Ausdrücke aus Büro und Werkstatt mit der hochdeutschen Entsprechung. Suchen geht in allen Sprachen.</p>
+    <div class="idio-tools">
+      <input id="iQ" type="search" placeholder="Suchen, z.B. Passfeder, bearing, écrou, Offerte" aria-label="Suchen">
+      <select id="iKat" aria-label="Bereich"><option value="">Alle Bereiche</option></select>
+    </div>
+    <p class="note" id="iCount" style="margin:0 0 .5rem"></p>
+    <div class="tbl-wrap"><table class="idio"><thead><tr><th>Deutsch</th><th>Englisch</th><th>Französisch</th><th>Hinweis</th></tr></thead><tbody id="iRows"></tbody></table></div>
+  </section>
+
   <footer>Alta Engineering AG · Ingenieur-Rechner · Ergebnisse sind Richtwerte und ersetzen keine Nachweise nach Norm.</footer>
 </main>
 
 <script src="/rechner-lib.js"></script>
+<script src="/idiotikon.js"></script>
 <script>
 (function(){
   var R = window.Rechner;
@@ -305,19 +469,71 @@ footer{color:var(--muted);font-size:.8rem;padding:1rem 0 2.5rem}
   function toggleFields(attr, val){
     document.querySelectorAll('[' + attr + ']').forEach(function(el){ el.hidden = el.getAttribute(attr).split(' ').indexOf(val) < 0; });
   }
+  // Skizzen: Querschnitt mit den gleichen Buchstaben wie die Eingabefelder
+  function svg(inner){ return '<svg viewBox="0 0 240 170" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' + inner + '</svg>'; }
+  function dimH(x1, x2, y, t){ return '<line class="dim" x1="' + x1 + '" y1="' + y + '" x2="' + x2 + '" y2="' + y + '"/><line class="dim" x1="' + x1 + '" y1="' + (y - 5) + '" x2="' + x1 + '" y2="' + (y + 5) + '"/><line class="dim" x1="' + x2 + '" y1="' + (y - 5) + '" x2="' + x2 + '" y2="' + (y + 5) + '"/><text x="' + ((x1 + x2) / 2) + '" y="' + (y - 6) + '" text-anchor="middle">' + t + '</text>'; }
+  function dimV(y1, y2, x, t){ return '<line class="dim" x1="' + x + '" y1="' + y1 + '" x2="' + x + '" y2="' + y2 + '"/><line class="dim" x1="' + (x - 5) + '" y1="' + y1 + '" x2="' + (x + 5) + '" y2="' + y1 + '"/><line class="dim" x1="' + (x - 5) + '" y1="' + y2 + '" x2="' + (x + 5) + '" y2="' + y2 + '"/><text x="' + (x + 8) + '" y="' + ((y1 + y2) / 2 + 4) + '">' + t + '</text>'; }
+  var SKETCH = {
+    rund: function(){ return svg('<circle class="fill" cx="110" cy="92" r="52"/>' + dimH(58, 162, 26, 'd')); },
+    rohr: function(){ return svg('<circle class="fill" cx="110" cy="92" r="52"/><circle cx="110" cy="92" r="38" fill="var(--alt)" stroke="var(--accent)" stroke-width="2"/>' + dimH(58, 162, 26, 'D') + '<line class="dim" x1="148" y1="92" x2="162" y2="92"/><text x="168" y="96">s</text>'); },
+    flach: function(){ return svg('<rect class="fill" x="30" y="78" width="160" height="28"/>' + dimH(30, 190, 62, 'B') + dimV(78, 106, 200, 't')); },
+    blech: function(){ return svg('<polygon class="fill" points="40,120 160,120 205,80 85,80"/>' + '<text x="95" y="140">L</text><text x="188" y="108">B</text><text x="20" y="104">t</text>'); },
+    rechteckrohr: function(){ return svg('<rect class="fill" x="55" y="35" width="110" height="110"/><rect x="69" y="49" width="82" height="82" fill="var(--alt)" stroke="var(--accent)" stroke-width="2"/>' + dimH(55, 165, 22, 'B') + dimV(35, 145, 178, 'H') + '<line class="dim" x1="55" y1="90" x2="69" y2="90"/><text x="40" y="94">s</text>'); },
+    sechskant: function(){ return svg('<polygon class="fill" points="80,40 140,40 170,92 140,144 80,144 50,92"/>' + dimV(40, 144, 185, 'SW')); },
+    profil: function(){ var u = $('wSeries') && $('wSeries').value === 'UPN';
+      return svg(u ? '<path class="fill" d="M70 30 H150 V48 H92 V136 H150 V154 H70 Z"/>' + dimV(30, 154, 172, 'h')
+        : '<path class="fill" d="M50 30 H170 V46 H118 V138 H170 V154 H50 V138 H102 V46 H50 Z"/>' + dimV(30, 154, 186, 'h') + dimH(50, 170, 20, 'b')); }
+  };
+  var CAPS = { rund: 'Rundstab mit Durchmesser d', rohr: 'Rohr: Aussendurchmesser D, Wandstärke s', flach: 'Flachstahl: Breite B, Dicke t',
+    blech: 'Blech: Länge L, Breite B, Dicke t', rechteckrohr: 'Rechteckrohr: Breite B, Höhe H, Wandstärke s', sechskant: 'Sechskant mit Schlüsselweite SW',
+    profil: 'Normprofil, Gewicht aus der Profiltabelle' };
+  // Normprofile in die Auswahllisten
+  function fillProfiles(serSel, sizeSel, defSer, defSize){
+    fill(serSel, Object.keys(R.PROFILES).map(function(k){ return [k, k]; }), defSer);
+    function sizes(){ var cur = sizeSel.value; fill(sizeSel, Object.keys(R.PROFILES[serSel.value]).map(function(k){ return [k, serSel.value + ' ' + k]; })); if (R.PROFILES[serSel.value][cur]) sizeSel.value = cur; }
+    sizes(); if (defSize) sizeSel.value = defSize;
+    serSel.addEventListener('change', sizes);
+  }
+  fillProfiles($('wSeries'), $('wSize'), 'IPE', '200');
+  fillProfiles($('bSeries'), $('bSize'), 'IPE', '200');
   function calcWeight(){
     var shape = $('wShape').value; toggleFields('data-w', shape);
+    $('wSketch').innerHTML = SKETCH[shape](); $('wCap').textContent = CAPS[shape];
+    $('wMat').disabled = shape === 'profil';
     try {
-      var p = { d: num('wd'), D: num('wD'), s: shape === 'sechskant' ? num('wsw') : num('ws'), b: num('wb'), h: num('wh') };
-      var mat = R.MATERIALS[$('wMat').value];
-      var r = R.weight(shape, p, num('wL'), mat.rho, num('wN'));
-      var label = $('wShape').options[$('wShape').selectedIndex].text;
-      var rows = [['Querschnittsfläche', smart(r.area) + ' mm²'], ['Gewicht pro Meter', smart(r.perMeter) + ' kg/m'], ['Gewicht pro Stück', smart(r.perPiece) + ' kg']];
+      var sec, p;
+      if (shape === 'flach' || shape === 'blech') { sec = 'rechteck'; p = { b: num('wb'), h: num('wt') }; }
+      else if (shape === 'rechteckrohr') { sec = shape; p = { b: num('wb'), h: num('wh'), s: num('ws') }; }
+      else if (shape === 'sechskant') { sec = shape; p = { s: num('wsw') }; }
+      else if (shape === 'profil') { sec = shape; p = { series: $('wSeries').value, size: $('wSize').value }; }
+      else { sec = shape; p = { d: num('wd'), D: num('wD'), s: num('ws') }; }
+      var mat = shape === 'profil' ? { name: 'Stahl', rho: 7.85 } : R.MATERIALS[$('wMat').value];
+      var r = R.weight(sec, p, num('wL'), mat.rho, num('wN'));
+      var label = shape === 'profil' ? $('wSize').options[$('wSize').selectedIndex].text : $('wShape').options[$('wShape').selectedIndex].text;
+      var rows = [];
+      if (shape === 'blech') {
+        var m2 = num('wL') * num('wb') / 1e6;
+        rows.push(['Fläche pro Stück', smart(m2) + ' m²'], ['Gewicht pro m² (Dicke ' + smart(num('wt')) + ' mm)', smart(num('wt') * mat.rho) + ' kg/m²']);
+      } else {
+        rows.push(['Querschnittsfläche', smart(r.area) + ' mm²'], ['Gewicht pro Meter', smart(r.perMeter) + ' kg/m']);
+      }
+      rows.push(['Gewicht pro Stück (L = ' + fmt(num('wL'), 0) + ' mm)', smart(r.perPiece) + ' kg']);
       if (r.count > 1) rows.push(['Gesamt (' + r.count + ' Stück)', smart(r.total) + ' kg']);
-      show('weightRes', '<div class="big">' + smart(r.total) + ' kg</div>' + table(rows),
-        'Gewicht ' + label + ', ' + mat.name + ', Länge ' + fmt(num('wL'), 0) + ' mm\n' + rows.map(function(x){ return x[0] + ': ' + x[1]; }).join('\n'));
+      show('weightRes', '<div class="big">' + smart(r.total) + ' kg' + (r.count > 1 ? ' für ' + r.count + ' Stück' : '') + '</div>' + table(rows),
+        'Gewicht ' + label + ', ' + mat.name + '\n' + rows.map(function(x){ return x[0] + ': ' + x[1]; }).join('\n'));
     } catch(e){ fail('weightRes', e); }
   }
+  $('wShape').addEventListener('change', function(){
+    // sinnvolle Startwerte je Form, damit nicht ein 1000 mm breiter Flachstahl erscheint
+    var v = this.value;
+    var prev = this.getAttribute('data-prev') || 'rund'; this.setAttribute('data-prev', v);
+    if ((prev === 'blech' || prev === 'profil') && v !== 'blech' && v !== 'profil') $('wL').value = 1000;
+    if (v === 'flach') { $('wb').value = 40; $('wt').value = 8; $('wL').value = 1000; }
+    if (v === 'blech') { $('wb').value = 1000; $('wt').value = 3; $('wL').value = 2000; }
+    if (v === 'rechteckrohr') { $('wb').value = 40; $('wh').value = 60; $('ws').value = 3; }
+    if (v === 'rohr') { $('ws').value = 2.9; }
+    if (v === 'profil') { $('wL').value = 6000; }
+  });
   document.querySelectorAll('#calc-weight input, #calc-weight select').forEach(function(el){ el.addEventListener('input', calcWeight); el.addEventListener('change', calcWeight); });
   calcWeight();
 
@@ -327,7 +543,7 @@ footer{color:var(--muted);font-size:.8rem;padding:1rem 0 2.5rem}
     var isQ = /-q$/.test($('bCase').value);
     $('bLoadLbl').textContent = isQ ? 'Streckenlast q (kN/m = N/mm)' : 'Kraft F (N)';
     try {
-      var sec = R.section(shape, { b: num('bb'), h: num('bh'), d: num('bd'), D: num('bD'), s: num('bs') });
+      var sec = R.section(shape, { b: num('bb'), h: num('bh'), d: num('bd'), D: num('bD'), s: num('bs'), series: $('bSeries').value, size: $('bSize').value });
       var mat = R.MATERIALS[$('bMat').value];
       var r = R.beam($('bCase').value, num('bLoad'), num('bL'), mat.E, sec);
       var zul = num('bRe'), use = zul > 0 ? r.sigma / zul : NaN;
@@ -379,6 +595,104 @@ footer{color:var(--muted);font-size:.8rem;padding:1rem 0 2.5rem}
   $('uGroup').addEventListener('change', function(){ fillUnits(); calcUnits(); });
   ['uVal', 'uFrom'].forEach(function(id){ $(id).addEventListener('input', calcUnits); $(id).addEventListener('change', calcUnits); });
   fillUnits(); calcUnits();
+
+  // ---------- Elektronik ----------
+  function si(v, unit){
+    if (!isFinite(v)) return '–';
+    var a = Math.abs(v), pre = [[1e9,'G'],[1e6,'M'],[1e3,'k'],[1,''],[1e-3,'m'],[1e-6,'µ'],[1e-9,'n'],[1e-12,'p']];
+    for (var i = 0; i < pre.length; i++) if (a >= pre[i][0] * 0.9999 || i === pre.length - 1) return smart(v / pre[i][0]) + ' ' + pre[i][1] + unit;
+  }
+  function opt(id){ var t = String($(id).value).trim(); return t === '' ? undefined : num(id); }
+  function calcOhm(){
+    try {
+      var r = R.ohm({ U: opt('oU'), I: opt('oI'), R: opt('oR'), P: opt('oP') });
+      var rows = [['Spannung U', si(r.U, 'V')], ['Strom I', si(r.I, 'A')], ['Widerstand R', si(r.R, 'Ω')], ['Leistung P', si(r.P, 'W')]];
+      show('ohmRes', table(rows), rows.map(function(x){ return x[0] + ': ' + x[1]; }).join('\n'));
+    } catch(e){ fail('ohmRes', e); }
+  }
+  ['oU','oI','oR','oP'].forEach(function(id){ $(id).addEventListener('input', calcOhm); }); calcOhm();
+  function calcLed(){
+    try {
+      var r = R.ledResistor(num('lUs'), num('lUf'), num('lI'), num('lN'));
+      var pw = r.P <= 0.125 ? '0,125 W (1/8 W)' : r.P <= 0.25 ? '0,25 W' : r.P <= 0.5 ? '0,5 W' : r.P <= 1 ? '1 W' : smart(r.P * 2) + ' W oder mehr';
+      var rows = [['Berechnet', si(r.R, 'Ω')], ['Normwert E24 (nächstgrösser)', si(r.Rnorm, 'Ω')], ['Strom mit Normwert', smart(r.Inorm) + ' mA'],
+        ['Verlustleistung im Widerstand', si(r.P, 'W')], ['Widerstand wählen mit mindestens', pw]];
+      show('ledRes', '<div class="big">' + si(r.Rnorm, 'Ω') + '</div>' + table(rows), 'LED-Vorwiderstand ' + num('lUs') + ' V, ' + num('lN') + ' LED à ' + num('lUf') + ' V, ' + num('lI') + ' mA\n' + rows.map(function(x){ return x[0] + ': ' + x[1]; }).join('\n'));
+    } catch(e){ fail('ledRes', e); }
+  }
+  $('lCol').addEventListener('change', function(){ $('lUf').value = this.value; calcLed(); });
+  ['lUs','lUf','lI','lN'].forEach(function(id){ $(id).addEventListener('input', calcLed); }); calcLed();
+  function calcDiv(){
+    try {
+      var r = R.divider(num('dUin'), num('dR1'), num('dR2'));
+      var rows = [['Uaus', si(r.Uout, 'V')], ['Querstrom', si(r.I, 'A')], ['Leistung R1 / R2', si(r.P1, 'W') + ' / ' + si(r.P2, 'W')]];
+      var z = opt('dZiel');
+      if (z !== undefined) { var q = R.dividerR2(num('dUin'), z, num('dR1')); rows.push(['R2 für Ziel ' + smart(z) + ' V', si(q.R2, 'Ω')], ['Normwert E24', si(q.R2norm, 'Ω') + ' → ' + si(q.UoutNorm, 'V')]); }
+      show('divRes', '<div class="big">Uaus = ' + si(r.Uout, 'V') + '</div>' + table(rows), 'Spannungsteiler\n' + rows.map(function(x){ return x[0] + ': ' + x[1]; }).join('\n'));
+    } catch(e){ fail('divRes', e); }
+  }
+  ['dUin','dR1','dR2','dZiel'].forEach(function(id){ $(id).addEventListener('input', calcDiv); }); calcDiv();
+  var HEX = { schwarz:'#111', braun:'#7b4a24', rot:'#d22', orange:'#f80', gelb:'#fd0', 'grün':'#2a2', blau:'#26d', violett:'#93c', grau:'#888', weiss:'#fff', gold:'#c9a227', silber:'#c0c0c0' };
+  var digitCols = R.COLORS.map(function(c){ return [c, c]; });
+  fill($('c1'), digitCols, 'braun'); fill($('c2'), digitCols, 'schwarz'); fill($('c3'), digitCols, 'schwarz');
+  fill($('cM'), Object.keys(R.MULT).map(function(c){ return [c, c + ' ×' + si(R.MULT[c], '').trim()]; }), 'rot');
+  fill($('cT'), Object.keys(R.TOL).map(function(c){ return [c, c + ' ±' + fmt(R.TOL[c], R.TOL[c] % 1 ? 2 : 0) + ' %']; }), 'gold');
+  function calcCol(){
+    var five = $('cN').value === '5'; $('c3').hidden = !five;
+    var bands = [$('c1').value, $('c2').value].concat(five ? [$('c3').value] : []).concat([$('cM').value, $('cT').value]);
+    $('cBody').innerHTML = bands.map(function(c){ return '<span class="band" style="background:' + HEX[c] + '"></span>'; }).join('');
+    try { var r = R.colorCode(bands); show('colRes', '<div class="big">' + si(r.R, 'Ω') + ' ±' + fmt(r.tol, r.tol % 1 ? 2 : 0) + ' %</div>', si(r.R, 'Ω')); }
+    catch(e){ fail('colRes', e); }
+  }
+  ['cN','c1','c2','c3','cM','cT'].forEach(function(id){ $(id).addEventListener('change', calcCol); }); calcCol();
+  fill($('vA'), R.CROSS.map(function(a){ return [a, fmt(a, a % 1 ? 2 : 0).replace(/0$/, '') + ' mm²']; }), '1.5');
+  function calcVd(){
+    try {
+      var r = R.voltageDrop(num('vL'), num('vI'), parseFloat($('vA').value), num('vU'), $('vMat').value);
+      var mc = R.minCross(num('vL'), num('vI'), num('vU'), num('vMax'), $('vMat').value);
+      var ok = r.pct <= num('vMax');
+      var rows = [['Spannungsfall', smart(r.dU) + ' V'], ['in Prozent', fmt(r.pct, 2) + ' %'], ['Verlustleistung in der Leitung', smart(r.P) + ' W'],
+        ['Mindestquerschnitt für ' + smart(num('vMax')) + ' %', smart(mc.A) + ' mm² → ' + (mc.Anorm ? mc.Anorm + ' mm²' : 'über 240 mm²')]];
+      show('vdRes', '<p style="margin-bottom:.5rem"><span class="tag ' + (ok ? 'ok' : 'err') + '">' + (ok ? 'Spannungsfall in Ordnung' : 'Spannungsfall zu gross') + '</span></p>' + table(rows),
+        'Leitung ' + num('vL') + ' m, ' + num('vI') + ' A, ' + $('vA').value + ' mm² ' + $('vMat').value + ', ' + num('vU') + ' V\n' + rows.map(function(x){ return x[0] + ': ' + x[1]; }).join('\n'));
+    } catch(e){ fail('vdRes', e); }
+  }
+  ['vL','vI','vU','vMax'].forEach(function(id){ $(id).addEventListener('input', calcVd); }); ['vA','vMat'].forEach(function(id){ $(id).addEventListener('change', calcVd); }); calcVd();
+  function calcRc(){
+    try { var r = R.rc(num('rR') * 1000, num('rC') * 1e-6);
+      show('rcRes', table([['Zeitkonstante τ = R·C', si(r.tau, 's')], ['Grenzfrequenz fg = 1/(2π·R·C)', si(r.fg, 'Hz')], ['Geladen auf 99 % nach 5τ', si(r.t99, 's')]]), '');
+    } catch(e){ fail('rcRes', e); }
+  }
+  ['rR','rC'].forEach(function(id){ $(id).addEventListener('input', calcRc); }); calcRc();
+
+  // ---------- Werkstatt ----------
+  fill($('nMat'), Object.keys(R.CUT).map(function(k){ return [k, R.CUT[k].name]; }), 'stahl');
+  function setVc(){ $('nVc').value = R.CUT[$('nMat').value].v[parseInt($('nTool').value, 10)]; }
+  function calcRpm(){
+    try { var n = R.rpm(num('nVc'), num('nD'));
+      show('rpmRes', '<div class="big">' + fmt(Math.round(n / 10) * 10, 0) + ' U/min</div>' + table([['Schnittgeschwindigkeit', smart(num('nVc')) + ' m/min'], ['Durchmesser', smart(num('nD')) + ' mm']]), '');
+    } catch(e){ fail('rpmRes', e); }
+  }
+  ['nMat','nTool'].forEach(function(id){ $(id).addEventListener('change', function(){ setVc(); calcRpm(); }); });
+  ['nVc','nD'].forEach(function(id){ $(id).addEventListener('input', calcRpm); });
+  setVc(); calcRpm();
+  $('thrTable').innerHTML = '<thead><tr><th>Gewinde</th><th>Steigung</th><th>Kernloch</th><th>Durchgang fein</th><th>mittel</th><th>grob</th><th>Schlüsselweite</th></tr></thead><tbody>' +
+    Object.keys(R.THREADS).map(function(k){ var t = R.THREADS[k], b = R.BOLTS[k];
+      return '<tr><td><b>' + k + '</b></td><td>' + fmt(b.P, b.P % 1 ? 2 : 0).replace(/0$/, '') + '</td><td><b>' + fmt(t[0], 1) + '</b></td><td>' + fmt(t[1], 1) + '</td><td>' + fmt(t[2], 1) + '</td><td>' + fmt(t[3], 1) + '</td><td>' + b.s + '</td></tr>'; }).join('') + '</tbody>';
+
+  // ---------- Idiotikon ----------
+  var IDIO = window.IDIOTIKON || [];
+  var kats = []; IDIO.forEach(function(r){ if (kats.indexOf(r[0]) < 0) kats.push(r[0]); });
+  kats.forEach(function(k){ var o = document.createElement('option'); o.value = k; o.textContent = k; $('iKat').appendChild(o); });
+  function norm(t){ return String(t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+  function calcIdio(){
+    var q = norm($('iQ').value.trim()), k = $('iKat').value;
+    var list = IDIO.filter(function(r){ return (!k || r[0] === k) && (!q || norm(r.slice(1).join(' ')).indexOf(q) >= 0); });
+    $('iRows').innerHTML = list.map(function(r){ return '<tr><td>' + esc(r[1]) + (k ? '' : '<span class="kat">' + esc(r[0]) + '</span>') + '</td><td>' + esc(r[2]) + '</td><td>' + esc(r[3]) + '</td><td class="h">' + esc(r[4]) + '</td></tr>'; }).join('') ||
+      '<tr><td colspan="4">Nichts gefunden. Anderes Wort oder andere Sprache probieren.</td></tr>';
+    $('iCount').textContent = list.length + ' von ' + IDIO.length + ' Begriffen';
+  }
+  $('iQ').addEventListener('input', calcIdio); $('iKat').addEventListener('change', calcIdio); calcIdio();
 
   // ---------- Kopieren ----------
   document.querySelectorAll('[data-copy]').forEach(function(b){

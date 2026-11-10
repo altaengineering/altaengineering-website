@@ -99,5 +99,44 @@ near(R.convert("moment", 100, "Nm", "lbf·ft"), 73.756, 1e-4, "100 Nm in lbf·ft
 near(R.convert("temperatur", 100, "°C", "°F"), 212, 1e-12, "100 °C in °F");
 near(R.convert("temperatur", 0, "°C", "K"), 273.15, 1e-12, "0 °C in K");
 
+// Normprofile: Widerstandsmoment muss zu Flaechenmoment und Hoehe passen (W = 2 I / h), faengt Tippfehler
+for (const series of Object.keys(R.PROFILES)) {
+  for (const size of Object.keys(R.PROFILES[series])) {
+    const pr = R.profile(series, size);
+    const w = 2 * pr.I / pr.h;
+    if (Math.abs(w - pr.W) / pr.W > 0.03) { fail++; console.error('FEHLER: Profil', series, size, 'W', pr.W, 'aus I/h', w.toFixed(0)); }
+    const aMin = 2 * pr.b * 4; // grobe Untergrenze Flansche
+    if (pr.A < aMin) { fail++; console.error('FEHLER: Profil', series, size, 'Flaeche unplausibel', pr.A); }
+  }
+}
+console.log('ok: Normprofile in sich stimmig');
+near(R.weight('profil', { series: 'IPE', size: 200 }, 6000, 7.85, 1).perPiece, 134.4, 0.002, 'IPE 200, 6 m');
+near(R.section('profil', { series: 'HEB', size: 200 }).I, 56960000, 1e-9, 'I HEB 200');
+
+// Elektronik
+const o = R.ohm({ U: 12, I: 2 });
+eq([o.R, o.P], [6, 24], 'Ohm: 12 V, 2 A');
+near(R.ohm({ R: 100, P: 0.25 }).U, 5, 1e-9, 'Ohm: 100 Ohm, 0,25 W');
+let t2 = false; try { R.ohm({ U: 1, I: 1, R: 1 }); } catch (e) { t2 = true; }
+eq(t2, true, 'Ohm: drei Werte werden abgelehnt');
+const led = R.ledResistor(12, 2, 20, 1);
+eq([led.R, led.Rnorm], [500, 510], 'LED-Vorwiderstand 12 V, 2 V, 20 mA');
+near(led.Inorm, 19.61, 1e-3, 'LED-Strom mit 510 Ohm');
+eq(R.eSeries(4.8, 'E12'), 4.7, 'E12 naechster Wert zu 4,8');
+eq(R.eSeries(1020, 'E24'), 1000, 'E24 naechster Wert zu 1020');
+eq(R.eSeries(97, 'E24', 'up'), 100, 'E24 naechst groesser zu 97');
+near(R.divider(12, 10000, 10000).Uout, 6, 1e-12, 'Spannungsteiler 1:1');
+near(R.dividerR2(12, 3.3, 10000).R2, 3793.1, 1e-4, 'Spannungsteiler R2 fuer 3,3 V');
+eq(R.colorCode(['braun', 'schwarz', 'rot', 'gold']), { R: 1000, tol: 5 }, 'Farbcode 1 kOhm');
+eq(R.colorCode(['gelb', 'violett', 'orange', 'gold']), { R: 47000, tol: 5 }, 'Farbcode 47 kOhm');
+eq(R.colorCode(['braun', 'schwarz', 'schwarz', 'braun', 'braun']), { R: 1000, tol: 1 }, 'Farbcode 5 Ringe');
+near(R.voltageDrop(20, 10, 1.5, 230, 'kupfer').dU, 4.6667, 1e-4, 'Spannungsfall 20 m, 10 A, 1,5 mm2');
+eq(R.minCross(20, 10, 230, 3, 'kupfer').Anorm, 1.5, 'Mindestquerschnitt 3 % (1,01 mm2 -> 1,5 mm2)');
+near(R.rc(10000, 1e-6).fg, 15.915, 1e-4, 'RC-Grenzfrequenz 10 kOhm, 1 uF');
+
+// Werkstatt
+near(R.rpm(25, 10), 795.8, 1e-4, 'Drehzahl vc 25, d 10');
+eq(R.THREADS.M8[0], 6.8, 'Kernloch M8');
+
 console.log(fail ? fail + " Fehler" : "Ingenieur-Rechner: alle Pruefungen bestanden");
 process.exit(fail ? 1 : 0);

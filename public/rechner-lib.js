@@ -110,6 +110,7 @@
   function section(shape, p) {
     var PI = Math.PI;
     function pos() { for (var k = 0; k < arguments.length; k++) if (!(arguments[k] > 0)) throw new Error('Bitte alle Masse grösser als 0 eingeben.'); }
+    if (shape === 'profil') { var pr = profile(p.series, p.size); return { A: pr.A, I: pr.I, W: pr.W }; }
     if (shape === 'rund') { pos(p.d); return { A: PI * p.d * p.d / 4, I: PI * Math.pow(p.d, 4) / 64, W: PI * Math.pow(p.d, 3) / 32 }; }
     if (shape === 'rohr') {
       pos(p.D, p.s); var di = p.D - 2 * p.s; if (di < 0) throw new Error('Die Wandstärke ist zu gross.');
@@ -201,11 +202,161 @@
     return value * g.units[from] / g.units[to];
   }
 
+
+  // ------------------------------------------------------------------ Normprofile (Stahl, warmgewalzt)
+  // h Hoehe (mm), b Breite (mm), kg Masse pro Meter, Iy (cm4) und Wy (cm3) um die starke Achse.
+  // Werte aus den Profiltabellen (EN 10365), fuer Gewicht und Biegebalken.
+  var PROFILES = {
+    IPE: {
+      80: [80, 46, 6.0, 80.1, 20.0], 100: [100, 55, 8.1, 171, 34.2], 120: [120, 64, 10.4, 318, 53.0],
+      140: [140, 73, 12.9, 541, 77.3], 160: [160, 82, 15.8, 869, 109], 180: [180, 91, 18.8, 1317, 146],
+      200: [200, 100, 22.4, 1943, 194], 220: [220, 110, 26.2, 2772, 252], 240: [240, 120, 30.7, 3892, 324],
+      270: [270, 135, 36.1, 5790, 429], 300: [300, 150, 42.2, 8356, 557], 330: [330, 160, 49.1, 11770, 713],
+      360: [360, 170, 57.1, 16270, 904], 400: [400, 180, 66.3, 23130, 1156], 450: [450, 190, 77.6, 33740, 1500],
+      500: [500, 200, 90.7, 48200, 1928], 550: [550, 210, 106, 67120, 2441], 600: [600, 220, 122, 92080, 3069]
+    },
+    HEA: {
+      100: [96, 100, 16.7, 349, 72.8], 120: [114, 120, 19.9, 606, 106], 140: [133, 140, 24.7, 1033, 155],
+      160: [152, 160, 30.4, 1673, 220], 180: [171, 180, 35.5, 2510, 294], 200: [190, 200, 42.3, 3692, 389],
+      220: [210, 220, 50.5, 5410, 515], 240: [230, 240, 60.3, 7763, 675], 260: [250, 260, 68.2, 10450, 836],
+      280: [270, 280, 76.4, 13670, 1013], 300: [290, 300, 88.3, 18260, 1260]
+    },
+    HEB: {
+      100: [100, 100, 20.4, 450, 89.9], 120: [120, 120, 26.7, 864, 144], 140: [140, 140, 33.7, 1509, 216],
+      160: [160, 160, 42.6, 2492, 311], 180: [180, 180, 51.2, 3831, 426], 200: [200, 200, 61.3, 5696, 570],
+      220: [220, 220, 71.5, 8091, 736], 240: [240, 240, 83.2, 11260, 938], 260: [260, 260, 93.0, 14920, 1148],
+      280: [280, 280, 103, 19270, 1376], 300: [300, 300, 117, 25170, 1678]
+    },
+    UPN: {
+      80: [80, 45, 8.64, 106, 26.5], 100: [100, 50, 10.6, 206, 41.2], 120: [120, 55, 13.4, 364, 60.7],
+      140: [140, 60, 16.0, 605, 86.4], 160: [160, 65, 18.8, 925, 116], 180: [180, 70, 22.0, 1350, 150],
+      200: [200, 75, 25.3, 1910, 191], 220: [220, 80, 29.4, 2690, 245], 240: [240, 85, 33.2, 3600, 300],
+      260: [260, 90, 37.9, 4820, 371], 300: [300, 100, 46.2, 8030, 535]
+    }
+  };
+  function profile(series, size) {
+    var r = PROFILES[series] && PROFILES[series][size];
+    if (!r) throw new Error('Unbekanntes Profil.');
+    // A aus der Masse pro Meter zurueckgerechnet (Stahl 7,85 g/cm3), I und W in mm
+    return { h: r[0], b: r[1], kgPerM: r[2], A: r[2] / 7.85 * 1000, I: r[3] * 1e4, W: r[4] * 1e3 };
+  }
+
+  // ------------------------------------------------------------------ Elektronik
+  var E12 = [1.0, 1.2, 1.5, 1.8, 2.2, 2.7, 3.3, 3.9, 4.7, 5.6, 6.8, 8.2];
+  var E24 = [1.0, 1.1, 1.2, 1.3, 1.5, 1.6, 1.8, 2.0, 2.2, 2.4, 2.7, 3.0, 3.3, 3.6, 3.9, 4.3, 4.7, 5.1, 5.6, 6.2, 6.8, 7.5, 8.2, 9.1];
+  // Naechster Normwert der Reihe; mode 'up' = naechst groesserer (z.B. Vorwiderstand), sonst naechstliegend
+  function eSeries(value, series, mode) {
+    if (!(value > 0)) throw new Error('Wert muss grösser als 0 sein.');
+    var list = series === 'E12' ? E12 : E24;
+    var dec = Math.pow(10, Math.floor(Math.log10(value)));
+    var cands = [];
+    [dec / 10, dec, dec * 10].forEach(function (d) { list.forEach(function (v) { cands.push(Math.round(v * d * 1e6) / 1e6); }); });
+    cands.sort(function (a, b) { return a - b; });
+    if (mode === 'up') { for (var i = 0; i < cands.length; i++) if (cands[i] >= value * 0.999999) return cands[i]; }
+    var best = cands[0];
+    cands.forEach(function (c) { if (Math.abs(Math.log(c / value)) < Math.abs(Math.log(best / value))) best = c; });
+    return best;
+  }
+  // Ohmsches Gesetz: genau zwei der vier Groessen U (V), I (A), R (Ohm), P (W) angeben
+  function ohm(v) {
+    var U = v.U, I = v.I, R = v.R, P = v.P;
+    var given = ['U', 'I', 'R', 'P'].filter(function (k) { return v[k] > 0; });
+    if (given.length !== 2) throw new Error('Bitte genau zwei Werte eingeben, die anderen leer lassen.');
+    var k = given.join('');
+    if (k === 'UI') { R = U / I; P = U * I; }
+    else if (k === 'UR') { I = U / R; P = U * U / R; }
+    else if (k === 'UP') { I = P / U; R = U * U / P; }
+    else if (k === 'IR') { U = I * R; P = I * I * R; }
+    else if (k === 'IP') { U = P / I; R = P / (I * I); }
+    else if (k === 'RP') { U = Math.sqrt(P * R); I = Math.sqrt(P / R); }
+    return { U: U, I: I, R: R, P: P };
+  }
+  // LED-Vorwiderstand: Us Speisespannung, Uf Flussspannung, If Strom in mA, n LEDs in Serie
+  function ledResistor(Us, Uf, IfmA, n) {
+    n = n > 0 ? Math.round(n) : 1;
+    var I = IfmA / 1000, Ur = Us - Uf * n;
+    if (!(I > 0)) throw new Error('Strom muss grösser als 0 sein.');
+    if (Ur <= 0) throw new Error('Die Speisespannung reicht nicht für ' + n + ' LED in Serie.');
+    var R = Ur / I, Rn = eSeries(R, 'E24', 'up'), In = Ur / Rn;
+    return { R: R, Rnorm: Rn, Inorm: In * 1000, P: Ur * In, Pled: Uf * In * n };
+  }
+  // Spannungsteiler: Uout = Uin * R2 / (R1 + R2)
+  function divider(Uin, R1, R2) {
+    if (!(Uin > 0 && R1 > 0 && R2 > 0)) throw new Error('Bitte Uein, R1 und R2 grösser als 0 eingeben.');
+    var I = Uin / (R1 + R2);
+    return { Uout: Uin * R2 / (R1 + R2), I: I, P1: I * I * R1, P2: I * I * R2 };
+  }
+  // R2 fuer gewuenschte Ausgangsspannung bei gegebenem R1, mit E24-Wert
+  function dividerR2(Uin, Uout, R1) {
+    if (!(Uin > Uout && Uout > 0 && R1 > 0)) throw new Error('Uaus muss zwischen 0 und Uein liegen.');
+    var R2 = R1 * Uout / (Uin - Uout), R2n = eSeries(R2, 'E24');
+    return { R2: R2, R2norm: R2n, UoutNorm: Uin * R2n / (R1 + R2n) };
+  }
+  // Farbcode: Ringe als Farbnamen; 4 Ringe (2 Ziffern), 5 Ringe (3 Ziffern)
+  var COLORS = ['schwarz', 'braun', 'rot', 'orange', 'gelb', 'grün', 'blau', 'violett', 'grau', 'weiss'];
+  var MULT = { schwarz: 1, braun: 10, rot: 100, orange: 1e3, gelb: 1e4, 'grün': 1e5, blau: 1e6, violett: 1e7, grau: 1e8, weiss: 1e9, gold: 0.1, silber: 0.01 };
+  var TOL = { braun: 1, rot: 2, 'grün': 0.5, blau: 0.25, violett: 0.1, grau: 0.05, gold: 5, silber: 10 };
+  function colorCode(bands) {
+    if (bands.length !== 4 && bands.length !== 5) throw new Error('4 oder 5 Ringe angeben.');
+    var digits = bands.slice(0, bands.length - 2);
+    var val = 0;
+    digits.forEach(function (c) { var d = COLORS.indexOf(c); if (d < 0) throw new Error('Farbe ' + c + ' ist als Ziffer nicht möglich.'); val = val * 10 + d; });
+    var m = MULT[bands[bands.length - 2]];
+    if (m == null) throw new Error('Ungültiger Multiplikator.');
+    var t = TOL[bands[bands.length - 1]];
+    if (t == null) throw new Error('Ungültige Toleranzfarbe.');
+    return { R: Math.round(val * m * 1000) / 1000, tol: t };
+  }
+  // Spannungsfall einer Leitung (Hin- und Rueckleiter, Gleichstrom bzw. Wechselstrom einphasig, cos phi = 1)
+  var RHO = { kupfer: 0.0175, alu: 0.0286 }; // Ohm mm2 / m bei 20 Grad
+  function voltageDrop(lengthM, I, A, U, material) {
+    var rho = RHO[material || 'kupfer'];
+    if (!(lengthM > 0 && I > 0 && A > 0 && U > 0)) throw new Error('Bitte Länge, Strom, Querschnitt und Spannung eingeben.');
+    var dU = 2 * lengthM * I * rho / A;
+    return { dU: dU, pct: dU / U * 100, P: dU * I, Rline: 2 * lengthM * rho / A };
+  }
+  // Mindestquerschnitt fuer einen zulaessigen Spannungsfall in Prozent, mit Normquerschnitt
+  var CROSS = [0.5, 0.75, 1, 1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240];
+  function minCross(lengthM, I, U, pctMax, material) {
+    var rho = RHO[material || 'kupfer'];
+    if (!(lengthM > 0 && I > 0 && U > 0 && pctMax > 0)) throw new Error('Bitte alle Werte eingeben.');
+    var A = 2 * lengthM * I * rho / (U * pctMax / 100);
+    var n = null; for (var i = 0; i < CROSS.length; i++) if (CROSS[i] >= A) { n = CROSS[i]; break; }
+    return { A: A, Anorm: n };
+  }
+  // RC-Glied: R in Ohm, C in Farad
+  function rc(R, C) {
+    if (!(R > 0 && C > 0)) throw new Error('R und C müssen grösser als 0 sein.');
+    var tau = R * C;
+    return { tau: tau, fg: 1 / (2 * Math.PI * tau), t99: 5 * tau };
+  }
+
+  // ------------------------------------------------------------------ Werkstatt
+  // Metrisches Regelgewinde: Kernlochbohrer, Durchgangsbohrung fein/mittel/grob (ISO 273)
+  var THREADS = {
+    M3: [2.5, 3.2, 3.4, 3.6], M4: [3.3, 4.3, 4.5, 4.8], M5: [4.2, 5.3, 5.5, 5.8], M6: [5.0, 6.4, 6.6, 7.0],
+    M8: [6.8, 8.4, 9.0, 10.0], M10: [8.5, 10.5, 11.0, 12.0], M12: [10.2, 13.0, 13.5, 14.5], M14: [12.0, 15.0, 15.5, 16.5],
+    M16: [14.0, 17.0, 17.5, 18.5], M20: [17.5, 21.0, 22.0, 24.0], M24: [21.0, 25.0, 26.0, 28.0], M30: [26.5, 31.0, 33.0, 35.0]
+  };
+  // Richtwerte Schnittgeschwindigkeit (m/min) zum Bohren, [HSS, Hartmetall]
+  var CUT = {
+    stahl: { name: 'Baustahl', v: [25, 120] }, vergstahl: { name: 'Vergütungsstahl', v: [15, 90] },
+    edelstahl: { name: 'Edelstahl', v: [10, 60] }, guss: { name: 'Grauguss', v: [20, 90] },
+    alu: { name: 'Aluminium', v: [80, 250] }, messing: { name: 'Messing', v: [50, 150] }, kunststoff: { name: 'Kunststoff', v: [40, 150] }
+  };
+  function rpm(vc, d) {
+    if (!(vc > 0 && d > 0)) throw new Error('Schnittgeschwindigkeit und Durchmesser eingeben.');
+    return vc * 1000 / (Math.PI * d);
+  }
+
   var api = {
     RANGES: RANGES, IT: IT, HOLE_LETTERS: HOLE_LETTERS, SHAFT_LETTERS: SHAFT_LETTERS, GRADES: GRADES,
     rangeIndex: rangeIndex, shaftDeviation: shaftDeviation, holeDeviation: holeDeviation, fit: fit,
     MATERIALS: MATERIALS, section: section, weight: weight, beam: beam,
-    BOLTS: BOLTS, rp02: rp02, bolt: bolt, UNITS: UNITS, convert: convert
+    BOLTS: BOLTS, rp02: rp02, bolt: bolt, UNITS: UNITS, convert: convert,
+    PROFILES: PROFILES, profile: profile, E12: E12, E24: E24, eSeries: eSeries, ohm: ohm, ledResistor: ledResistor,
+    divider: divider, dividerR2: dividerR2, COLORS: COLORS, MULT: MULT, TOL: TOL, colorCode: colorCode,
+    voltageDrop: voltageDrop, CROSS: CROSS, minCross: minCross, rc: rc, THREADS: THREADS, CUT: CUT, rpm: rpm
   };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.Rechner = api;
