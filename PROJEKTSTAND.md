@@ -791,3 +791,10 @@ Berechtigung für Workers-Deployment in diesem Account).
 - **Portal:** Der Knopf «Teilen» in der Dateiliste öffnet einen Dialog (Gültigkeit 1, 7, 30 oder 90 Tage, vorgewählt 7). Danach erscheinen der Link, «Link kopieren» und «Per E-Mail senden» (vorbereitete Mail im E-Mail-Programm). Der Link wird automatisch kopiert.
 - **Empfänger ohne Login:** Die Freigabeseite `/share/<id>` zeigt bei STEP, IGES, STL und OBJ zusätzlich «3D ansehen». Die Ansicht läuft über `/share/<id>/3d?file=<key>` und `/share/<id>/a/<pfad>` (Code: `src/share-view.js`). Beide Pfade liegen unter `/share`, wofür in Cloudflare Access schon eine Ausnahme besteht, es ist keine neue Einstellung nötig. Der Worker schreibt die absoluten Pfade des Viewers auf den Freigabepfad um und liefert nur eine feste Liste von Viewer-Dateien aus. Das Modell kommt über `/api/share-download`, das Gültigkeit und Zugehörigkeit der Datei prüft. Kommentare und Freigaben (Genehmigungen) gibt es in dieser Ansicht nicht.
 - Test: `node scripts/test-share-view.mjs`.
+
+### Portal aufgeräumt, Ingenieur-Rechner, Abmelden, Speichergrenze im Portal (November 2026)
+
+- **Reiter** auf der Portalseite: Dateien, Teilen, Anfragen, Werkzeuge, Verwaltung (Details im Entwicklerhandbuch, Kap. 5.17). Kunden sehen nur Dateien, Teilen und Werkzeuge.
+- **Ingenieur-Rechner** `/rechner` (`public/rechner.html`, `public/rechner-lib.js`): Passungen ISO 286, Gewicht, Biegebalken, Schrauben (VDI 2230), Einheiten. Test: `node scripts/test-rechner.mjs`.
+- **Abmelden** in Portal, Dokumentenlenkung und Rechner über `/cdn-cgi/access/logout`.
+- **Speicher:** Planungsgrenze im Portal einstellbar (`POST /api/storage/quota`, KV `REQUESTS` Schlüssel `cfg:storage-quota-gb`, sonst `STORAGE_QUOTA_GB`). Warnstufe 2 neu auch bei weniger als 10 GB frei. Anleitung «Speicher aufstocken» direkt im Portal.

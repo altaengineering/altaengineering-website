@@ -7,7 +7,7 @@ import { collectKv, gzipJson, runBackup, listBackups } from "./backup.js";
 import { normalizeDomain, runSecurityCheck } from "./security-check.js";
 import { handleCad } from "./cad.js";
 import { handleShareView, isShareViewPath } from "./share-view.js";
-import { refreshStorage, describe as describeStorage, checkStorageAlert } from "./storage.js";
+import { refreshStorage, describe as describeStorage, checkStorageAlert, getQuota, parseQuotaGb, setQuota } from "./storage.js";
 
 // Alta Engineering Kundenportal — Cloudflare Worker
 //
@@ -724,10 +724,24 @@ export default {
       if (!admin) return json({ error: "Keine Berechtigung." }, 403);
       try {
         const summary = await refreshStorage(env, { listObjects }, { force: url.searchParams.get("refresh") === "1" });
-        return json(describeStorage(env, summary));
+        return json(describeStorage(env, summary, await getQuota(env)));
       } catch (e) {
         return json({ error: String((e && e.message) || e) }, 502);
       }
+    }
+
+    // Planungsgrenze im Portal aendern (nur Admins). Kein Deploy noetig, gilt sofort.
+    if (url.pathname === "/api/storage/quota" && request.method === "POST") {
+      if (!admin) return json({ error: "Keine Berechtigung." }, 403);
+      const body = await request.json().catch(() => ({}));
+      const gb = parseQuotaGb(body.gb);
+      if (!gb) return json({ error: "Bitte eine ganze Zahl zwischen 1 und 100000 GB eingeben." }, 400);
+      const before = await getQuota(env);
+      await setQuota(env, gb);
+      await logActivity(env, { email, action: "Planungsgrenze Speicher geaendert", detail: before.gb + " GB auf " + gb + " GB" });
+      const summary = await refreshStorage(env, { listObjects });
+      await checkStorageAlert(env, summary, { sendMail, adminEmails: notifyList(env), logActivity });
+      return json(describeStorage(env, summary, await getQuota(env)));
     }
 
     if (url.pathname === "/api/list" && request.method === "GET") {

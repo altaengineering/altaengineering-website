@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ingenieur-Rechner · Alta Engineering AG</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" href="/fonts.css">
+<script>try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+<style>
+:root{
+  color-scheme: light;
+  --bg:#ffffff; --alt:#f5f7f9; --surface:#ffffff; --chip:#eaf1f8;
+  --text:#1b2531; --muted:#586573; --line:#e4e8ed; --line-2:#d3d9e0;
+  --accent:#215d92; --btn:#215d92; --btn-hover:#184a78;
+  --header-bg:rgba(255,255,255,.9); --shadow:rgba(20,30,45,.09);
+  --ok:#1c7a4a; --warn:#9a6a00; --err:#b23a2f;
+  --maxw:1180px; --gutter:clamp(16px,4.5vw,56px); --radius:10px;
+  --font:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#0d1218; --alt:#121a23; --surface:#16202b; --chip:rgba(96,168,235,.14);
+  --text:#e7edf3; --muted:#94a3b2; --line:#22303c; --line-2:#2f3f4d;
+  --accent:#5aa6ec; --btn:#2f74b8; --btn-hover:#3d86cd;
+  --header-bg:rgba(13,18,24,.82); --shadow:rgba(0,0,0,.5);
+  --ok:#4fce8f; --warn:#e0b34f; --err:#ea6f63;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#0d1218; --alt:#121a23; --surface:#16202b; --chip:rgba(96,168,235,.14);
+    --text:#e7edf3; --muted:#94a3b2; --line:#22303c; --line-2:#2f3f4d;
+    --accent:#5aa6ec; --btn:#2f74b8; --btn-hover:#3d86cd;
+    --header-bg:rgba(13,18,24,.82); --shadow:rgba(0,0,0,.5);
+    --ok:#4fce8f; --warn:#e0b34f; --err:#ea6f63;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);color:var(--text);background:var(--bg);line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:var(--maxw);margin:0 auto;padding-left:var(--gutter);padding-right:var(--gutter)}
+header{position:sticky;top:0;z-index:40;background:var(--header-bg);backdrop-filter:blur(9px);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:1rem;height:64px}
+.brand{display:flex;align-items:center;gap:.7rem;line-height:1.05}
+.brand img{height:30px;width:auto;border-radius:4px}
+.brand b{display:block;font-size:1.05rem}
+.brand span{font-size:.66rem;color:var(--accent);letter-spacing:.08em;font-family:var(--mono);text-transform:uppercase}
+.nav-actions{display:flex;gap:.5rem;align-items:center}
+.nav-actions a{display:inline-flex;align-items:center;gap:.4rem;font-size:.86rem;font-weight:600;padding:.5rem .8rem;border:1px solid var(--line-2);border-radius:8px}
+.nav-actions a:hover{border-color:var(--accent);color:var(--accent)}
+.nav-actions svg{width:16px;height:16px}
+h1{font-size:clamp(1.5rem,3.2vw,2.1rem);letter-spacing:-.02em;margin:2rem 0 .3rem}
+.lead{color:var(--muted);max-width:60rem;margin-bottom:1.4rem}
+.tabs{display:flex;gap:.3rem;flex-wrap:wrap;border-bottom:1px solid var(--line);margin-bottom:1.4rem}
+.tabs button{font:inherit;font-size:.92rem;font-weight:600;padding:.7rem .95rem;border:0;border-bottom:3px solid transparent;margin-bottom:-1px;background:none;color:var(--muted);cursor:pointer}
+.tabs button:hover{color:var(--text)}
+.tabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:clamp(1rem,3vw,1.6rem);box-shadow:0 10px 26px var(--shadow);margin-bottom:1.4rem}
+.card[hidden]{display:none}
+.card h2{font-size:1.2rem;margin-bottom:.2rem}
+.sub{color:var(--muted);font-size:.9rem;margin-bottom:1rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.9rem;margin-bottom:1rem}
+label{display:block;font-size:.8rem;font-weight:600;margin-bottom:.3rem}
+input,select{width:100%;font:inherit;font-size:.95rem;padding:.55rem .7rem;border-radius:8px;border:1px solid var(--line-2);background:var(--surface);color:var(--text)}
+input:focus,select:focus{outline:2px solid var(--accent);outline-offset:1px}
+.res{border:1px solid var(--line);border-radius:8px;background:var(--alt);padding:1rem 1.1rem}
+.res table{width:100%;border-collapse:collapse;font-size:.92rem}
+.res td{padding:.35rem .4rem;border-bottom:1px solid var(--line);vertical-align:top}
+.res tr:last-child td{border-bottom:0}
+.res td:first-child{color:var(--muted)}
+.res td.v{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.res .big{font-size:1.3rem;font-weight:700;margin-bottom:.5rem}
+.tag{display:inline-block;padding:.15rem .6rem;border-radius:99px;font-size:.8rem;font-weight:700;background:var(--chip);color:var(--accent)}
+.tag.ok{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+.tag.warn{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.tag.err{background:color-mix(in srgb,var(--err) 16%,transparent);color:var(--err)}
+.err-msg{color:var(--err);font-weight:600}
+.row-btns{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.9rem}
+.btn{font:inherit;font-size:.88rem;font-weight:700;padding:.55rem 1rem;border-radius:8px;border:1px solid var(--line-2);background:var(--surface);color:var(--text);cursor:pointer}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.note{font-size:.8rem;color:var(--muted);margin-top:.8rem}
+.fitbar{position:relative;height:120px;margin:1rem 0 .3rem;border-left:1px solid var(--line-2)}
+.fitbar .zero{position:absolute;left:0;right:0;border-top:1px dashed var(--muted)}
+.fitbar .zl{position:absolute;right:0;font-size:.72rem;color:var(--muted);transform:translateY(-110%)}
+.fitbar .bx{position:absolute;width:26%;border-radius:4px;font-size:.75rem;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;min-height:4px}
+.fitbar .bx.h{left:16%;background:var(--accent)}
+.fitbar .bx.s{left:52%;background:#b07a12}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.2rem;align-items:start}
+footer{color:var(--muted);font-size:.8rem;padding:1rem 0 2.5rem}
+@media (max-width:640px){ .nav-actions .lbl{display:none} }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="/"><img src="https://alta-engineering.ch/logo.png" alt=""><div><b>Alta Engineering AG</b><span>Ingenieur-Rechner</span></div></a>
+    <div class="nav-actions">
+      <a href="/" title="Zurück zum Kundenportal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg><span class="lbl">Portal</span></a>
+      <a href="/cdn-cgi/access/logout" title="Abmelden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg><span class="lbl">Abmelden</span></a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <h1>Ingenieur-Rechner</h1>
+  <p class="lead">Schnelle Auslegung im Alltag: Passungen, Gewichte, Biegebalken, Schrauben und Einheiten. Alles rechnet sofort beim Tippen, im Browser, ohne dass Daten das Gerät verlassen. Mit «Ergebnis kopieren» landet ein sauberer Text in der Zwischenablage, für Bericht, Offerte oder E-Mail.</p>
+
+  <nav class="tabs" role="tablist" aria-label="Rechner">
+    <button type="button" role="tab" data-calc="fit" aria-selected="true">Passungen ISO 286</button>
+    <button type="button" role="tab" data-calc="weight" aria-selected="false">Gewicht</button>
+    <button type="button" role="tab" data-calc="beam" aria-selected="false">Biegebalken</button>
+    <button type="button" role="tab" data-calc="bolt" aria-selected="false">Schrauben</button>
+    <button type="button" role="tab" data-calc="units" aria-selected="false">Einheiten</button>
+  </nav>
+
+  <!-- Passungen -->
+  <section class="card" id="calc-fit">
+    <h2>Passungen nach ISO 286</h2>
+    <p class="sub">Grenzmasse, Spiel und Übermass für Bohrung und Welle. Nennmasse bis 500 mm, gebräuchliche Toleranzklassen.</p>
+    <div class="grid">
+      <div><label for="fD">Nennmass (mm)</label><input id="fD" type="number" min="0.1" max="500" step="any" value="25"></div>
+      <div><label for="fHole">Bohrung</label><select id="fHole"></select></div>
+      <div><label for="fShaft">Welle</label><select id="fShaft"></select></div>
+      <div><label for="fPreset">Häufige Passungen</label><select id="fPreset">
+        <option value="">wählen …</option>
+        <option value="H7/g6">H7/g6 Gleitsitz</option><option value="H7/h6">H7/h6 Schiebesitz</option>
+        <option value="H7/f7">H7/f7 Laufsitz</option><option value="H8/e8">H8/e8 weiter Laufsitz</option>
+        <option value="H7/k6">H7/k6 Übergang (Haftsitz)</option><option value="H7/n6">H7/n6 Festsitz</option>
+        <option value="H7/p6">H7/p6 Presssitz</option><option value="H11/h11">H11/h11 grob</option>
+      </select></div>
+    </div>
+    <div class="two">
+      <div class="res" id="fitRes"></div>
+      <div><div class="fitbar" id="fitBar"></div><p class="note">Lage der Toleranzfelder zur Nulllinie (Nennmass). Blau: Bohrung, Ocker: Welle.</p></div>
+    </div>
+    <div class="row-btns"><button class="btn" type="button" data-copy="fit">Ergebnis kopieren</button></div>
+    <p class="note">Werte nach ISO 286-2 für die angebotenen Toleranzklassen. Bei kritischen Passungen vor der Freigabe der Zeichnung gegen die Norm prüfen.</p>
+  </section>
+
+  <!-- Gewicht -->
+  <section class="card" id="calc-weight" hidden>
+    <h2>Gewicht von Halbzeugen</h2>
+    <p class="sub">Rundstab, Rohr, Flach und Blech, Rechteck- und Quadratrohr, Sechskant. Scharfkantig gerechnet, Profile mit Radien wiegen etwas weniger.</p>
+    <div class="grid">
+      <div><label for="wShape">Form</label><select id="wShape">
+        <option value="rund">Rundstab</option><option value="rohr">Rundrohr</option><option value="rechteck">Flach / Blech</option>
+        <option value="rechteckrohr">Rechteck- / Quadratrohr</option><option value="sechskant">Sechskant</option>
+      </select></div>
+      <div><label for="wMat">Werkstoff</label><select id="wMat"></select></div>
+      <div data-w="rund"><label for="wd">Durchmesser d (mm)</label><input id="wd" type="number" step="any" value="20"></div>
+      <div data-w="rohr"><label for="wD">Aussen-Ø D (mm)</label><input id="wD" type="number" step="any" value="60.3"></div>
+      <div data-w="rohr rechteckrohr"><label for="ws">Wandstärke s (mm)</label><input id="ws" type="number" step="any" value="2.9"></div>
+      <div data-w="rechteck rechteckrohr"><label for="wb">Breite b (mm)</label><input id="wb" type="number" step="any" value="1000"></div>
+      <div data-w="rechteck rechteckrohr"><label for="wh">Dicke / Höhe h (mm)</label><input id="wh" type="number" step="any" value="3"></div>
+      <div data-w="sechskant"><label for="wsw">Schlüsselweite SW (mm)</label><input id="wsw" type="number" step="any" value="17"></div>
+      <div><label for="wL">Länge (mm)</label><input id="wL" type="number" step="any" value="1000"></div>
+      <div><label for="wN">Stückzahl</label><input id="wN" type="number" min="1" step="1" value="1"></div>
+    </div>
+    <div class="res" id="weightRes"></div>
+    <div class="row-btns"><button class="btn" type="button" data-copy="weight">Ergebnis kopieren</button></div>
+  </section>
+
+  <!-- Biegebalken -->
+  <section class="card" id="calc-beam" hidden>
+    <h2>Biegebalken</h2>
+    <p class="sub">Biegemoment, Biegespannung und Durchbiegung für die vier Standardfälle. Eigengewicht nicht enthalten, elastisch, kleine Verformungen.</p>
+    <div class="grid">
+      <div><label for="bCase">Lastfall</label><select id="bCase">
+        <option value="krag-f">Kragarm, Einzellast am Ende</option><option value="krag-q">Kragarm, Streckenlast</option>
+        <option value="feld-f">Einfeldträger, Einzellast Mitte</option><option value="feld-q">Einfeldträger, Streckenlast</option>
+      </select></div>
+      <div><label for="bLoad" id="bLoadLbl">Kraft F (N)</label><input id="bLoad" type="number" step="any" value="1000"></div>
+      <div><label for="bL">Länge L (mm)</label><input id="bL" type="number" step="any" value="1000"></div>
+      <div><label for="bMat">Werkstoff</label><select id="bMat"></select></div>
+      <div><label for="bRe">Zulässige Spannung (N/mm²)</label><input id="bRe" type="number" step="any" value="160"></div>
+      <div><label for="bShape">Querschnitt</label><select id="bShape">
+        <option value="rechteck">Rechteck (Flach)</option><option value="rechteckrohr">Rechteckrohr</option>
+        <option value="rund">Rundstab</option><option value="rohr">Rundrohr</option>
+      </select></div>
+      <div data-b="rechteck rechteckrohr"><label for="bb">Breite b (mm)</label><input id="bb" type="number" step="any" value="20"></div>
+      <div data-b="rechteck rechteckrohr"><label for="bh">Höhe h (mm, in Lastrichtung)</label><input id="bh" type="number" step="any" value="40"></div>
+      <div data-b="rund"><label for="bd">Durchmesser d (mm)</label><input id="bd" type="number" step="any" value="30"></div>
+      <div data-b="rohr"><label for="bD">Aussen-Ø D (mm)</label><input id="bD" type="number" step="any" value="48.3"></div>
+      <div data-b="rohr rechteckrohr"><label for="bs">Wandstärke s (mm)</label><input id="bs" type="number" step="any" value="3"></div>
+    </div>
+    <div class="res" id="beamRes"></div>
+    <div class="row-btns"><button class="btn" type="button" data-copy="beam">Ergebnis kopieren</button></div>
+    <p class="note">Zulässige Spannung: zum Beispiel S235 rund 160 N/mm² (Streckgrenze 235 mit Sicherheit 1,5). Für Stahlbau-Nachweise nach SIA 263 oder Eurocode gelten deren Beiwerte.</p>
+  </section>
+
+  <!-- Schrauben -->
+  <section class="card" id="calc-bolt" hidden>
+    <h2>Schrauben: Vorspannkraft und Anziehdrehmoment</h2>
+    <p class="sub">Metrisches Regelgewinde, Sechskantschraube, Ausnutzung 90 Prozent der Streckgrenze beim Anziehen (VDI 2230).</p>
+    <div class="grid">
+      <div><label for="sSize">Gewinde</label><select id="sSize"></select></div>
+      <div><label for="sCls">Festigkeitsklasse</label><select id="sCls">
+        <option>8.8</option><option>10.9</option><option>12.9</option><option>A2-70</option><option>A4-70</option><option>A4-80</option>
+      </select></div>
+      <div><label for="sMu">Reibung</label><select id="sMu">
+        <option value="0.08">0,08 geschmiert (MoS₂, Paste)</option><option value="0.10">0,10 leicht geölt</option>
+        <option value="0.12" selected>0,12 Normalfall, verzinkt geölt</option><option value="0.14">0,14 trocken, blank</option>
+        <option value="0.18">0,18 Edelstahl trocken</option>
+      </select></div>
+    </div>
+    <div class="res" id="boltRes"></div>
+    <div class="row-btns"><button class="btn" type="button" data-copy="bolt">Ergebnis kopieren</button></div>
+    <p class="note">Richtwerte, gerechnet wie die Tabellen der VDI 2230 (Abweichung zu den Tabellenwerten unter 2 Prozent bei der Kraft). Edelstahl neigt zum Fressen, dort Paste verwenden. Bei Drehmomentschlüsseln mit ±10 Prozent Streuung ist die tatsächliche Vorspannkraft entsprechend unsicher.</p>
+  </section>
+
+  <!-- Einheiten -->
+  <section class="card" id="calc-units" hidden>
+    <h2>Einheiten umrechnen</h2>
+    <p class="sub">Länge, Kraft, Druck und Spannung, Drehmoment, Masse, Leistung und Temperatur.</p>
+    <div class="grid">
+      <div><label for="uGroup">Grösse</label><select id="uGroup"></select></div>
+      <div><label for="uVal">Wert</label><input id="uVal" type="number" step="any" value="1"></div>
+      <div><label for="uFrom">von</label><select id="uFrom"></select></div>
+    </div>
+    <div class="res" id="unitsRes"></div>
+    <div class="row-btns"><button class="btn" type="button" data-copy="units">Ergebnis kopieren</button></div>
+  </section>
+
+  <footer>Alta Engineering AG · Ingenieur-Rechner · Ergebnisse sind Richtwerte und ersetzen keine Nachweise nach Norm.</footer>
+</main>
+
+<script src="/rechner-lib.js"></script>
+<script>
+(function(){
+  var R = window.Rechner;
+  function $(id){ return document.getElementById(id); }
+  function num(id){ var v = parseFloat(String($(id).value).replace(',', '.')); return isFinite(v) ? v : NaN; }
+  function fmt(x, d){ return Number(x).toLocaleString('de-CH', { minimumFractionDigits: d, maximumFractionDigits: d }); }
+  function smart(x){ var a = Math.abs(x); return a >= 1000 ? fmt(x, 0) : a >= 100 ? fmt(x, 1) : a >= 1 ? fmt(x, 2) : fmt(x, 4); }
+  function um(x){ if (x === 0) return '0'; return (x > 0 ? '+' : '') + fmt(x, x % 1 ? 1 : 0); }
+  function esc(s){ var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+  function table(rows){ return '<table>' + rows.map(function(r){ return '<tr><td>' + esc(r[0]) + '</td><td class="v">' + esc(r[1]) + '</td></tr>'; }).join('') + '</table>'; }
+  var texts = {};
+  function show(id, html, text){ $(id).innerHTML = html; texts[id] = text; }
+  function fail(id, e){ $(id).innerHTML = '<p class="err-msg">' + esc(e.message || String(e)) + '</p>'; texts[id] = ''; }
+  function fill(sel, items, val){ sel.innerHTML = items.map(function(i){ return '<option value="' + esc(i[0]) + '">' + esc(i[1]) + '</option>'; }).join(''); if (val != null) sel.value = val; }
+
+  // ---------- Reiter ----------
+  var tabs = document.querySelectorAll('[data-calc]');
+  function showCalc(name){
+    tabs.forEach(function(b){ b.setAttribute('aria-selected', b.getAttribute('data-calc') === name ? 'true' : 'false'); });
+    document.querySelectorAll('section[id^="calc-"]').forEach(function(s){ s.hidden = s.id !== 'calc-' + name; });
+    try { history.replaceState(null, '', '#' + name); localStorage.setItem('rechnerTab', name); } catch(e){}
+  }
+  tabs.forEach(function(b){ b.addEventListener('click', function(){ showCalc(b.getAttribute('data-calc')); }); });
+  var start = (location.hash || '').slice(1);
+  if (!document.getElementById('calc-' + start)) { try { start = localStorage.getItem('rechnerTab') || 'fit'; } catch(e){ start = 'fit'; } }
+  showCalc(document.getElementById('calc-' + start) ? start : 'fit');
+  window.addEventListener('hashchange', function(){ var h = (location.hash || '').slice(1); if (document.getElementById('calc-' + h)) showCalc(h); });
+
+  // ---------- Passungen ----------
+  var holes = [], shafts = [];
+  Object.keys(R.HOLE_LETTERS).forEach(function(l){ R.HOLE_LETTERS[l].forEach(function(g){ holes.push([l + g, l + g]); }); });
+  Object.keys(R.SHAFT_LETTERS).forEach(function(l){ R.SHAFT_LETTERS[l].forEach(function(g){ shafts.push([l + g, l + g]); }); });
+  fill($('fHole'), holes, 'H7'); fill($('fShaft'), shafts, 'g6');
+  function split(code){ var m = code.match(/^([A-Za-z]+)(\d+)$/); return [m[1], parseInt(m[2], 10)]; }
+  function calcFit(){
+    try {
+      var d = num('fD'), h = split($('fHole').value), s = split($('fShaft').value);
+      var r = R.fit(d, h[0], h[1], s[0], s[1]);
+      var name = 'Ø' + fmt(d, d % 1 ? 2 : 0) + ' ' + $('fHole').value + '/' + $('fShaft').value;
+      var cls = r.type === 'Spielpassung' ? 'ok' : r.type === 'Übergangspassung' ? 'warn' : 'err';
+      var spiel = function(x){ return x >= 0 ? 'Spiel ' + fmt(x, x % 1 ? 1 : 0) + ' µm' : 'Übermass ' + fmt(-x, -x % 1 ? 1 : 0) + ' µm'; };
+      var rows = [
+        ['Nennmassbereich', r.hole.range],
+        ['Bohrung ' + $('fHole').value + ', Abmasse', um(r.hole.ES) + ' / ' + um(r.hole.EI) + ' µm'],
+        ['Bohrung Höchst- / Mindestmass', fmt(r.holeMax, 3) + ' / ' + fmt(r.holeMin, 3) + ' mm'],
+        ['Welle ' + $('fShaft').value + ', Abmasse', um(r.shaft.es) + ' / ' + um(r.shaft.ei) + ' µm'],
+        ['Welle Höchst- / Mindestmass', fmt(r.shaftMax, 3) + ' / ' + fmt(r.shaftMin, 3) + ' mm'],
+        ['Grösstes', spiel(r.maxClearance)],
+        ['Kleinstes', spiel(r.minClearance)]
+      ];
+      show('fitRes', '<div class="big">' + esc(name) + '</div><p style="margin-bottom:.6rem"><span class="tag ' + cls + '">' + esc(r.type) + '</span></p>' + table(rows),
+        'Passung ' + name + ' (ISO 286): ' + r.type + '\n' + rows.map(function(x){ return x[0] + ': ' + x[1]; }).join('\n'));
+      // Skizze
+      var vals = [r.hole.ES, r.hole.EI, r.shaft.es, r.shaft.ei, 0];
+      var top = Math.max.apply(null, vals), bot = Math.min.apply(null, vals), span = (top - bot) || 1;
+      var y = function(v){ return 8 + (top - v) / span * 104; };
+      $('fitBar').innerHTML = '<div class="zero" style="top:' + y(0) + 'px"><span class="zl">0</span></div>' +
+        '<div class="bx h" style="top:' + y(r.hole.ES) + 'px;height:' + Math.max(4, y(r.hole.EI) - y(r.hole.ES)) + 'px">' + esc($('fHole').value) + '</div>' +
+        '<div class="bx s" style="top:' + y(r.shaft.es) + 'px;height:' + Math.max(4, y(r.shaft.ei) - y(r.shaft.es)) + 'px">' + esc($('fShaft').value) + '</div>';
+    } catch(e){ fail('fitRes', e); $('fitBar').innerHTML = ''; }
+  }
+  $('fPreset').addEventListener('change', function(){
+    var v = this.value; if (!v) return;
+    var p = v.split('/'); $('fHole').value = p[0]; $('fShaft').value = p[1]; this.value = ''; calcFit();
+  });
+  ['fD', 'fHole', 'fShaft'].forEach(function(id){ $(id).addEventListener('input', calcFit); $(id).addEventListener('change', calcFit); });
+  calcFit();
+
+  // ---------- Werkstoffe ----------
+  var mats = Object.keys(R.MATERIALS).map(function(k){ return [k, R.MATERIALS[k].name + ' (' + fmt(R.MATERIALS[k].rho, 2) + ' g/cm³)']; });
+  fill($('wMat'), mats, 'stahl');
+  fill($('bMat'), Object.keys(R.MATERIALS).map(function(k){ return [k, R.MATERIALS[k].name + ' (E ' + fmt(R.MATERIALS[k].E, 0) + ')']; }), 'stahl');
+
+  // ---------- Gewicht ----------
+  function toggleFields(attr, val){
+    document.querySelectorAll('[' + attr + ']').forEach(function(el){ el.hidden = el.getAttribute(attr).split(' ').indexOf(val) < 0; });
+  }
+  function calcWeight(){
+    var shape = $('wShape').value; toggleFields('data-w', shape);
+    try {
+      var p = { d: num('wd'), D: num('wD'), s: shape === 'sechskant' ? num('wsw') : num('ws'), b: num('wb'), h: num('wh') };
+      var mat = R.MATERIALS[$('wMat').value];
+      var r = R.weight(shape, p, num('wL'), mat.rho, num('wN'));
+      var label = $('wShape').options[$('wShape').selectedIndex].text;
+      var rows = [['Querschnittsfläche', smart(r.area) + ' mm²'], ['Gewicht pro Meter', smart(r.perMeter) + ' kg/m'], ['Gewicht pro Stück', smart(r.perPiece) + ' kg']];
+      if (r.count > 1) rows.push(['Gesamt (' + r.count + ' Stück)', smart(r.total) + ' kg']);
+      show('weightRes', '<div class="big">' + smart(r.total) + ' kg</div>' + table(rows),
+        'Gewicht ' + label + ', ' + mat.name + ', Länge ' + fmt(num('wL'), 0) + ' mm\n' + rows.map(function(x){ return x[0] + ': ' + x[1]; }).join('\n'));
+    } catch(e){ fail('weightRes', e); }
+  }
+  document.querySelectorAll('#calc-weight input, #calc-weight select').forEach(function(el){ el.addEventListener('input', calcWeight); el.addEventListener('change', calcWeight); });
+  calcWeight();
+
+  // ---------- Biegebalken ----------
+  function calcBeam(){
+    var shape = $('bShape').value; toggleFields('data-b', shape);
+    var isQ = /-q$/.test($('bCase').value);
+    $('bLoadLbl').textContent = isQ ? 'Streckenlast q (kN/m = N/mm)' : 'Kraft F (N)';
+    try {
+      var sec = R.section(shape, { b: num('bb'), h: num('bh'), d: num('bd'), D: num('bD'), s: num('bs') });
+      var mat = R.MATERIALS[$('bMat').value];
+      var r = R.beam($('bCase').value, num('bLoad'), num('bL'), mat.E, sec);
+      var zul = num('bRe'), use = zul > 0 ? r.sigma / zul : NaN;
+      var cls = !(use >= 0) ? '' : use <= 0.8 ? 'ok' : use <= 1 ? 'warn' : 'err';
+      var rows = [
+        ['Flächenmoment I', smart(sec.I) + ' mm⁴'], ['Widerstandsmoment W', smart(sec.W) + ' mm³'],
+        ['Max. Biegemoment', smart(r.M / 1000) + ' Nm'], ['Max. Biegespannung', smart(r.sigma) + ' N/mm²'],
+        ['Max. Durchbiegung', smart(r.f) + ' mm'], ['Durchbiegung als Verhältnis', 'L / ' + fmt(r.ratio, 0)]
+      ];
+      if (use >= 0) rows.push(['Ausnutzung der zulässigen Spannung', fmt(use * 100, 0) + ' %']);
+      var tag = use >= 0 ? '<span class="tag ' + cls + '">' + (use <= 1 ? 'Spannung zulässig' : 'Spannung zu hoch') + ', ' + fmt(use * 100, 0) + ' %</span>' : '';
+      show('beamRes', '<div class="big">f = ' + smart(r.f) + ' mm, σ = ' + smart(r.sigma) + ' N/mm²</div><p style="margin-bottom:.6rem">' + tag + '</p>' + table(rows),
+        'Biegebalken: ' + $('bCase').options[$('bCase').selectedIndex].text + ', L = ' + fmt(num('bL'), 0) + ' mm, ' + mat.name + '\n' + rows.map(function(x){ return x[0] + ': ' + x[1]; }).join('\n'));
+    } catch(e){ fail('beamRes', e); }
+  }
+  document.querySelectorAll('#calc-beam input, #calc-beam select').forEach(function(el){ el.addEventListener('input', calcBeam); el.addEventListener('change', calcBeam); });
+  calcBeam();
+
+  // ---------- Schrauben ----------
+  fill($('sSize'), Object.keys(R.BOLTS).map(function(k){ return [k, k + ' x ' + fmt(R.BOLTS[k].P, R.BOLTS[k].P % 1 ? 2 : 0).replace(/0$/, '')]; }), 'M10');
+  function calcBolt(){
+    try {
+      var r = R.bolt($('sSize').value, $('sCls').value, parseFloat($('sMu').value));
+      var rows = [
+        ['Spannungsquerschnitt As', smart(r.As) + ' mm²'], ['Streckgrenze Rp0,2', fmt(r.Rp, 0) + ' N/mm²'],
+        ['Montagevorspannkraft FM', smart(r.FM / 1000) + ' kN'], ['Anziehdrehmoment MA', smart(r.MA) + ' Nm']
+      ];
+      var name = $('sSize').value + ' ' + $('sCls').value + ', µ = ' + $('sMu').value.replace('.', ',');
+      show('boltRes', '<div class="big">' + esc(name) + ': ' + smart(r.MA) + ' Nm</div>' + table(rows),
+        'Schraube ' + name + ' (VDI 2230, 90 % Ausnutzung)\n' + rows.map(function(x){ return x[0] + ': ' + x[1]; }).join('\n'));
+    } catch(e){ fail('boltRes', e); }
+  }
+  ['sSize', 'sCls', 'sMu'].forEach(function(id){ $(id).addEventListener('change', calcBolt); });
+  calcBolt();
+
+  // ---------- Einheiten ----------
+  var groups = Object.keys(R.UNITS).map(function(k){ return [k, R.UNITS[k].label]; }).concat([['temperatur', 'Temperatur']]);
+  fill($('uGroup'), groups, 'druck');
+  function unitList(g){ return g === 'temperatur' ? ['°C', '°F', 'K'] : Object.keys(R.UNITS[g].units); }
+  function fillUnits(){ fill($('uFrom'), unitList($('uGroup').value).map(function(u){ return [u, u]; })); }
+  function calcUnits(){
+    try {
+      var g = $('uGroup').value, v = num('uVal'), from = $('uFrom').value;
+      if (!isFinite(v)) throw new Error('Bitte einen Wert eingeben.');
+      var rows = unitList(g).filter(function(u){ return u !== from; }).map(function(u){ return [u, smart(R.convert(g, v, from, u)) + ' ' + u]; });
+      show('unitsRes', '<div class="big">' + smart(v) + ' ' + esc(from) + ' =</div>' + table(rows), smart(v) + ' ' + from + ' =\n' + rows.map(function(x){ return x[1]; }).join('\n'));
+    } catch(e){ fail('unitsRes', e); }
+  }
+  $('uGroup').addEventListener('change', function(){ fillUnits(); calcUnits(); });
+  ['uVal', 'uFrom'].forEach(function(id){ $(id).addEventListener('input', calcUnits); $(id).addEventListener('change', calcUnits); });
+  fillUnits(); calcUnits();
+
+  // ---------- Kopieren ----------
+  document.querySelectorAll('[data-copy]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var t = texts[b.getAttribute('data-copy') + 'Res'] || '';
+      if (!t) return;
+      function done(ok){ b.textContent = ok ? 'Kopiert' : 'Bitte von Hand markieren'; setTimeout(function(){ b.textContent = 'Ergebnis kopieren'; }, 1800); }
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(function(){ done(true); }, function(){ done(false); });
+      else done(false);
+    });
+  });
+})();
+</script>
+</body>
+</html>

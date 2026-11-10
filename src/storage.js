@@ -1,9 +1,11 @@
 // Speicheruebersicht des Portals (Anzeige "wie viel Platz ist noch frei") und Warnstufen.
 //
 // Backblaze B2 hat keine feste Groesse: der Bucket waechst mit jeder Datei und wird nach Verbrauch
-// abgerechnet. "Noch frei" bezieht sich darum auf eine Planungsgrenze, die wir selbst festlegen
-// (Variable STORAGE_QUOTA_GB in wrangler.toml). Sie verhindert nichts, Uploads gehen auch darueber
-// hinaus weiter. Sie bestimmt nur die Anzeige und die Warnungen bei 80, 95 und 100 Prozent.
+// abgerechnet. "Noch frei" bezieht sich darum auf eine Planungsgrenze, die wir selbst festlegen.
+// Ein Admin stellt sie im Portal ein (Bereich "Speicherplatz", gespeichert in der KV REQUESTS unter
+// "cfg:storage-quota-gb"). Ist dort nichts eingestellt, gilt STORAGE_QUOTA_GB aus wrangler.toml.
+// Sie verhindert nichts, Uploads gehen auch darueber hinaus weiter. Sie bestimmt nur die Anzeige und
+// die Warnungen: ab 80 Prozent, ab 95 Prozent oder weniger als 10 GB frei, und bei 100 Prozent.
 //
 // Die Zahlen berechnet der Worker aus einer vollstaendigen Auflistung des Buckets (eine Abfrage pro
 // 1000 Dateien) und legt sie als einen Eintrag in der KV REQUESTS ab ("stat:storage"). Die taegliche
@@ -11,15 +13,40 @@
 
 export const STORAGE_KEY = "stat:storage";
 const ALERT_KEY = "stat:storage-alert";
+export const QUOTA_KEY = "cfg:storage-quota-gb";
+const GB = 1024 * 1024 * 1024;
 const DEFAULT_QUOTA_GB = 100;
+const MAX_QUOTA_GB = 100000;
+export const LOW_FREE_BYTES = 10 * GB; // Warnung, sobald weniger als 10 GB frei sind
 const MAX_FOLDERS_KEPT = 2000;
 const SHOW_FOLDERS = 60;
 const MIN_REFRESH_MS = 30 * 1000;
 const DEFAULT_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 
+// Planungsgrenze aus wrangler.toml (Rueckfallwert, wenn im Portal nichts eingestellt ist)
 export function quotaBytes(env) {
   const gb = Number(env.STORAGE_QUOTA_GB);
-  return (Number.isFinite(gb) && gb > 0 ? gb : DEFAULT_QUOTA_GB) * 1024 * 1024 * 1024;
+  return (Number.isFinite(gb) && gb > 0 ? gb : DEFAULT_QUOTA_GB) * GB;
+}
+
+// Gueltige Planungsgrenze: zuerst die Einstellung aus dem Portal, sonst wrangler.toml
+export async function getQuota(env) {
+  const raw = await env.REQUESTS.get(QUOTA_KEY);
+  const gb = Number(raw);
+  if (raw && Number.isFinite(gb) && gb > 0) return { bytes: gb * GB, gb, source: "portal" };
+  const bytes = quotaBytes(env);
+  return { bytes, gb: Math.round(bytes / GB), source: "wrangler" };
+}
+
+// Eingabe aus dem Portal pruefen: ganze Gigabyte zwischen 1 und 100000, sonst null
+export function parseQuotaGb(value) {
+  const gb = Number(String(value ?? "").trim().replace(",", "."));
+  if (!Number.isFinite(gb) || gb < 1 || gb > MAX_QUOTA_GB) return null;
+  return Math.round(gb);
+}
+
+export async function setQuota(env, gb) {
+  await env.REQUESTS.put(QUOTA_KEY, String(gb));
 }
 
 function area(key) {
@@ -63,9 +90,12 @@ export async function computeStorage(env, deps) {
   };
 }
 
+// 0 in Ordnung, 1 ab 80 Prozent, 2 ab 95 Prozent oder weniger als 10 GB frei, 3 Grenze erreicht
 export function level(total, quota) {
   const p = total / quota;
-  return p >= 1 ? 3 : p >= 0.95 ? 2 : p >= 0.8 ? 1 : 0;
+  if (p >= 1) return 3;
+  if (p >= 0.95 || quota - total < LOW_FREE_BYTES) return 2;
+  return p >= 0.8 ? 1 : 0;
 }
 
 export async function loadStorage(env) {
@@ -85,10 +115,14 @@ export async function refreshStorage(env, deps, { force = false, maxAgeMs = DEFA
   return fresh;
 }
 
-export function describe(env, s) {
-  const quota = quotaBytes(env);
+// q: Ergebnis von getQuota(env); ohne q gilt wrangler.toml
+export function describe(env, s, q = null) {
+  const quota = q ? q.bytes : quotaBytes(env);
   return {
     quota,
+    quotaGb: Math.round(quota / GB),
+    quotaSource: q ? q.source : "wrangler",
+    lowFree: LOW_FREE_BYTES,
     used: s.total,
     free: Math.max(0, quota - s.total),
     percent: Math.round((s.total / quota) * 1000) / 10,
@@ -102,29 +136,33 @@ export function describe(env, s) {
   };
 }
 
-const NAMES = ["", "80 Prozent", "95 Prozent", "100 Prozent"];
+const NAMES = ["", "zu ueber 80 Prozent belegt", "fast voll", "Planungsgrenze erreicht"];
 
 // Warnt per Mail, wenn eine hoehere Stufe erreicht wird als beim letzten Mal. Faellt der Verbrauch
 // wieder unter 80 Prozent, wird die Stufe zurueckgesetzt, damit spaetere Warnungen wieder kommen.
 export async function checkStorageAlert(env, summary, { sendMail, adminEmails, logActivity }) {
-  const quota = quotaBytes(env);
+  const quota = (await getQuota(env)).bytes;
   const lvl = level(summary.total, quota);
   const prevRaw = await env.REQUESTS.get(ALERT_KEY);
   const prev = prevRaw ? JSON.parse(prevRaw) : { level: 0 };
   if (lvl === prev.level) return { level: lvl, sent: false };
   await env.REQUESTS.put(ALERT_KEY, JSON.stringify({ level: lvl, at: new Date().toISOString() }));
   if (lvl <= prev.level) return { level: lvl, sent: false };
-  const gb = (b) => (b / 1024 / 1024 / 1024).toFixed(1).replace(".", ",");
+  const gb = (b) => (b / GB).toFixed(1).replace(".", ",");
+  const free = Math.max(0, quota - summary.total);
   const sent = await sendMail(env, {
     to: adminEmails,
-    subject: `Kundenportal: Speicher zu ${NAMES[lvl]} belegt`,
+    subject: `Kundenportal: Speicher ${NAMES[lvl]}, noch ${gb(free)} GB frei`,
     text:
       `Der Dateispeicher des Kundenportals ist zu ${Math.round((summary.total / quota) * 100)} Prozent belegt ` +
-      `(${gb(summary.total)} GB von ${gb(quota)} GB Planungsgrenze).\n\n` +
-      `Die Dateien liegen bei Backblaze und wachsen weiter, es geht nichts verloren. Die Planungsgrenze ist ein Richtwert ` +
-      `(STORAGE_QUOTA_GB in wrangler.toml). Bitte im Backblaze-Konto pruefen, ob die Kostengrenze (Caps & Alerts) und das ` +
-      `Zahlungsmittel noch passen, und die Planungsgrenze bei Bedarf anheben.\n\nDetails im Portal unter "Speicherplatz".`,
+      `(${gb(summary.total)} GB von ${gb(quota)} GB Planungsgrenze, noch ${gb(free)} GB frei).\n\n` +
+      `Es geht nichts verloren, Uploads funktionieren weiter. Die Dateien liegen bei Backblaze, der Speicher waechst dort ` +
+      `automatisch mit. So stocken Sie auf:\n\n` +
+      `1. Bei Backblaze (https://secure.backblaze.com) unter "Caps & Alerts" pruefen, dass die Kostengrenze hoch genug ist, ` +
+      `und unter "Billing", dass das Zahlungsmittel gueltig ist.\n` +
+      `2. Im Kundenportal unter "Verwaltung", Bereich "Speicherplatz", die Planungsgrenze hoeher setzen und speichern.\n\n` +
+      `Kosten: rund 7 US-Dollar pro Terabyte und Monat.`,
   });
-  await logActivity(env, { email: "system", action: "Speicherwarnung " + NAMES[lvl], detail: `${gb(summary.total)} GB` });
+  await logActivity(env, { email: "system", action: "Speicherwarnung: " + NAMES[lvl], detail: `${gb(free)} GB frei` });
   return { level: lvl, sent };
 }

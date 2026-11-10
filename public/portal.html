@@ -89,6 +89,33 @@ header{position:sticky;top:0;z-index:40;background:var(--header-bg);backdrop-fil
 .hero{background:color-mix(in srgb,var(--alt) 66%,transparent);border-bottom:1px solid var(--line);position:relative;overflow:hidden}
 .hero .wrap{padding:clamp(34px,5vw,54px) var(--gutter)}
 .kicker{font-size:.78rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-family:var(--mono)}
+.tabs{display:flex;gap:.3rem;flex-wrap:wrap;border-bottom:1px solid var(--line);margin:0 0 1.6rem}
+.tabs button{position:relative;font:inherit;font-size:.92rem;font-weight:600;padding:.75rem 1rem;border:0;border-bottom:3px solid transparent;margin-bottom:-1px;background:none;color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;gap:.45rem}
+.tabs button:hover{color:var(--text)}
+.tabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+.tabs .tbadge{min-width:1.35rem;height:1.35rem;padding:0 .35rem;border-radius:99px;background:var(--err);color:#fff;font-size:.72rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+@media (max-width: 1100px){ .handbuch-link .lbl{display:none} }
+@media (max-width: 640px){ .brand-text{display:none} .nav{gap:.5rem} .nav-actions{gap:.35rem} .tabs button{padding:.6rem .6rem;font-size:.86rem} }
+.tabs .tbadge[hidden],.tabs button[hidden]{display:none}
+.tab-hidden{display:none !important}
+.stat[data-goto]{cursor:pointer;transition:.15s}
+.stat[data-goto]:hover{border-color:var(--accent)}
+.tools-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-top:.4rem}
+.tool-card{display:flex;flex-direction:column;gap:.5rem;border:1px solid var(--line);border-radius:10px;padding:1.2rem;background:var(--alt);text-decoration:none;color:var(--text);transition:.15s}
+.tool-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.tool-card .ti{font-size:1.7rem;line-height:1}
+.tool-card b{font-size:1.05rem}
+.tool-card span{font-size:.88rem;color:var(--muted)}
+.tool-card em{font-style:normal;font-weight:600;color:var(--accent);font-size:.88rem;margin-top:auto}
+.sto-quota{display:flex;gap:.6rem;align-items:end;flex-wrap:wrap;margin:1.2rem 0 .3rem}
+.sto-quota label{display:block;font-size:.8rem;font-weight:600;margin-bottom:.3rem}
+.sto-quota input{width:9rem;font:inherit;padding:.5rem .65rem;border-radius:8px;border:1px solid var(--line-2);background:var(--surface);color:var(--text)}
+.sto-help{margin-top:1rem;border:1px solid var(--line);border-radius:8px;background:var(--alt)}
+.sto-help summary{cursor:pointer;padding:.75rem 1rem;font-weight:700;font-size:.92rem}
+.sto-help div{padding:0 1rem 1rem;font-size:.88rem}
+.sto-help ol{margin:.4rem 0 .6rem 1.2rem;padding:0}
+.sto-help li{margin:.3rem 0}
+.sto-help a{color:var(--accent)}
 .hero h1{font-weight:700;font-size:clamp(1.7rem,3.6vw,2.3rem);letter-spacing:-.02em;margin-top:.6rem}
 .who{margin-top:.9rem;font-size:.92rem;color:var(--muted);display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
 .badge{display:inline-flex;align-items:center;gap:.4rem;background:var(--chip);color:var(--accent);border:1px solid var(--line-2);padding:.28rem .7rem;border-radius:99px;font-size:.76rem;font-weight:600;font-family:var(--mono);letter-spacing:.03em}
@@ -246,15 +273,15 @@ tbody tr:hover{background:var(--surface-2)}
     </a>
     <div class="nav-actions">
       <a class="back-link handbuch-link" href="/portal" id="navPortalLink" style="display:none"><span>📁</span><span class="lbl">Kundenportal</span></a>
-      <a class="back-link handbuch-link" href="/dms" id="navDmsLink" style="display:none"><span>🗂️</span><span class="lbl">Dokumentenlenkung</span></a>
-      <a class="back-link handbuch-link" href="/qm-handbuch" id="navHandbuchLink" style="display:none"><span>📘</span><span class="lbl">QM-Handbuch</span></a>
-      <a class="back-link" href="https://alta-engineering.ch" target="_blank" rel="noopener">
-        <span class="lbl">Hauptwebsite</span>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg>
-      </a>
+      <a class="back-link handbuch-link" href="/dms" id="navDmsLink" title="Dokumentenlenkung" style="display:none"><span>🗂️</span><span class="lbl">Dokumentenlenkung</span></a>
+      <a class="back-link handbuch-link" href="/qm-handbuch" id="navHandbuchLink" title="QM-Handbuch" style="display:none"><span>📘</span><span class="lbl">QM-Handbuch</span></a>
       <button class="theme-toggle" id="tourBtn" aria-label="Rundgang starten" title="Rundgang: alles erklärt">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       </button>
+      <a class="back-link" href="/cdn-cgi/access/logout" id="logoutBtn" title="Abmelden">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+        <span class="lbl">Abmelden</span>
+      </a>
       <button class="theme-toggle" id="themeToggle" aria-label="Darstellung wechseln" title="Darstellung wechseln">
         <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
         <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
@@ -283,14 +310,14 @@ tbody tr:hover{background:var(--surface-2)}
 <div class="hero">
   <div class="wrap">
     <div class="kicker">Sicherer Bereich</div>
-    <h1>Dateien hochladen &amp; verwalten</h1>
+    <h1>Kundenportal</h1>
     <div class="who" id="whoBox">Lade Nutzerinfo …</div>
     <div class="stat-row" id="statRow" style="display:none">
-      <div class="stat"><div class="num" id="statFolders">–</div><div class="lbl">Kundenordner</div></div>
-      <div class="stat"><div class="num" id="statInquiries">–</div><div class="lbl">Neue Website-Anfragen</div></div>
-      <div class="stat"><div class="num" id="statRequests">–</div><div class="lbl">Offene Zugangsanfragen</div></div>
-      <div class="stat"><div class="num" id="statShares">–</div><div class="lbl">Aktive Freigaben</div></div>
-      <div class="stat"><div class="num" id="statStorage">–</div><div class="lbl">Speicher belegt</div></div>
+      <div class="stat" data-goto="files"><div class="num" id="statFolders">–</div><div class="lbl">Kundenordner</div></div>
+      <div class="stat" data-goto="requests"><div class="num" id="statInquiries">–</div><div class="lbl">Neue Website-Anfragen</div></div>
+      <div class="stat" data-goto="requests"><div class="num" id="statRequests">–</div><div class="lbl">Offene Zugangsanfragen</div></div>
+      <div class="stat" data-goto="share"><div class="num" id="statShares">–</div><div class="lbl">Aktive Freigaben</div></div>
+      <div class="stat" data-goto="admin"><div class="num" id="statStorage">–</div><div class="lbl">Speicher belegt</div></div>
     </div>
   </div>
 </div>
@@ -298,7 +325,15 @@ tbody tr:hover{background:var(--surface-2)}
 <main>
   <div class="wrap">
 
-    <div class="panel accent" id="storagePanel" style="display:none">
+    <nav class="tabs" id="tabBar" role="tablist" aria-label="Bereiche">
+      <button type="button" role="tab" data-tab="files" aria-selected="true">📁 Dateien</button>
+      <button type="button" role="tab" data-tab="share" aria-selected="false">🔗 Teilen</button>
+      <button type="button" role="tab" data-tab="requests" aria-selected="false">✉️ Anfragen <span class="tbadge" id="badgeRequests" hidden></span></button>
+      <button type="button" role="tab" data-tab="tools" aria-selected="false">🧰 Werkzeuge</button>
+      <button type="button" role="tab" data-tab="admin" aria-selected="false">⚙️ Verwaltung <span class="tbadge" id="badgeAdmin" hidden>!</span></button>
+    </nav>
+
+    <div class="panel accent" id="storagePanel" data-tab="admin" style="display:none">
       <div class="row" style="justify-content:space-between;align-items:baseline">
         <h2 style="margin:0">Speicherplatz</h2>
         <button class="iconbtn" id="storageRefresh" type="button">Neu berechnen</button>
@@ -311,29 +346,38 @@ tbody tr:hover{background:var(--surface-2)}
       <div class="sto-areas" id="stoAreas"></div>
       <h3 class="sto-h">Grösste Kundenordner</h3>
       <div class="sto-top" id="stoTop"></div>
+      <form class="sto-quota" id="stoQuotaForm">
+        <div>
+          <label for="stoQuota">Planungsgrenze in GB</label>
+          <input type="number" id="stoQuota" min="1" max="100000" step="1" inputmode="numeric">
+        </div>
+        <button class="btn-lg primary" type="submit" id="stoQuotaSave" style="padding:.55rem 1.1rem;font-size:.88rem">Speichern</button>
+        <span class="sub" id="stoQuotaMsg" style="margin:0"></span>
+      </form>
+      <details class="sto-help" id="stoHelp">
+        <summary>Speicher aufstocken: so geht es</summary>
+        <div>
+          <p style="margin:.2rem 0 .4rem">Die Dateien liegen bei <b>Backblaze B2</b>. Dort gibt es keinen festen Speicher, der Platz wächst mit jeder Datei automatisch mit und wird nach Verbrauch abgerechnet (rund 7 US-Dollar pro Terabyte und Monat). Es geht also nie etwas verloren und Uploads funktionieren immer. Aufstocken heisst nur:</p>
+          <ol>
+            <li><b>Backblaze prüfen:</b> bei <a href="https://secure.backblaze.com/user_signin.htm" target="_blank" rel="noopener">secure.backblaze.com</a> anmelden. Unter «Caps &amp; Alerts» die Kostengrenze hoch genug setzen (oder «No Cap»), unter «Billing» kontrollieren, dass die Firmenkarte gültig ist.</li>
+            <li><b>Planungsgrenze hier anheben:</b> oben im Feld «Planungsgrenze in GB» den neuen Wert eintragen, zum Beispiel 250 oder 1000, und «Speichern». Das gilt sofort, ohne Programmierung.</li>
+          </ol>
+          <p style="margin:0">Die Planungsgrenze ist ein Richtwert für Anzeige und Warnungen. Gewarnt wird ab 80 Prozent, ab 95 Prozent oder wenn weniger als 10 GB frei sind.</p>
+        </div>
+      </details>
       <p class="sto-foot" id="stoFoot"></p>
     </div>
 
-    <div class="panel" id="adminPanel" style="display:none">
+    <div class="panel" id="adminPanel" data-tab="files" style="display:none">
       <h2>Ordner ansehen</h2>
       <div class="sub">Alle Kundenordner auf einen Blick, zuletzt aktive zuerst. Anklicken für die Dateien.</div>
       <input type="search" class="filter-input" id="folderFilter" placeholder="Ordner suchen …" aria-label="Ordner suchen">
       <div class="folder-grid" id="folderGrid"></div>
     </div>
 
-    <div class="panel accent" id="viewerPanel">
-      <div class="row" style="justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
-        <div style="flex:1 1 320px">
-          <h2 style="margin:0 0 .3rem">3D-Viewer</h2>
-          <div class="sub" style="margin:0">CAD-Modelle (STEP, IGES, STL, OBJ) direkt im Browser ansehen, drehen, schneiden, messen und kommentieren. Eigene Dateien werden dabei nicht hochgeladen. Dateien im Portal öffnen Sie in der Liste unten mit «3D ansehen».</div>
-        </div>
-        <a class="back-link handbuch-link" href="/viewer" style="flex:0 0 auto"><span>🧊</span><span>3D-Viewer öffnen</span></a>
-      </div>
-    </div>
-
-    <div class="panel">
+    <div class="panel" data-tab="files">
       <h2>Datei hochladen</h2>
-      <div class="sub">Alle Dateitypen erlaubt, auch grosse CAD-/Plandateien. CAD-Modelle (STEP, STL, OBJ) lassen sich im <a href="/viewer" style="color:var(--accent);text-decoration:underline">3D-Viewer</a> ansehen.</div>
+      <div class="sub">Alle Dateitypen erlaubt, auch grosse CAD-/Plandateien. 3D-Modelle öffnen Sie in der Liste mit «3D ansehen», teilen mit «Teilen».</div>
 
       <div class="row" id="uploadTargetRow" style="display:none">
         <label class="small" for="uploadTarget">Hochladen für Ordner</label>
@@ -349,7 +393,7 @@ tbody tr:hover{background:var(--surface-2)}
       <div class="uploads" id="uploadList"></div>
     </div>
 
-    <div class="panel">
+    <div class="panel" data-tab="files">
       <div class="row" style="justify-content:space-between;align-items:baseline">
         <h2 id="listTitle" style="margin:0">Meine Dateien</h2>
         <a class="iconbtn" id="zipDownloadLink" href="#" style="display:none">Ordner als ZIP herunterladen</a>
@@ -372,9 +416,26 @@ tbody tr:hover{background:var(--surface-2)}
       </div>
     </div>
 
-    <div class="panel" id="sharesPanel" style="display:none">
+    <div class="panel" id="toolsPanel" data-tab="tools">
+      <h2>Werkzeuge</h2>
+      <div class="sub">Hilfsmittel für den Ingenieuralltag. Alles läuft im Browser, eigene Dateien und Eingaben verlassen den Rechner nicht.</div>
+      <div class="tools-grid">
+        <a class="tool-card" href="/viewer" target="_blank" rel="noopener">
+          <span class="ti">🧊</span><b>3D-Viewer</b>
+          <span>CAD-Modelle (STEP, IGES, STL, OBJ) ansehen, drehen, schneiden, messen und kommentieren. Dateien aus dem Portal öffnen Sie im Reiter «Dateien» mit «3D ansehen».</span>
+          <em>Öffnen →</em>
+        </a>
+        <a class="tool-card" href="/rechner" target="_blank" rel="noopener">
+          <span class="ti">📐</span><b>Ingenieur-Rechner</b>
+          <span>Passungen nach ISO 286, Gewicht von Profilen und Blechen, Biegebalken, Schraubenkräfte und Einheiten. Mit Ergebnis zum Kopieren für Bericht oder Offerte.</span>
+          <em>Öffnen →</em>
+        </a>
+      </div>
+    </div>
+
+    <div class="panel" id="sharesPanel" data-tab="share" style="display:none">
       <h2>Freigabe-Links</h2>
-      <div class="sub">Links für Personen ohne Kundenportal-Zugang, z.B. für eine Projektabgabe. Jeder Link erlaubt nur den Download der ausgewählten Datei(en) und läuft automatisch ab.</div>
+      <div class="sub">So teilen Sie eine Datei: Reiter «Dateien», bei der Datei auf «Teilen» klicken, Gültigkeit wählen, Link kopieren oder per E-Mail senden. Empfänger brauchen kein Login, 3D-Modelle können sie direkt im Browser ansehen. Hier sehen Sie alle aktiven Links und können sie zurückziehen.</div>
       <div id="sharesTableWrap" class="table-wrap">
         <table>
           <thead>
@@ -386,7 +447,7 @@ tbody tr:hover{background:var(--surface-2)}
       </div>
     </div>
 
-    <div class="panel accent" id="handbuchPanel" style="display:none">
+    <div class="panel accent" id="handbuchPanel" data-tab="share" style="display:none">
       <h2>📘 QM-Handbuch</h2>
       <div class="sub">Nur Admins haben direkten Zugriff. Für alle anderen (Mitarbeitende oder Kunden) hier einen Freigabe-Link erstellen, kein Login nötig, jederzeit zurückziehbar.</div>
       <div class="row">
@@ -404,7 +465,7 @@ tbody tr:hover{background:var(--surface-2)}
       </div>
     </div>
 
-    <div class="panel accent" id="inquiriesPanel" style="display:none">
+    <div class="panel accent" id="inquiriesPanel" data-tab="requests" style="display:none">
       <h2>Anfragen von der Website</h2>
       <div class="sub">Nachrichten aus dem Kontaktformular von alta-engineering.ch. Neue stehen oben.</div>
       <div class="notice-warn" id="inqMailWarn" style="display:none"><b>E-Mail-Versand nicht eingerichtet.</b> Neue Anfragen melden sich nur hier, bitte regelmässig nachsehen.</div>
@@ -419,7 +480,7 @@ tbody tr:hover{background:var(--surface-2)}
       </div>
     </div>
 
-    <div class="panel" id="accessRequestsPanel" style="display:none">
+    <div class="panel" id="accessRequestsPanel" data-tab="requests" style="display:none">
       <h2>Zugangsanfragen</h2>
       <div class="sub">Personen, die über «Zugang anfragen» auf der Website um Zugriff gebeten haben.</div>
       <div id="accessRequestsTableWrap" class="table-wrap">
@@ -433,7 +494,7 @@ tbody tr:hover{background:var(--surface-2)}
       </div>
     </div>
 
-    <div class="panel" id="activityPanel" style="display:none">
+    <div class="panel" id="activityPanel" data-tab="admin" style="display:none">
       <h2>Aktivität</h2>
       <div class="sub">Was zuletzt im Portal passiert ist, und wer es gemacht hat.</div>
       <div id="activityTableWrap" class="table-wrap">
@@ -447,7 +508,7 @@ tbody tr:hover{background:var(--surface-2)}
       </div>
     </div>
 
-    <div class="panel" id="backupPanel" style="display:none">
+    <div class="panel" id="backupPanel" data-tab="admin" style="display:none">
       <h2>Sicherung</h2>
       <div class="sub">Die Daten der Dokumentenlenkung, die Freigabe-Links und die Zugangsanfragen werden jede Nacht automatisch gesichert und 30 Tage aufbewahrt. Hier siehst du die letzten Sicherungen oder löst eine von Hand aus.</div>
       <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin:.2rem 0 1rem">
@@ -464,7 +525,7 @@ tbody tr:hover{background:var(--surface-2)}
       </div>
     </div>
 
-    <p class="foot-note">alta-engineering.ch · Kundenportal läuft geschützt über Cloudflare Access</p>
+    <p class="foot-note"><a href="https://alta-engineering.ch" target="_blank" rel="noopener">alta-engineering.ch</a> · Kundenportal läuft geschützt über Cloudflare Access · <a href="/cdn-cgi/access/logout">Abmelden</a></p>
   </div>
 </main>
 
@@ -539,6 +600,47 @@ tbody tr:hover{background:var(--surface-2)}
     });
   }
 
+  // ---------- Reiter ----------
+  var TABS = ['files', 'share', 'requests', 'tools', 'admin'];
+  var TAB_HASH = { files: 'dateien', share: 'teilen', requests: 'anfragen', tools: 'werkzeuge', admin: 'verwaltung' };
+  function tabAvailable(t){
+    if (t === 'tools' || t === 'files') return true;
+    var panels = document.querySelectorAll('.panel[data-tab="' + t + '"]');
+    for (var i = 0; i < panels.length; i++) if (panels[i].style.display !== 'none') return true;
+    return false;
+  }
+  function showTab(t, keepScroll){
+    if (TABS.indexOf(t) < 0 || !tabAvailable(t)) t = 'files';
+    document.querySelectorAll('.panel[data-tab]').forEach(function(p){ p.classList.toggle('tab-hidden', p.getAttribute('data-tab') !== t); });
+    document.querySelectorAll('#tabBar [data-tab]').forEach(function(b){
+      b.hidden = !tabAvailable(b.getAttribute('data-tab'));
+      b.setAttribute('aria-selected', b.getAttribute('data-tab') === t ? 'true' : 'false');
+    });
+    try { history.replaceState(null, '', '#' + TAB_HASH[t]); } catch(e){}
+    try { localStorage.setItem('portalTab', t); } catch(e){}
+    if (!keepScroll) { var bar = document.getElementById('tabBar'); if (bar && bar.getBoundingClientRect().top < 0) bar.scrollIntoView({behavior:'smooth'}); }
+  }
+  function initialTab(){
+    var h = (location.hash || '').replace('#', '');
+    for (var k in TAB_HASH) if (TAB_HASH[k] === h) return k;
+    try { return localStorage.getItem('portalTab') || 'files'; } catch(e){ return 'files'; }
+  }
+  document.querySelectorAll('#tabBar [data-tab]').forEach(function(b){
+    b.addEventListener('click', function(){ showTab(b.getAttribute('data-tab')); });
+  });
+  document.querySelectorAll('.stat[data-goto]').forEach(function(st){
+    st.addEventListener('click', function(){ showTab(st.getAttribute('data-goto')); document.getElementById('tabBar').scrollIntoView({behavior:'smooth'}); });
+  });
+  var startTab = initialTab();
+  showTab('files', true);
+  function updateRequestBadge(){
+    var a = parseInt(document.getElementById('statInquiries').textContent, 10) || 0;
+    var b = parseInt(document.getElementById('statRequests').textContent, 10) || 0;
+    var el = document.getElementById('badgeRequests');
+    el.textContent = a + b;
+    el.hidden = !(a + b);
+  }
+
   function loadMe(){
     return api('/api/me').then(function(me){
       state.email = me.email;
@@ -554,7 +656,6 @@ tbody tr:hover{background:var(--surface-2)}
 
       if (me.isAdmin){
         document.getElementById('statRow').style.display = '';
-        document.getElementById('navPortalLink').style.display = '';
         document.getElementById('navDmsLink').style.display = '';
         document.getElementById('navHandbuchLink').style.display = '';
         document.getElementById('adminPanel').style.display = '';
@@ -566,6 +667,17 @@ tbody tr:hover{background:var(--surface-2)}
         document.getElementById('inquiriesPanel').style.display = '';
         loadInquiries();
         loadStorage(false).catch(function(){});
+        document.getElementById('stoQuotaForm').addEventListener('submit', function(e){
+          e.preventDefault();
+          var v = document.getElementById('stoQuota').value;
+          var msg = document.getElementById('stoQuotaMsg');
+          var btn = document.getElementById('stoQuotaSave');
+          btn.disabled = true; msg.textContent = 'Wird gespeichert …';
+          api('/api/storage/quota', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ gb: v }) })
+            .then(function(){ msg.textContent = 'Gespeichert. Gilt ab sofort.'; return loadStorage(false); })
+            .catch(function(err){ msg.textContent = err.message; })
+            .then(function(){ btn.disabled = false; });
+        });
         document.getElementById('storageRefresh').addEventListener('click', function(){
           var b = this; b.disabled = true; b.textContent = 'Berechne …';
           loadStorage(true).catch(function(e){ alert(e.message); }).then(function(){ b.disabled = false; b.textContent = 'Neu berechnen'; });
@@ -580,6 +692,7 @@ tbody tr:hover{background:var(--surface-2)}
       document.getElementById('sharesPanel').style.display = '';
       loadShares();
       refreshList();
+      showTab(startTab, true);
     });
   }
 
@@ -592,6 +705,7 @@ tbody tr:hover{background:var(--surface-2)}
       var open = res.inquiries.filter(function(i){ return i.status === 'neu'; }).length;
       var st = document.getElementById('statInquiries');
       if (st) st.textContent = open;
+      updateRequestBadge();
       rows.innerHTML = '';
       empty.style.display = res.inquiries.length ? 'none' : '';
       res.inquiries.forEach(function(i){
@@ -638,6 +752,7 @@ tbody tr:hover{background:var(--surface-2)}
     api('/api/access-requests').then(function(res){
       var statEl = document.getElementById('statRequests');
       if (statEl) statEl.textContent = res.requests.length;
+      updateRequestBadge();
       var rows = document.getElementById('accessRequestRows');
       var empty = document.getElementById('accessRequestsEmptyState');
       rows.innerHTML = '';
@@ -696,14 +811,22 @@ tbody tr:hover{background:var(--surface-2)}
       document.getElementById('stoFill').style.width = Math.min(100, d.percent) + '%';
       document.getElementById('stoFree').textContent = d.used >= d.quota ? 'Die Planungsgrenze ist erreicht. Uploads funktionieren weiter.' : 'Noch frei: ' + gb(d.free);
       var warn = document.getElementById('stoWarn');
+      var lowFree = d.free < (d.lowFree || 10 * 1073741824);
       if (d.level >= 1) {
         warn.style.display = '';
-        warn.textContent = d.level >= 3
-          ? 'Die Planungsgrenze ist überschritten. Es geht nichts verloren, Backblaze speichert weiter. Bitte im Backblaze-Konto Kostengrenze und Zahlungsmittel prüfen und die Planungsgrenze (STORAGE_QUOTA_GB) anheben.'
-          : 'Der Speicher ist zu ' + Math.round(d.percent) + ' Prozent belegt. Bitte rechtzeitig die Planungsgrenze anheben (Anleitung im Entwicklerhandbuch, Kapitel 5.16).';
+        warn.innerHTML = d.level >= 3
+          ? '<b>Planungsgrenze erreicht.</b> Es geht nichts verloren, Backblaze speichert weiter. Bitte jetzt aufstocken (Anleitung unten).'
+          : lowFree
+            ? '<b>Achtung: nur noch ' + esc(gb(d.free)) + ' frei.</b> Bitte bald aufstocken (Anleitung unten).'
+            : '<b>Der Speicher ist zu ' + Math.round(d.percent) + ' Prozent belegt.</b> Bitte rechtzeitig aufstocken (Anleitung unten).';
+        document.getElementById('stoHelp').open = true;
       } else {
         warn.style.display = 'none';
       }
+      var bAdm = document.getElementById('badgeAdmin');
+      if (bAdm) bAdm.hidden = d.level < 2;
+      var qIn = document.getElementById('stoQuota');
+      if (qIn && document.activeElement !== qIn) qIn.value = d.quotaGb || Math.round(d.quota / 1073741824);
       if (d.truncated) { warn.style.display = ''; warn.textContent = 'Es sind so viele Dateien vorhanden, dass nicht alle gezählt werden konnten. Die Zahlen sind eine Untergrenze.'; }
       var areas = document.getElementById('stoAreas');
       areas.innerHTML = '';
@@ -724,7 +847,7 @@ tbody tr:hover{background:var(--surface-2)}
         top.appendChild(row);
       });
       if (!d.folders.length) top.innerHTML = '<div class="sub">Noch keine Kundendateien.</div>';
-      document.getElementById('stoFoot').textContent = 'Stand ' + fmtDate(d.computedAt) + ', wird täglich nachts aktualisiert. Die Planungsgrenze legt fest, wann gewarnt wird, sie verhindert keine Uploads. Backblaze rechnet nach Verbrauch ab.';
+      document.getElementById('stoFoot').textContent = 'Stand ' + fmtDate(d.computedAt) + ', wird täglich nachts aktualisiert.';
       var st = document.getElementById('statStorage');
       if (st) st.textContent = fmtSize(d.used);
     });
@@ -1229,12 +1352,14 @@ tbody tr:hover{background:var(--surface-2)}
 <script>
 (function(){
   var STEPS = [
-    { icon: '📁', title: 'Kundenportal', text: 'Hier tauschst du Dateien mit uns aus. Kund:innen sehen nur ihren eigenen Ordner, Admins (Stefan/Michael) sehen alle Ordner.' },
-    { icon: '⬆️', title: 'Datei hochladen', text: 'Einfach in die Fläche ziehen oder klicken. Auch grosse CAD-/Plandateien sind kein Problem, der Upload läuft direkt zu unserem Speicher.' },
-    { icon: '🔗', title: 'Freigabe-Links', text: 'Für Personen ohne eigenen Zugang, z.B. bei einer Projektabgabe: Link erstellen, läuft automatisch ab und ist jederzeit zurückziehbar.' },
-    { icon: '📘', title: 'QM-Handbuch', text: 'Admins finden hier oben auch den direkten Zugriff aufs QM-Handbuch und können dafür Freigabe-Links erstellen.' },
-    { icon: '🗂️', title: 'Dokumentenlenkung', text: 'Für die interne Dokumentenverwaltung mit Versionen und Freigabestatus (Entwurf/Geprüft/Freigegeben) gibt es oben einen eigenen Bereich.' }
+    { icon: '📁', title: 'Dateien', text: 'Im Reiter «Dateien» tauschst du Dateien mit uns aus: hineinziehen oder klicken zum Hochladen. Kund:innen sehen nur ihren eigenen Ordner, Admins sehen alle.' },
+    { icon: '🔗', title: 'Teilen', text: 'Bei jeder Datei auf «Teilen» klicken, Gültigkeit wählen, Link kopieren oder per E-Mail senden. Empfänger brauchen kein Login. Im Reiter «Teilen» siehst du alle Links und kannst sie zurückziehen.' },
+    { icon: '🧰', title: 'Werkzeuge', text: 'Der 3D-Viewer zeigt CAD-Modelle im Browser, der Ingenieur-Rechner hilft bei Passungen, Gewichten, Biegebalken, Schrauben und Einheiten.' },
+    { icon: '✉️', title: 'Anfragen', text: 'Admins sehen hier Nachrichten aus dem Kontaktformular und Zugangsanfragen. Die rote Zahl am Reiter zeigt, wie viel offen ist.' },
+    { icon: '⚙️', title: 'Verwaltung', text: 'Speicherplatz (mit Anleitung zum Aufstocken), Sicherungen und Aktivität. Ein rotes Ausrufezeichen am Reiter heisst: bitte Speicher anschauen.' },
+    { icon: '🚪', title: 'Abmelden', text: 'Oben rechts «Abmelden», besonders an fremden oder geteilten Rechnern.' }
   ];
+
   var idx = 0;
   var overlay = document.getElementById('tourOverlay');
   var iconEl = document.getElementById('tourIcon');

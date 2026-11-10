@@ -1,7 +1,7 @@
 // Prueft die Speicheruebersicht (src/storage.js) ohne Netzwerk, mit nachgebauter Dateiliste und KV.
 // Aufruf: node scripts/test-storage.mjs
 import assert from "node:assert/strict";
-import { computeStorage, refreshStorage, describe, level, checkStorageAlert, quotaBytes } from "../src/storage.js";
+import { computeStorage, refreshStorage, describe, level, checkStorageAlert, quotaBytes, getQuota, parseQuotaGb, setQuota } from "../src/storage.js";
 
 const GB = 1024 * 1024 * 1024;
 const kv = () => {
@@ -36,13 +36,18 @@ assert.equal(s.folders[1].lastUploaded, "2026-10-05T10:00:00Z");
 assert.equal(quotaBytes({ STORAGE_QUOTA_GB: "10" }), 10 * GB);
 assert.equal(quotaBytes({}), 100 * GB);
 assert.equal(quotaBytes({ STORAGE_QUOTA_GB: "abc" }), 100 * GB);
-assert.equal(level(7.9 * GB, 10 * GB), 0);
-assert.equal(level(8 * GB, 10 * GB), 1);
-assert.equal(level(9.5 * GB, 10 * GB), 2);
-assert.equal(level(10 * GB, 10 * GB), 3);
+assert.equal(level(79 * GB, 100 * GB), 0);
+assert.equal(level(80 * GB, 100 * GB), 1);
+assert.equal(level(89 * GB, 100 * GB), 1);
+assert.equal(level(90.5 * GB, 100 * GB), 2, "weniger als 10 GB frei warnt");
+assert.equal(level(95 * GB, 100 * GB), 2);
+assert.equal(level(100 * GB, 100 * GB), 3);
+assert.equal(level(950 * GB, 1000 * GB), 2, "95 Prozent bei grosser Grenze");
+assert.equal(level(985 * GB, 1000 * GB), 2);
+assert.equal(level(800 * GB, 1000 * GB), 1);
 const d = describe(env(), s);
 assert.equal(d.percent, 75);
-assert.equal(d.level, 0);
+assert.equal(d.level, 2, "bei 10 GB Grenze sind weniger als 10 GB frei");
 assert.ok(Math.abs(d.free - (10 * GB - s.total)) < 1);
 
 // Zwischenspeicher: ohne force wird wiederverwendet, mit force erst nach 30 Sekunden neu berechnet
@@ -62,22 +67,39 @@ assert.equal(calls, 2, "force nach einer Minute rechnet neu");
 // Warnungen: nur beim Ansteigen, wieder frei nach dem Absinken
 const sent = [];
 const ctx = { sendMail: async (_e, m) => { sent.push(m.subject); return true; }, adminEmails: ["x@y.ch"], logActivity: async () => {} };
-const ea = env();
-let r = await checkStorageAlert(ea, { total: 5 * GB }, ctx);
+const ea = env({ STORAGE_QUOTA_GB: "100" });
+let r = await checkStorageAlert(ea, { total: 50 * GB }, ctx);
 assert.deepEqual([r.level, r.sent, sent.length], [0, false, 0]);
-r = await checkStorageAlert(ea, { total: 8.2 * GB }, ctx);
+r = await checkStorageAlert(ea, { total: 82 * GB }, ctx);
 assert.deepEqual([r.level, r.sent], [1, true]);
-r = await checkStorageAlert(ea, { total: 8.4 * GB }, ctx);
+r = await checkStorageAlert(ea, { total: 84 * GB }, ctx);
 assert.equal(r.sent, false, "gleiche Stufe meldet nicht noch einmal");
-r = await checkStorageAlert(ea, { total: 9.7 * GB }, ctx);
+r = await checkStorageAlert(ea, { total: 91 * GB }, ctx);
 assert.deepEqual([r.level, r.sent], [2, true]);
-r = await checkStorageAlert(ea, { total: 10.5 * GB }, ctx);
+r = await checkStorageAlert(ea, { total: 105 * GB }, ctx);
 assert.deepEqual([r.level, r.sent], [3, true]);
-r = await checkStorageAlert(ea, { total: 4 * GB }, ctx);
+r = await checkStorageAlert(ea, { total: 40 * GB }, ctx);
 assert.deepEqual([r.level, r.sent], [0, false]);
-r = await checkStorageAlert(ea, { total: 8.5 * GB }, ctx);
+r = await checkStorageAlert(ea, { total: 85 * GB }, ctx);
 assert.equal(r.sent, true, "nach dem Absinken warnt es wieder");
 assert.equal(sent.length, 4);
 assert.match(sent[0], /80 Prozent/);
+assert.match(sent[1], /noch 9,0 GB frei/);
+
+// Planungsgrenze aus dem Portal hat Vorrang vor wrangler.toml
+assert.equal(parseQuotaGb("250"), 250);
+assert.equal(parseQuotaGb("1,5"), 2);
+assert.equal(parseQuotaGb("0"), null);
+assert.equal(parseQuotaGb("abc"), null);
+assert.equal(parseQuotaGb(""), null);
+assert.equal(parseQuotaGb("200000"), null);
+const eq = env({ STORAGE_QUOTA_GB: "100" });
+assert.deepEqual(await getQuota(eq), { bytes: 100 * GB, gb: 100, source: "wrangler" });
+await setQuota(eq, 500);
+assert.deepEqual(await getQuota(eq), { bytes: 500 * GB, gb: 500, source: "portal" });
+const dq = describe(eq, { ...s, total: 495 * GB }, await getQuota(eq));
+assert.equal(dq.quotaGb, 500);
+assert.equal(dq.quotaSource, "portal");
+assert.equal(dq.level, 2, "5 GB frei bei 500 GB Grenze warnt");
 
 console.log("Speicheruebersicht: alle Pruefungen bestanden");
