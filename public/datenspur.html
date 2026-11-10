@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Datenspur · Alta Engineering AG</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" href="/fonts.css">
+<script>try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+<style>
+:root{
+  color-scheme: light;
+  --bg:#ffffff; --alt:#f5f7f9; --surface:#ffffff; --chip:#eaf1f8;
+  --text:#1b2531; --muted:#586573; --line:#e4e8ed; --line-2:#d3d9e0;
+  --accent:#215d92; --btn:#215d92; --btn-hover:#184a78;
+  --header-bg:rgba(255,255,255,.9); --shadow:rgba(20,30,45,.09);
+  --ok:#1c7a4a; --warn:#9a6a00; --err:#b23a2f;
+  --maxw:1180px; --gutter:clamp(16px,4.5vw,56px); --radius:10px;
+  --font:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#0d1218; --alt:#121a23; --surface:#16202b; --chip:rgba(96,168,235,.14);
+  --text:#e7edf3; --muted:#94a3b2; --line:#22303c; --line-2:#2f3f4d;
+  --accent:#5aa6ec; --btn:#2f74b8; --btn-hover:#3d86cd;
+  --header-bg:rgba(13,18,24,.82); --shadow:rgba(0,0,0,.5);
+  --ok:#4fce8f; --warn:#e0b34f; --err:#ea6f63;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#0d1218; --alt:#121a23; --surface:#16202b; --chip:rgba(96,168,235,.14);
+    --text:#e7edf3; --muted:#94a3b2; --line:#22303c; --line-2:#2f3f4d;
+    --accent:#5aa6ec; --btn:#2f74b8; --btn-hover:#3d86cd;
+    --header-bg:rgba(13,18,24,.82); --shadow:rgba(0,0,0,.5);
+    --ok:#4fce8f; --warn:#e0b34f; --err:#ea6f63;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);color:var(--text);background:var(--bg);line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:var(--maxw);margin:0 auto;padding-left:var(--gutter);padding-right:var(--gutter)}
+header{position:sticky;top:0;z-index:40;background:var(--header-bg);backdrop-filter:blur(9px);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:1rem;height:64px}
+.brand{display:flex;align-items:center;gap:.7rem;line-height:1.05}
+.brand img{height:30px;width:auto;border-radius:4px}
+.brand b{display:block;font-size:1.05rem}
+.brand span{font-size:.66rem;color:var(--accent);letter-spacing:.08em;font-family:var(--mono);text-transform:uppercase}
+.nav-actions{display:flex;gap:.5rem;align-items:center}
+.nav-actions a{display:inline-flex;align-items:center;gap:.4rem;font-size:.86rem;font-weight:600;padding:.5rem .8rem;border:1px solid var(--line-2);border-radius:8px}
+.nav-actions a:hover{border-color:var(--accent);color:var(--accent)}
+.nav-actions svg{width:16px;height:16px}
+h1{font-size:clamp(1.5rem,3.2vw,2.1rem);letter-spacing:-.02em;margin:2rem 0 .3rem}
+.lead{color:var(--muted);max-width:62rem;margin-bottom:1.4rem}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:clamp(1rem,3vw,1.6rem);box-shadow:0 10px 26px var(--shadow);margin-bottom:1.4rem}
+.card h2{font-size:1.2rem;margin-bottom:.2rem}
+.sub{color:var(--muted);font-size:.9rem;margin-bottom:1rem}
+.row{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center}
+input[type=search],input[type=text]{flex:1 1 280px;font:inherit;font-size:.95rem;padding:.6rem .75rem;border-radius:8px;border:1px solid var(--line-2);background:var(--surface);color:var(--text)}
+.btn{font:inherit;font-size:.9rem;font-weight:700;padding:.6rem 1.1rem;border-radius:8px;border:1px solid transparent;background:var(--btn);color:#fff;cursor:pointer}
+.btn:hover{background:var(--btn-hover)}
+.btn.ghost{background:transparent;color:var(--text);border-color:var(--line-2)}
+.btn.ghost:hover{border-color:var(--accent);color:var(--accent)}
+.btn:disabled{opacity:.6;cursor:wait}
+.drop{display:block;border:2px dashed var(--line-2);border-radius:10px;padding:1.6rem;text-align:center;color:var(--muted);cursor:pointer;transition:.15s}
+.drop:hover,.drop.over{border-color:var(--accent);color:var(--accent);background:var(--chip)}
+.drop input{display:none}
+.prog{height:6px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:.8rem}
+.prog span{display:block;height:100%;width:0;background:var(--accent)}
+.out{margin-top:1rem}
+.grp{border:1px solid var(--line);border-radius:8px;margin-bottom:.8rem;overflow:hidden}
+.grp h3{font-size:.92rem;padding:.6rem .9rem;background:var(--alt);display:flex;justify-content:space-between;gap:1rem}
+.grp h3 span{color:var(--muted);font-weight:600}
+.grp table{width:100%;border-collapse:collapse;font-size:.88rem}
+.grp td{padding:.45rem .9rem;border-top:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}
+.grp td.m{color:var(--muted);white-space:nowrap}
+.tag{display:inline-block;padding:.1rem .55rem;border-radius:99px;font-size:.75rem;font-weight:700;background:var(--chip);color:var(--accent);white-space:nowrap}
+.tag.ok{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+.tag.warn{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.tag.err{background:color-mix(in srgb,var(--err) 16%,transparent);color:var(--err)}
+.big{font-size:1.15rem;font-weight:700;margin-bottom:.6rem}
+.note{font-size:.8rem;color:var(--muted);margin-top:.7rem}
+.err-msg{color:var(--err);font-weight:600}
+.mono{font-family:var(--mono);font-size:.82rem;overflow-wrap:anywhere}
+.links{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.6rem;margin-top:.9rem}
+.links a{display:block;border:1px solid var(--line);border-radius:8px;padding:.6rem .8rem;background:var(--alt);font-size:.88rem}
+.links a:hover{border-color:var(--accent);color:var(--accent)}
+.links a b{display:block}
+.links a span{color:var(--muted);font-size:.8rem}
+.warnbox{border:1px solid color-mix(in srgb,var(--warn) 50%,transparent);background:color-mix(in srgb,var(--warn) 10%,transparent);border-radius:8px;padding:.7rem .9rem;font-size:.86rem;margin-top:.8rem}
+footer{color:var(--muted);font-size:.8rem;padding:1rem 0 2.5rem}
+@media (max-width:640px){ .nav-actions .lbl{display:none} .grp td.m{white-space:normal} }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="/"><img src="https://alta-engineering.ch/logo.png" alt=""><div><b>Alta Engineering AG</b><span>Datenspur</span></div></a>
+    <div class="nav-actions">
+      <a href="/" title="Zurück zum Kundenportal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg><span class="lbl">Portal</span></a>
+      <a href="/cdn-cgi/access/logout" title="Abmelden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg><span class="lbl">Abmelden</span></a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <h1>Datenspur</h1>
+  <p class="lead">Eigene Daten rückwärts verfolgen: Woher stammt eine Zeichnung, die irgendwo aufgetaucht ist? Wo kommt eine Nummer, ein Name oder eine E-Mail-Adresse bei uns vor? Gesucht wird nur in den Daten des Kundenportals. Nur für Admins, jede Suche steht im Aktivitätsprotokoll.</p>
+
+  <section class="card">
+    <h2>Datei rückwärts suchen</h2>
+    <p class="sub">Eine Datei hierher ziehen, zum Beispiel eine Zeichnung, die ein Dritter geschickt hat. Der Browser berechnet ihren digitalen Fingerabdruck, die Datei selbst wird nicht hochgeladen. Danach zeigt die Datenspur, ob genau diese Datei bei uns liegt, in welchem Ordner, und über welchen Freigabe-Link sie hinausging.</p>
+    <label class="drop" id="drop">
+      <input type="file" id="fileIn">
+      <b>Datei hierher ziehen</b> oder klicken zum Auswählen
+      <div class="prog" id="prog" hidden><span id="progBar"></span></div>
+    </label>
+    <div class="out" id="fileOut"></div>
+  </section>
+
+  <section class="card">
+    <h2>Nummer, Name oder E-Mail suchen</h2>
+    <p class="sub">Durchsucht Dateinamen in allen Ordnern, Freigabe-Links, Anfragen über die Website, Zugangsanfragen, die Dokumentenlenkung, Kommentare im 3D-Viewer und das Aktivitätsprotokoll. Telefonnummern werden in jeder Schreibweise gefunden (+41 79 … oder 079 …).</p>
+    <form class="row" id="qForm">
+      <input type="search" id="q" placeholder="z.B. ZN-4711, Müller, kunde@firma.ch, 079 123 45 67" aria-label="Suchbegriff" minlength="2" required>
+      <button class="btn" type="submit" id="qBtn">Suchen</button>
+    </form>
+    <div class="out" id="qOut"></div>
+  </section>
+
+  <section class="card">
+    <h2>Im Internet nachsehen</h2>
+    <p class="sub">Fertige Suchanfragen, um zu prüfen, ob eine Zeichnungsnummer, ein Projektname oder eine Adresse öffentlich auftaucht. Die Links öffnen die jeweilige Suchmaschine, wir speichern nichts.</p>
+    <div class="row">
+      <input type="text" id="w" placeholder="Begriff, z.B. eine Zeichnungsnummer oder eine E-Mail-Adresse" aria-label="Begriff für die Websuche">
+      <label style="font-size:.86rem;display:flex;gap:.4rem;align-items:center"><input type="checkbox" id="wOwn" checked> eigene Website ausschliessen</label>
+    </div>
+    <div class="links" id="wLinks"></div>
+    <div class="warnbox"><b>Bilder rückwärts suchen</b> (Google Lens, TinEye, Bing): Dort lädt man das Bild bei einem fremden Anbieter hoch. Für vertrauliche Zeichnungen deshalb nur einen unkritischen Ausschnitt verwenden, oder gar nicht.
+      <div class="links"><a href="https://lens.google.com/" target="_blank" rel="noopener noreferrer"><b>Google Lens</b><span>Bild hochladen</span></a><a href="https://tineye.com/" target="_blank" rel="noopener noreferrer"><b>TinEye</b><span>Bild hochladen, findet Kopien</span></a><a href="https://www.bing.com/visualsearch" target="_blank" rel="noopener noreferrer"><b>Bing Visual Search</b><span>Bild hochladen</span></a></div>
+    </div>
+  </section>
+
+  <footer>Alta Engineering AG · Datenspur · Durchsucht werden die Daten des Kundenportals, nicht Mailpostfächer oder Laufwerke.</footer>
+</main>
+
+<script src="/md5.js"></script>
+<script>
+(function(){
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+  function date(iso){ if (!iso) return ''; var d = new Date(iso); return isNaN(d) ? esc(iso) : d.toLocaleDateString('de-CH') + ' ' + d.toLocaleTimeString('de-CH', {hour:'2-digit', minute:'2-digit'}); }
+  function size(b){ if (!(b >= 0)) return ''; var u = ['B','KB','MB','GB']; var i = 0; while (b >= 1024 && i < 3){ b /= 1024; i++; } return b.toLocaleString('de-CH', {maximumFractionDigits: 1}) + ' ' + u[i]; }
+  function api(path, body){
+    return fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), credentials: 'same-origin' })
+      .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(d){ if (!r.ok) throw new Error(d.error || ('Fehler ' + r.status)); return d; }); });
+  }
+  function grp(title, rows, count){
+    if (!rows.length) return '';
+    return '<div class="grp"><h3>' + esc(title) + '<span>' + (count != null ? count : rows.length) + '</span></h3><table>' + rows.join('') + '</table></div>';
+  }
+  function tr(cells){ return '<tr>' + cells.map(function(c, i){ return '<td' + (i === 0 ? ' class="m"' : '') + '>' + c + '</td>'; }).join('') + '</tr>'; }
+  function shareRow(s){
+    var st = s.active ? '<span class="tag warn">aktiv, öffentlich erreichbar</span>' : s.revoked ? '<span class="tag">zurückgezogen</span>' : '<span class="tag">abgelaufen</span>';
+    return tr([date(s.createdAt), '<b>' + esc(s.label || '(ohne Bezeichnung)') + '</b> ' + st + '<br>erstellt von ' + esc(s.createdBy) + ', ' + s.downloads + ' Download' + (s.downloads === 1 ? '' : 's') + (s.lastDownloadAt ? ', zuletzt ' + date(s.lastDownloadAt) : '') + '<br><span class="mono">' + esc(s.files.join(', ')) + '</span>']);
+  }
+  function fileRow(f){
+    var where = f.dokument ? 'Dokumentenlenkung: <b>' + esc(f.dokument.nummer + ' ' + f.dokument.titel) + '</b>' : 'Ordner <b>' + esc(f.ordner) + '</b>';
+    return tr([date(f.uploaded), where + '<br><span class="mono">' + esc(f.name) + '</span> · ' + size(f.size)]);
+  }
+  function logRow(l){ return tr([date(l.at), esc(l.email) + ': ' + esc(l.action) + (l.detail ? ' · <span class="mono">' + esc(l.detail) + '</span>' : '')]); }
+
+  // ---------- Datei rueckwaerts ----------
+  var drop = $('drop');
+  ['dragenter','dragover'].forEach(function(t){ drop.addEventListener(t, function(e){ e.preventDefault(); drop.classList.add('over'); }); });
+  ['dragleave','drop'].forEach(function(t){ drop.addEventListener(t, function(e){ e.preventDefault(); drop.classList.remove('over'); }); });
+  drop.addEventListener('drop', function(e){ var f = e.dataTransfer && e.dataTransfer.files[0]; if (f) pruefeDatei(f); });
+  $('fileIn').addEventListener('change', function(){ if (this.files[0]) pruefeDatei(this.files[0]); this.value = ''; });
+  function pruefeDatei(file){
+    var out = $('fileOut');
+    $('prog').hidden = false; $('progBar').style.width = '0';
+    out.innerHTML = '<p class="sub">Fingerabdruck wird berechnet …</p>';
+    MD5.md5File(file, function(p){ $('progBar').style.width = Math.round(p * 100) + '%'; }).then(function(md5){
+      out.innerHTML = '<p class="sub">Suche im Portal …</p>';
+      return api('/api/datenspur/datei', { md5: md5, size: file.size, name: file.name }).then(function(r){
+        var html = '';
+        if (r.exakt.length) {
+          html += '<div class="big"><span class="tag err">Gefunden</span> Diese Datei liegt ' + r.exakt.length + '× im Portal.</div>';
+          html += grp('Genau diese Datei (gleicher Fingerabdruck)', r.exakt.map(fileRow));
+          html += r.freigaben.length ? grp('Freigabe-Links, in denen sie steckte', r.freigaben.map(shareRow)) : '<p class="sub">Sie war in keinem Freigabe-Link. Sie kann über den Portalzugang des Kunden oder per Mail weitergegeben worden sein.</p>';
+          html += grp('Protokoll: Uploads und Downloads', r.protokoll.map(logRow));
+        } else {
+          html += '<div class="big"><span class="tag ok">Nicht gefunden</span> Diese Datei liegt nicht im Portal.</div>';
+          html += '<p class="sub">Sie wurde nie über das Portal ausgetauscht, oder sie wurde danach verändert (schon ein erneutes Speichern ändert den Fingerabdruck).</p>';
+          if (r.gleicheGroesse.length) html += grp('Hinweis: Dateien mit exakt gleicher Grösse (Inhalt nicht bestätigt)', r.gleicheGroesse.map(fileRow));
+          if (r.protokoll.length) html += grp('Protokolleinträge mit gleichem Dateinamen', r.protokoll.map(logRow));
+        }
+        html += '<p class="note">Fingerabdruck (MD5): <span class="mono">' + md5 + '</span> · ' + esc(file.name) + ', ' + size(file.size) + '. Verglichen mit ' + r.umfang.dateien + ' Dateien' + (r.umfang.dateienVollstaendig ? '' : ' (Auflistung unvollständig)') + '. In mehreren Teilen hochgeladene, sehr grosse Dateien haben keinen vergleichbaren Fingerabdruck.</p>';
+        out.innerHTML = html;
+      });
+    }).catch(function(e){ out.innerHTML = '<p class="err-msg">' + esc(e.message) + '</p>'; }).then(function(){ $('prog').hidden = true; });
+  }
+
+  // ---------- Textsuche ----------
+  var letzte = null;
+  $('qForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    var q = $('q').value.trim(), out = $('qOut'), btn = $('qBtn');
+    if (q.length < 2) return;
+    btn.disabled = true; out.innerHTML = '<p class="sub">Suche läuft …</p>';
+    api('/api/datenspur/suche', { q: q }).then(function(r){
+      letzte = r;
+      var n = r.dateien.length + r.freigaben.length + r.handbuchLinks.length + r.anfragen.length + r.zugangsanfragen.length + r.dokumente.length + r.cadKommentare.length + r.protokoll.length;
+      var html = '<div class="big">' + (n ? n + ' Treffer für «' + esc(q) + '»' : 'Keine Treffer für «' + esc(q) + '»') + '</div>';
+      html += grp('Dateien', r.dateien.map(fileRow));
+      html += grp('Freigabe-Links', r.freigaben.map(shareRow));
+      html += grp('Freigabe-Links QM-Handbuch', r.handbuchLinks.map(function(s){ return tr([date(s.createdAt), '<b>' + esc(s.label || '(ohne Bezeichnung)') + '</b> ' + (s.active ? '<span class="tag warn">aktiv</span>' : '<span class="tag">inaktiv</span>') + ', ' + s.views + ' Aufrufe']); }));
+      html += grp('Anfragen über die Website', r.anfragen.map(function(i){ return tr([date(i.am), '<b>' + esc(i.name) + '</b> · ' + esc(i.email) + (i.telefon ? ' · ' + esc(i.telefon) : '') + (i.firma ? ' · ' + esc(i.firma) : '') + '<br>' + esc(i.thema) + ': ' + esc(i.auszug)]); }));
+      html += grp('Zugangsanfragen', r.zugangsanfragen.map(function(z){ return tr([date(z.am), '<b>' + esc(z.name) + '</b> · ' + esc(z.email) + (z.firma ? ' · ' + esc(z.firma) : '') + ' · ' + esc(z.status) + (z.auszug ? '<br>' + esc(z.auszug) : '')]); }));
+      html += grp('Dokumentenlenkung', r.dokumente.map(function(d){ return tr([esc(d.nummer), '<b>' + esc(d.titel) + '</b> · ' + esc(d.status) + ' · ' + d.versionen + ' Version' + (d.versionen === 1 ? '' : 'en')]); }));
+      html += grp('3D-Viewer: Kommentare und Freigaben', r.cadKommentare.map(function(c){ return tr([date(c.am), esc(c.art) + ' von ' + esc(c.wer) + ' an <span class="mono">' + esc(c.datei) + '</span><br>' + esc(c.text)]); }));
+      html += grp('Aktivitätsprotokoll', r.protokoll.map(logRow));
+      var u = r.umfang;
+      html += '<p class="note">Durchsucht: ' + u.dateien + ' Dateien' + (u.dateienVollstaendig ? '' : ' (unvollständig)') + ', ' + u.freigaben + ' Freigabe-Links, ' + u.anfragen + ' Anfragen, ' + u.dokumente + ' Dokumente, die letzten ' + u.protokoll + ' von ' + u.protokollGesamt + ' Protokolleinträgen.</p>';
+      if (n) html += '<div class="row" style="margin-top:.8rem"><button class="btn ghost" type="button" id="exportBtn">Als Auskunft herunterladen (Text)</button></div><p class="note">Für eine Auskunft nach dem Datenschutzgesetz: alle gefundenen Angaben zu einer Person in einer Textdatei. Vor dem Versand prüfen, ob Angaben Dritter enthalten sind.</p>';
+      out.innerHTML = html;
+      var eb = $('exportBtn'); if (eb) eb.addEventListener('click', exportieren);
+    }).catch(function(e){ out.innerHTML = '<p class="err-msg">' + esc(e.message) + '</p>'; }).then(function(){ btn.disabled = false; });
+  });
+
+  function exportieren(){
+    var r = letzte; if (!r) return;
+    var L = [];
+    L.push('Auskunft über gespeicherte Daten, Alta Engineering AG');
+    L.push('Suchbegriff: ' + r.q);
+    L.push('Erstellt: ' + new Date().toLocaleString('de-CH'));
+    L.push('Quelle: Kundenportal (Dateien, Freigabe-Links, Anfragen, Dokumentenlenkung, Kommentare, Aktivitätsprotokoll)');
+    function block(t, items, fn){ if (!items.length) return; L.push(''); L.push(t + ' (' + items.length + ')'); L.push(new Array(t.length + 1).join('-')); items.forEach(function(x){ L.push('- ' + fn(x)); }); }
+    block('Anfragen über die Website', r.anfragen, function(i){ return date(i.am) + ', ' + i.name + ', ' + i.email + (i.telefon ? ', ' + i.telefon : '') + (i.firma ? ', ' + i.firma : '') + ', Thema: ' + i.thema + ', Status: ' + i.status; });
+    block('Zugangsanfragen', r.zugangsanfragen, function(z){ return date(z.am) + ', ' + z.name + ', ' + z.email + (z.firma ? ', ' + z.firma : '') + ', Status: ' + z.status; });
+    block('Dateien', r.dateien, function(f){ return f.ordner + '/' + f.name + ', ' + size(f.size) + ', hochgeladen ' + date(f.uploaded); });
+    block('Freigabe-Links', r.freigaben, function(s){ return (s.label || '(ohne Bezeichnung)') + ', erstellt ' + date(s.createdAt) + ' von ' + s.createdBy + ', ' + s.downloads + ' Downloads, ' + (s.active ? 'aktiv' : 'nicht aktiv'); });
+    block('Dokumentenlenkung', r.dokumente, function(d){ return d.nummer + ' ' + d.titel + ', ' + d.status; });
+    block('Kommentare und Freigaben im 3D-Viewer', r.cadKommentare, function(c){ return date(c.am) + ', ' + c.art + ' von ' + c.wer + ': ' + c.text; });
+    block('Aktivitätsprotokoll', r.protokoll, function(l){ return date(l.at) + ', ' + l.email + ': ' + l.action + (l.detail ? ' (' + l.detail + ')' : ''); });
+    var blob = new Blob([L.join('\r\n') + '\r\n'], { type: 'text/plain;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'Auskunft-' + r.q.replace(/[^A-Za-z0-9@._-]+/g, '_').slice(0, 40) + '.txt';
+    a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 2000);
+  }
+
+  // ---------- Websuche ----------
+  function links(){
+    var t = $('w').value.trim(), box = $('wLinks');
+    if (!t) { box.innerHTML = '<p class="sub" style="margin:0">Begriff eingeben, dann erscheinen die Suchlinks.</p>'; return; }
+    var own = $('wOwn').checked ? ' -site:alta-engineering.ch' : '';
+    var q = '"' + t.replace(/"/g, '') + '"' + own;
+    var istMail = /@/.test(t);
+    var L = [
+      ['Google', 'überall', 'https://www.google.com/search?q=' + encodeURIComponent(q)],
+      ['Google', 'nur PDF-Dateien', 'https://www.google.com/search?q=' + encodeURIComponent(q + ' filetype:pdf')],
+      ['Google', 'Zeichnungen (DWG, DXF, STEP)', 'https://www.google.com/search?q=' + encodeURIComponent(q + ' (filetype:dwg OR filetype:dxf OR filetype:step OR filetype:stp)')],
+      ['Bing', 'überall', 'https://www.bing.com/search?q=' + encodeURIComponent(q)],
+      ['DuckDuckGo', 'überall', 'https://duckduckgo.com/?q=' + encodeURIComponent(q)],
+      ['GitHub', 'Code und Dateien', 'https://github.com/search?type=code&q=' + encodeURIComponent('"' + t + '"')]
+    ];
+    if (istMail) L.push(['Have I Been Pwned', 'Adresse in bekannten Datenlecks? Dort selbst eintragen', 'https://haveibeenpwned.com/']);
+    box.innerHTML = L.map(function(x){ return '<a href="' + esc(x[2]) + '" target="_blank" rel="noopener noreferrer"><b>' + esc(x[0]) + '</b><span>' + esc(x[1]) + '</span></a>'; }).join('');
+  }
+  $('w').addEventListener('input', links); $('wOwn').addEventListener('change', links); links();
+})();
+</script>
+</body>
+</html>

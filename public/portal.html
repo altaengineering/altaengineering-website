@@ -427,7 +427,12 @@ tbody tr:hover{background:var(--surface-2)}
         </a>
         <a class="tool-card" href="/rechner" target="_blank" rel="noopener">
           <span class="ti">📐</span><b>Ingenieur-Rechner</b>
-          <span>Passungen nach ISO 286, Gewicht von Profilen und Blechen, Biegebalken, Schraubenkräfte und Einheiten. Mit Ergebnis zum Kopieren für Bericht oder Offerte.</span>
+          <span>Passungen, Gewicht mit Normprofilen, Biegebalken, Schrauben, Elektronik, Werkstatt, Einheiten und ein Fachwörterbuch (Idiotikon). Ergebnis zum Kopieren für Bericht oder Offerte.</span>
+          <em>Öffnen →</em>
+        </a>
+        <a class="tool-card" href="/datenspur" target="_blank" rel="noopener" id="datenspurCard" style="display:none">
+          <span class="ti">🔎</span><b>Datenspur</b>
+          <span>Eigene Daten rückwärts suchen: Woher stammt eine aufgetauchte Zeichnung, über welchen Link ging sie hinaus? Wo kommen eine Nummer, ein Name oder eine E-Mail bei uns vor? Mit Auskunft nach Datenschutzgesetz. Nur für Admins.</span>
           <em>Öffnen →</em>
         </a>
       </div>
@@ -659,6 +664,7 @@ tbody tr:hover{background:var(--surface-2)}
         document.getElementById('navDmsLink').style.display = '';
         document.getElementById('navHandbuchLink').style.display = '';
         document.getElementById('adminPanel').style.display = '';
+        document.getElementById('datenspurCard').style.display = '';
         document.getElementById('uploadTargetRow').style.display = '';
         document.getElementById('uploadTarget').value = me.folder;
         loadFolders();

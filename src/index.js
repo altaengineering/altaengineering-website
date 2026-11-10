@@ -7,6 +7,7 @@ import { collectKv, gzipJson, runBackup, listBackups } from "./backup.js";
 import { normalizeDomain, runSecurityCheck } from "./security-check.js";
 import { handleCad } from "./cad.js";
 import { handleShareView, isShareViewPath } from "./share-view.js";
+import { handleDatenspur } from "./datenspur.js";
 import { refreshStorage, describe as describeStorage, checkStorageAlert, getQuota, parseQuotaGb, setQuota } from "./storage.js";
 
 // Alta Engineering Kundenportal — Cloudflare Worker
@@ -123,7 +124,7 @@ async function listObjects(env, prefix, delimiter, { maxPages = 30 } = {}) {
     if (!Array.isArray(commonPrefixes)) commonPrefixes = [commonPrefixes];
 
     for (const c of contents) {
-      if (c && c.Key) objects.push({ key: c.Key, size: Number(c.Size || 0), uploaded: c.LastModified });
+      if (c && c.Key) objects.push({ key: c.Key, size: Number(c.Size || 0), uploaded: c.LastModified, etag: String(c.ETag || "").replace(/"/g, "") });
     }
     for (const p of commonPrefixes) {
       if (p && p.Prefix) prefixes.push(p.Prefix);
@@ -1083,6 +1084,10 @@ export default {
       request, url, env, admin, email, ownFolder, json, isSafeKey, b2Client, bucketUrl, logActivity,
     });
     if (cadResponse) return cadResponse;
+
+    // --- Datenspur: eigene Daten rueckwaerts suchen (nur Admins), siehe src/datenspur.js ---
+    const spurResponse = await handleDatenspur({ request, url, env, admin, email, json, listObjects, logActivity });
+    if (spurResponse) return spurResponse;
 
     // --- Dokumentenlenkung / DMS (/dms): komplett in src/dms.js ---
     const dmsResponse = await handleDms({

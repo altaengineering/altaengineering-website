@@ -798,3 +798,11 @@ Berechtigung für Workers-Deployment in diesem Account).
 - **Ingenieur-Rechner** `/rechner` (`public/rechner.html`, `public/rechner-lib.js`): Passungen ISO 286, Gewicht, Biegebalken, Schrauben (VDI 2230), Einheiten. Test: `node scripts/test-rechner.mjs`.
 - **Abmelden** in Portal, Dokumentenlenkung und Rechner über `/cdn-cgi/access/logout`.
 - **Speicher:** Planungsgrenze im Portal einstellbar (`POST /api/storage/quota`, KV `REQUESTS` Schlüssel `cfg:storage-quota-gb`, sonst `STORAGE_QUOTA_GB`). Warnstufe 2 neu auch bei weniger als 10 GB frei. Anleitung «Speicher aufstocken» direkt im Portal.
+
+### Datenspur (November 2026)
+
+- `/datenspur` (`public/datenspur.html`, Worker `src/datenspur.js`, nur Admins): eigene Daten rückwärts suchen.
+- **Datei rückwärts:** Der Browser berechnet den MD5 der Datei (`public/md5.js`), der Worker vergleicht ihn mit dem ETag aller Dateien in Backblaze (`listObjects` liefert seit November 2026 `etag`). Ergebnis: Ordner bzw. Dokument der Dokumentenlenkung, Freigabe-Links mit dieser Datei, Protokolleinträge. Grenze: in Teilen hochgeladene, sehr grosse Dateien haben keinen MD5-ETag.
+- **Textsuche** (`POST /api/datenspur/suche`): Dateinamen, Freigabe-Links, Website- und Zugangsanfragen, Dokumentenlenkung, CAD-Kommentare, die letzten 2000 Protokolleinträge. Telefonnummern in jeder Schreibweise. Export als Textdatei für eine Auskunft nach DSG.
+- **Websuche:** nur fertige Suchlinks (Google, Bing, DuckDuckGo, GitHub), es wird nichts automatisch abgefragt.
+- Jede Suche steht im Aktivitätsprotokoll. Test: `node scripts/test-datenspur.mjs`.
