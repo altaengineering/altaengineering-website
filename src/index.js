@@ -148,7 +148,8 @@ async function listObjects(env, prefix, delimiter, { maxPages = 30 } = {}) {
 // keine der Kernfunktionen (Upload, Zugangsanfrage) darf davon abhaengen. Direkter fetch-Aufruf
 // an die Resend-REST-API statt des npm-Pakets, um keine zusaetzliche Abhaengigkeit im ohnehin
 // schlanken Worker-Bundle zu brauchen.
-async function sendMail(env, { to, subject, text }) {
+// replyTo: Adresse, an die "Antworten" im Mailprogramm geht (bei Anfragen die des Absenders)
+async function sendMail(env, { to, subject, text, replyTo }) {
   if (!env.RESEND_API_KEY) {
     console.warn("RESEND_API_KEY nicht gesetzt, E-Mail wurde nicht versendet:", subject);
     return false;
@@ -165,6 +166,7 @@ async function sendMail(env, { to, subject, text }) {
         to,
         subject,
         text,
+        ...(replyTo ? { reply_to: replyTo } : {}),
       }),
     });
     if (!res.ok) {
@@ -563,6 +565,7 @@ export default {
         await env.REQUESTS.put("inq:" + inqId, JSON.stringify(inquiry));
         const notified = await sendMail(env, {
           to: notifyList(env),
+          replyTo: reqEmail,
           subject: `Website-Anfrage: ${topic ? INQUIRY_TOPICS[topic] : "Kontakt"} von ${name}`,
           text:
             `Neue Anfrage über das Kontaktformular der Website.\n\n` +
@@ -590,6 +593,7 @@ export default {
       await env.REQUESTS.put("req:" + id, JSON.stringify(record));
       await sendMail(env, {
         to: notifyList(env),
+        replyTo: reqEmail,
         subject: `Kundenportal: neue Zugangsanfrage von ${name || reqEmail}`,
         text:
           `Neue Zugangsanfrage fuers Kundenportal.\n\n` +
